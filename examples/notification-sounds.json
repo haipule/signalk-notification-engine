@@ -1,0 +1,10 @@
+{
+  "emergency": "sounds/emergency.wav",
+  "alarm": "sounds/alarm.wav",
+  "warn": "sounds/warn.wav",
+  "alert": "sounds/alert.wav",
+  "nominal": "sounds/nominal.wav",
+  "normal": "sounds/normal.wav",
+  "info": "sounds/info.wav",
+  "notification": "sounds/notification.wav"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "signalk-notification-engine",
+  "version": "0.1.3",
+  "description": "Signal K notification automation engine with visual flows.",
+  "main": "index.js",
+  "scripts": {
+    "check": "node --check index.js && node --check lib/audio-player.js && node --check lib/notification-store.js && node --check lib/classifier.js && node --check lib/actions.js && node --check lib/policies.js && node --check lib/history-repository.js && node --check lib/lifecycle-rules.js && node --check lib/notification-snapshot.js && node --check lib/node-red-config.js && node --check lib/node-red-runtime.js && node --check public/app.js && node --check test/*.test.js",
+    "test": "node --test",
+    "prepublishOnly": "npm run check && npm test"
+  },
+  "keywords": ["signalk-node-server-plugin", "signalk-webapp", "signalk", "notification", "alarm"],
+  "signalk": {
+    "displayName": "Notification Engine",
+    "appIcon": "icon.svg"
+  },
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "files": ["index.js", "lib", "public", "examples", "sounds", "lifecycle-rules.json", "node-red", "README.md", "package.json"]
+}

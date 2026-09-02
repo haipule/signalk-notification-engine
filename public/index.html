@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Notification Engine</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <header>
+      <div><p class="eyebrow">SIGNAL K</p><h1>Alarm Centre</h1></div>
+      <p id="summary" aria-live="polite">Loading notifications…</p>
+    </header>
+    <main>
+      <div id="visual-alerts" aria-live="assertive"></div>
+      <div class="alarm-layout">
+        <section aria-labelledby="active-title">
+          <div class="section-title"><h2 id="active-title">Selected notifications</h2><div class="main-header-actions"><div id="actions" class="actions" aria-label="Selected notification actions">
+            <a class="config-link" href="/admin/#/apps/configuration/-" target="_blank" rel="noopener" title="Open Plugin Administration" aria-label="Open Plugin Administration">☰</a>
+            <button data-global-action="silence" title="Silence all" aria-label="Silence all">🔇<span>all</span></button>
+            <button data-global-action="acknowledge" title="Acknowledge all" aria-label="Acknowledge all">✓<span>all</span></button>
+          </div><button id="refresh" title="Refresh" aria-label="Refresh">↻</button></div></div>
+          <div id="notifications" class="notification-table-wrap"></div>
+        </section>
+        <aside id="detail-sheet" class="detail-sheet" tabindex="-1" aria-label="Selected notification details" aria-hidden="true">
+          <div class="detail-header"><p id="detail-state" class="state detail-state-hidden" aria-hidden="true"></p><div class="detail-header-actions"><div id="detail-actions" class="detail-actions" aria-label="Selected notification actions">
+            <button data-action="silence" title="Silence" aria-label="Silence">🔇</button>
+            <button data-action="acknowledge" title="Acknowledge" aria-label="Acknowledge">✓</button>
+            <button data-action="clear" title="Clear" aria-label="Clear">⏹</button>
+            <button id="show-history" type="button" title="History" aria-label="History">🕘</button>
+          </div><div class="detail-window-actions"><button id="drag-detail" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-detail" class="close-detail" aria-label="Close notification details">×</button></div></div></div>
+          <h2 id="detail-message">Select a notification</h2>
+          <dl class="detail-list">
+            <div><dt>Category</dt><dd id="detail-category"></dd></div>
+            <div><dt>Source</dt><dd id="detail-source"></dd></div>
+            <div><dt>Signal K path</dt><dd id="detail-path"></dd></div>
+            <div><dt>Notification ID</dt><dd id="detail-id"></dd></div>
+            <div><dt>History occurrence ID</dt><dd id="detail-occurrence-id" class="copyable" title="Select and copy this ID"></dd></div>
+            <div><dt>Status</dt><dd id="detail-status"></dd></div>
+            <div><dt>Presentation</dt><dd id="detail-method"></dd></div>
+            <div><dt>Policy</dt><dd id="detail-policy"></dd></div>
+          </dl>
+          <p id="detail-action-note" class="detail-note"></p>
+        </aside>
+      </div>
+      <aside id="history-sheet" class="detail-sheet history-sheet" tabindex="-1" aria-label="Notification history" aria-hidden="true">
+        <div class="detail-header"><div class="detail-header-actions"><div class="detail-window-actions history-actions"><button id="delete-history" class="history-delete-icon" type="button" title="Delete this history" aria-label="Delete this history">🗑</button><button id="drag-history" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-history" class="close-detail" aria-label="Close history">×</button></div></div></div>
+        <p id="history-key" class="detail-note"></p>
+        <p id="history-count" class="detail-note"></p>
+        <ol id="history" class="history"></ol><button id="history-more" type="button">Show more</button>
+      </aside>
+    </main>
+    <template id="notification-template">
+      <tr class="notification-row" tabindex="0" role="button" data-notification-id="">
+        <td class="state" aria-label="Notification state"></td><td class="message"></td><td class="category"></td><td class="source"></td><td class="status-badges"></td>
+      </tr>
+    </template>
+    <script src="app.js?v=0.1.3"></script>
+  </body>
+</html>

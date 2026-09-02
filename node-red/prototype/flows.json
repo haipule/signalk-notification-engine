@@ -1,0 +1,88 @@
+[{
+  "id": "tab-prototype",
+  "type": "tab",
+  "label": "Notification Engine prototype",
+  "disabled": false
+}, {
+  "id": "inject-alarm",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Demo alarm",
+  "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
+  "payload": "{\"path\":\"notifications.navigation.anchor\",\"state\":\"alarm\",\"message\":\"Anchor is dragging\",\"data\":{\"distance\":52}}",
+  "payloadType": "json",
+  "topic": "signalk/notification",
+  "x": 130,
+  "y": 100,
+  "wires": [["normalize"]]
+}, {
+  "id": "normalize",
+  "type": "function",
+  "z": "tab-prototype",
+  "name": "Notification input",
+  "func": "const input = msg.payload; msg.topic = 'signalk/notification'; msg.payload = { path: input.path, context: 'vessels.self', source: { label: 'prototype' }, timestamp: new Date().toISOString(), notification: { state: input.state, message: input.message, data: input.data || {} }, engine: { origin: 'signalk', executionId: String(Date.now()), depth: 0 } }; return msg;",
+  "outputs": 1,
+  "x": 370,
+  "y": 100,
+  "wires": [["filter"]]
+}, {
+  "id": "filter",
+  "type": "switch",
+  "z": "tab-prototype",
+  "name": "Policy: alarm visible",
+  "property": "payload.notification.state",
+  "propertyType": "msg",
+  "rules": [{"t": "eq", "v": "alarm", "vt": "str"}, {"t": "eq", "v": "emergency", "vt": "str"}],
+  "checkall": false,
+  "outputs": 2,
+  "x": 610,
+  "y": 100,
+  "wires": [["visual", "sound", "history"], ["visual", "sound", "history"]]
+}, {
+  "id": "visual",
+  "type": "debug",
+  "z": "tab-prototype",
+  "name": "Visual adapter",
+  "active": true,
+  "tosidebar": true,
+  "complete": "payload",
+  "targetType": "msg",
+  "x": 880,
+  "y": 60,
+  "wires": []
+}, {
+  "id": "sound",
+  "type": "debug",
+  "z": "tab-prototype",
+  "name": "Sound adapter",
+  "active": true,
+  "tosidebar": true,
+  "complete": "payload",
+  "targetType": "msg",
+  "x": 880,
+  "y": 120,
+  "wires": []
+}, {
+  "id": "history",
+  "type": "debug",
+  "z": "tab-prototype",
+  "name": "History adapter",
+  "active": true,
+  "tosidebar": true,
+  "complete": "payload",
+  "targetType": "msg",
+  "x": 880,
+  "y": 180,
+  "wires": []
+}, {
+  "id": "inject-policy",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Notification Engine config",
+  "props": [{"p": "payload"}],
+  "payloadType": "json",
+  "payload": "{\"schemaVersion\":1,\"notificationEngine\":{\"stateOrder\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"visibleStates\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"policies\":[],\"classificationRules\":[],\"stateColors\":{},\"visualRules\":{},\"soundsByState\":{},\"historyRules\":[],\"historyStates\":[\"emergency\",\"alarm\"],\"shortcutInfo\":\"i\",\"shortcutHistory\":\"h\",\"testNotif\":{\"enabled\":false}}}",
+  "x": 140,
+  "y": 260,
+  "wires": [[]]
+}]
