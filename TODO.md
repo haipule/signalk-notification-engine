@@ -55,6 +55,17 @@
   und Einzelaktionen im Infofenster ist umgesetzt.
 - Historie zeigt das Datum pro Tag nur beim ersten Eintrag.
 
+- [ ] Node-RED-Node-Set bei der Plugin-Installation automatisch in einem
+  update-sicheren Examples-/Local-Ordner der eingebetteten Node-RED-Instanz
+  bereitstellen; nicht in verwaltete `node_modules`-Examples schreiben.
+- [ ] In der WebApp einen `Rules`-Button ergänzen, der für die ausgewählte
+  Notification die zugehörige Regel in einem separaten Fenster anzeigt.
+- [ ] Im Config-Flow die Sound-Eigenschaften `once`, `repeat` und `loop` als
+  eigene Nodes unterstützen.
+- [ ] Einen pseudo-terminalen `ACTIVATE`-Debug-Node als Regelabschluss
+  verwenden; nur durchgängig vom Auslöser bis `ACTIVATE` verbundene Regeln
+  werden beim Deploy rückwärts geprüft und aktiviert.
+
 ## 2. Presentation behaviour
 
 - Tie-Breaker der Sortierung festlegen: Bei gleicher Zustandsstufe zuletzt

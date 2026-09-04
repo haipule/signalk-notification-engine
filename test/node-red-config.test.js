@@ -36,3 +36,10 @@ test('rejects missing, duplicate, and invalid configuration nodes', () => {
   assert.throws(() => extractConfig([...flow(config), ...flow(config)]), /Expected exactly one/)
   assert.throws(() => extractConfig(flow({ schemaVersion: 2, notificationEngine: config.notificationEngine })), /Unsupported/)
 })
+
+test('accepts all supported notification states', () => {
+  const configured = structuredClone(config)
+  configured.notificationEngine.stateOrder = ['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal']
+  configured.notificationEngine.visibleStates = [...configured.notificationEngine.stateOrder]
+  assert.deepEqual(extractConfig(flow(configured)), configured)
+})

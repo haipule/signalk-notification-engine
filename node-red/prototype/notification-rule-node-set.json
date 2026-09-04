@@ -1,0 +1,11 @@
+[
+  { "id": "set-notification", "type": "inject", "name": "Notification", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"state\":\"alarm\"}", "x": 160, "y": 80, "wires": [[]] },
+  { "id": "set-path", "type": "inject", "name": "Path / Wildcard", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"path\":\"navigation.anchor\"}", "x": 160, "y": 140, "wires": [[]] },
+  { "id": "set-category", "type": "inject", "name": "Category", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"category\":\"anchor\"}", "x": 160, "y": 200, "wires": [[]] },
+  { "id": "set-visible", "type": "inject", "name": "Visible", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"display\":\"overlay\"}", "x": 160, "y": 260, "wires": [[]] },
+  { "id": "set-color", "type": "inject", "name": "Color", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"color\":\"red\",\"hex\":\"#d32f2f\"}", "x": 160, "y": 320, "wires": [[]] },
+  { "id": "set-flash", "type": "inject", "name": "Flash", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"flash\":true}", "x": 160, "y": 380, "wires": [[]] },
+  { "id": "set-sound", "type": "inject", "name": "Sound", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"soundFile\":\"alarm.wav\"}", "x": 160, "y": 440, "wires": [[]] },
+  { "id": "set-history", "type": "inject", "name": "History", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"history\":true}", "x": 160, "y": 500, "wires": [[]] },
+  { "id": "set-script", "type": "inject", "name": "Script", "props": [{ "p": "payload" }], "payloadType": "json", "payload": "{\"script\":\"/path/to/script\"}", "x": 160, "y": 560, "wires": [[]] }
+]

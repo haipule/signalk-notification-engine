@@ -1,0 +1,150 @@
+[
+  {
+    "id": "tab-rule-editor",
+    "type": "tab",
+    "label": "Notification rules – visual editor",
+    "disabled": false
+  },
+  {
+    "id": "rule-alarm",
+    "type": "inject",
+    "z": "tab-rule-editor",
+    "name": "Notification: alarm",
+    "props": [{ "p": "payload" }],
+    "payloadType": "json",
+    "payload": "{\"state\":\"alarm\",\"ruleId\":\"alarm\"}",
+    "x": 140,
+    "y": 120,
+    "wires": [["visible-banner", "visible-table", "color-red", "sound-bell", "history-always"]]
+  },
+  {
+    "id": "rule-emergency",
+    "type": "inject",
+    "z": "tab-rule-editor",
+    "name": "Notification: emergency",
+    "props": [{ "p": "payload" }],
+    "payloadType": "json",
+    "payload": "{\"state\":\"emergency\",\"ruleId\":\"emergency\"}",
+    "x": 140,
+    "y": 180,
+    "wires": [["visible-overlay", "visible-table", "color-red", "sound-siren", "history-always"]]
+  },
+  {
+    "id": "visible-banner",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "Visible: banner",
+    "rules": [{ "t": "set", "p": "payload.display", "pt": "msg", "to": "banner", "tot": "str" }],
+    "x": 410,
+    "y": 60,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "visible-overlay",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "Visible: overlay",
+    "rules": [{ "t": "set", "p": "payload.display", "pt": "msg", "to": "overlay", "tot": "str" }],
+    "x": 410,
+    "y": 100,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "visible-table",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "Visible: table",
+    "rules": [{ "t": "set", "p": "payload.visibleInTable", "pt": "msg", "to": "true", "tot": "bool" }],
+    "x": 410,
+    "y": 140,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "color-red",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "Color: red (#d32f2f)",
+    "rules": [
+      { "t": "set", "p": "payload.color", "pt": "msg", "to": "red", "tot": "str" },
+      { "t": "set", "p": "payload.hex", "pt": "msg", "to": "#d32f2f", "tot": "str" }
+    ],
+    "x": 410,
+    "y": 200,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "sound-bell",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "Sound: bell",
+    "rules": [{ "t": "set", "p": "payload.soundFile", "pt": "msg", "to": "bell1.wav", "tot": "str" }],
+    "x": 410,
+    "y": 260,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "sound-siren",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "Sound: siren",
+    "rules": [{ "t": "set", "p": "payload.soundFile", "pt": "msg", "to": "sirene.wav", "tot": "str" }],
+    "x": 410,
+    "y": 300,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "history-always",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "History: always (alarm/emergency)",
+    "rules": [{ "t": "set", "p": "payload.history", "pt": "msg", "to": "true", "tot": "bool" }],
+    "x": 410,
+    "y": 360,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "history-node",
+    "type": "change",
+    "z": "tab-rule-editor",
+    "name": "History",
+    "rules": [{ "t": "set", "p": "payload.history", "pt": "msg", "to": "true", "tot": "bool" }],
+    "x": 410,
+    "y": 420,
+    "wires": [["rule-assembler"]]
+  },
+  {
+    "id": "rule-assembler",
+    "type": "function",
+    "z": "tab-rule-editor",
+    "name": "Rule assembler",
+    "func": "const input = msg.payload;\nif (!input?.state || !input.ruleId) return null;\nconst rules = context.get('rules') || {};\nrules[input.ruleId] = { ...(rules[input.ruleId] || {}), ...input };\ncontext.set('rules', rules);\nmsg.payload = { rules };\nreturn msg;",
+    "outputs": 1,
+    "x": 700,
+    "y": 220,
+    "wires": [["rule-validate"]]
+  },
+  {
+    "id": "rule-validate",
+    "type": "function",
+    "z": "tab-rule-editor",
+    "name": "Rule prüfen",
+    "func": "const rules = msg.payload?.rules || {};\nconst errors = [];\nfor (const [id, rule] of Object.entries(rules)) {\n  if (!rule.state) errors.push(`${id}: state fehlt`);\n  if (rule.display === 'overlay' && !rule.color) errors.push(`${id}: Farbe fehlt`);\n}\nmsg.payload = { valid: errors.length === 0, errors, rules };\nreturn msg;",
+    "outputs": 1,
+    "x": 940,
+    "y": 220,
+    "wires": [["deploy"]]
+  },
+  {
+    "id": "deploy",
+    "type": "debug",
+    "z": "tab-rule-editor",
+    "name": "Deploy (prototype)",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1160,
+    "y": 220,
+    "wires": []
+  }
+]

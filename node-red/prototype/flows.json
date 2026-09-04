@@ -81,8 +81,409 @@
   "name": "Notification Engine config",
   "props": [{"p": "payload"}],
   "payloadType": "json",
-  "payload": "{\"schemaVersion\":1,\"notificationEngine\":{\"stateOrder\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"visibleStates\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"policies\":[],\"classificationRules\":[],\"stateColors\":{},\"visualRules\":{},\"soundsByState\":{},\"historyRules\":[],\"historyStates\":[\"emergency\",\"alarm\"],\"shortcutInfo\":\"i\",\"shortcutHistory\":\"h\",\"testNotif\":{\"enabled\":false}}}",
+  "payload": "{\"schemaVersion\":1,\"notificationEngine\":{\"stateOrder\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"visibleStates\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"policies\":[],\"classificationRules\":[],\"stateColors\":{\"emergency\":\"red\",\"alarm\":\"darkRed\",\"warn\":\"yellow\",\"alert\":\"orange\",\"nominal\":\"green\",\"normal\":\"grey\"},\"visualRules\":{\"emergency\":{\"display\":\"overlay\",\"color\":\"red\",\"flash\":true,\"acknowledgeRequired\":true},\"alarm\":{\"display\":\"overlay\",\"color\":\"darkRed\",\"flash\":true,\"acknowledgeRequired\":true},\"warn\":{\"display\":\"banner\",\"color\":\"yellow\",\"flash\":false,\"acknowledgeRequired\":false},\"alert\":{\"display\":\"banner\",\"color\":\"orange\",\"flash\":false,\"acknowledgeRequired\":false},\"nominal\":{\"display\":\"table\",\"color\":\"green\",\"flash\":false,\"acknowledgeRequired\":false},\"normal\":{\"display\":\"table\",\"color\":\"grey\",\"flash\":false,\"acknowledgeRequired\":false}},\"soundsByState\":{},\"historyRules\":[],\"historyStates\":[\"emergency\",\"alarm\"],\"shortcutInfo\":\"i\",\"shortcutHistory\":\"h\",\"testNotif\":{\"enabled\":false}}}",
   "x": 140,
   "y": 260,
   "wires": [[]]
+}, {
+  "id": "color-emergency",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Color: emergency = red",
+  "props": [{"p": "payload"}],
+  "payload": "{\"state\":\"emergency\",\"color\":\"red\"}",
+  "payloadType": "json",
+  "x": 160,
+  "y": 360,
+  "wires": [["color-mapping"]]
+}, {
+  "id": "color-alarm",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Color: alarm = darkRed",
+  "props": [{"p": "payload"}],
+  "payload": "{\"state\":\"alarm\",\"color\":\"darkRed\"}",
+  "payloadType": "json",
+  "x": 160,
+  "y": 400,
+  "wires": [["color-mapping"]]
+}, {
+  "id": "color-warn",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Color: warn = yellow",
+  "props": [{"p": "payload"}],
+  "payload": "{\"state\":\"warn\",\"color\":\"yellow\"}",
+  "payloadType": "json",
+  "x": 160,
+  "y": 440,
+  "wires": [["color-mapping"]]
+}, {
+  "id": "color-alert",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Color: alert = orange",
+  "props": [{"p": "payload"}],
+  "payload": "{\"state\":\"alert\",\"color\":\"orange\"}",
+  "payloadType": "json",
+  "x": 160,
+  "y": 480,
+  "wires": [["color-mapping"]]
+}, {
+  "id": "color-nominal",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Color: nominal = green",
+  "props": [{"p": "payload"}],
+  "payload": "{\"state\":\"nominal\",\"color\":\"green\"}",
+  "payloadType": "json",
+  "x": 160,
+  "y": 520,
+  "wires": [["color-mapping"]]
+}, {
+  "id": "color-normal",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Color: normal = grey",
+  "props": [{"p": "payload"}],
+  "payload": "{\"state\":\"normal\",\"color\":\"grey\"}",
+  "payloadType": "json",
+  "x": 160,
+  "y": 560,
+  "wires": [["color-mapping"]]
+}, {
+  "id": "color-mapping",
+  "type": "function",
+  "z": "tab-prototype",
+  "name": "Color mapping",
+  "func": "const { state, color } = msg.payload;\nif (!state || !color) return null;\nconst stateColors = context.get('stateColors') || {};\nstateColors[state] = color;\ncontext.set('stateColors', stateColors);\nmsg.payload = { stateColors };\nreturn msg;",
+  "outputs": 1,
+  "x": 470,
+  "y": 460,
+  "wires": [["color-result"]]
+}, {
+  "id": "color-red-state",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Status: alarm",
+  "props": [{"p": "payload"}],
+  "payload": "{\"type\":\"state\",\"state\":\"alarm\"}",
+  "payloadType": "json",
+  "x": 130,
+  "y": 660,
+  "wires": [["color-red"]]
+}, {
+  "id": "color-red-flash",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Flash: enabled",
+  "props": [{"p": "payload"}],
+  "payload": "{\"type\":\"flash\",\"enabled\":true}",
+  "payloadType": "json",
+  "x": 130,
+  "y": 720,
+  "wires": [["color-red"]]
+}, {
+  "id": "color-red",
+  "type": "function",
+  "z": "tab-prototype",
+  "name": "Color: red",
+  "func": "const input = msg.payload;\nconst rule = context.get('rule') || { color: 'red', states: [], flash: false };\nif (input.type === 'state' && input.state && !rule.states.includes(input.state)) rule.states.push(input.state);\nif (input.type === 'flash') rule.flash = input.enabled === true;\ncontext.set('rule', rule);\nmsg.payload = { color: rule.color, states: rule.states, flash: rule.flash };\nreturn msg;",
+  "outputs": 1,
+  "x": 430,
+  "y": 690,
+  "wires": [["color-result"]]
+}, {
+  "id": "palette-status-emergency", "type": "inject", "z": "tab-prototype", "name": "Status: emergency", "props": [{"p":"payload"}], "payload": "{\"type\":\"state\",\"state\":\"emergency\"}", "payloadType": "json", "x": 950, "y": 620, "wires": [["palette-red"]]
+}, {
+  "id": "palette-status-alarm", "type": "inject", "z": "tab-prototype", "name": "Status: alarm", "props": [{"p":"payload"}], "payload": "{\"type\":\"state\",\"state\":\"alarm\"}", "payloadType": "json", "x": 950, "y": 660, "wires": [["palette-darkred"]]
+}, {
+  "id": "palette-status-warn", "type": "inject", "z": "tab-prototype", "name": "Status: warn", "props": [{"p":"payload"}], "payload": "{\"type\":\"state\",\"state\":\"warn\"}", "payloadType": "json", "x": 950, "y": 700, "wires": [["palette-yellow"]]
+}, {
+  "id": "palette-status-alert", "type": "inject", "z": "tab-prototype", "name": "Status: alert", "props": [{"p":"payload"}], "payload": "{\"type\":\"state\",\"state\":\"alert\"}", "payloadType": "json", "x": 950, "y": 740, "wires": [["palette-orange"]]
+}, {
+  "id": "palette-status-nominal", "type": "inject", "z": "tab-prototype", "name": "Status: nominal", "props": [{"p":"payload"}], "payload": "{\"type\":\"state\",\"state\":\"nominal\"}", "payloadType": "json", "x": 950, "y": 780, "wires": [["palette-green"]]
+}, {
+  "id": "palette-status-normal", "type": "inject", "z": "tab-prototype", "name": "Status: normal", "props": [{"p":"payload"}], "payload": "{\"type\":\"state\",\"state\":\"normal\"}", "payloadType": "json", "x": 950, "y": 820, "wires": [["palette-grey"]]
+}, {
+  "id": "palette-flash", "type": "inject", "z": "tab-prototype", "name": "Flash: enabled (frei verbinden)", "props": [{"p":"payload"}], "payload": "{\"type\":\"flash\",\"enabled\":true}", "payloadType": "json", "x": 950, "y": 880, "wires": [[]]
+}, {
+  "id": "palette-red", "type": "function", "z": "tab-prototype", "name": "Color: red (#d32f2f)", "func": "const i=msg.payload; const r=context.get('r')||{color:'red',hex:'#d32f2f',states:[],flash:false,display:null}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; if(i.type==='display'&&['banner','overlay'].includes(i.display))r.display=i.display; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 620, "wires": [["palette-result"]]
+}, {
+  "id": "palette-darkred", "type": "function", "z": "tab-prototype", "name": "Color: darkRed (#8b0000)", "func": "const i=msg.payload; const r=context.get('r')||{color:'darkRed',hex:'#8b0000',states:[],flash:false}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 660, "wires": [["palette-result"]]
+}, {
+  "id": "palette-yellow", "type": "function", "z": "tab-prototype", "name": "Color: yellow (#f9a825)", "func": "const i=msg.payload; const r=context.get('r')||{color:'yellow',hex:'#f9a825',states:[],flash:false}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 700, "wires": [["palette-result"]]
+}, {
+  "id": "palette-orange", "type": "function", "z": "tab-prototype", "name": "Color: orange (#fbc02d)", "func": "const i=msg.payload; const r=context.get('r')||{color:'orange',hex:'#fbc02d',states:[],flash:false}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 740, "wires": [["palette-result"]]
+}, {
+  "id": "palette-green", "type": "function", "z": "tab-prototype", "name": "Color: green (#66bb6a)", "func": "const i=msg.payload; const r=context.get('r')||{color:'green',hex:'#66bb6a',states:[],flash:false}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 780, "wires": [["palette-result"]]
+}, {
+  "id": "palette-grey", "type": "function", "z": "tab-prototype", "name": "Color: grey (#9e9e9e)", "func": "const i=msg.payload; const r=context.get('r')||{color:'grey',hex:'#9e9e9e',states:[],flash:false}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 820, "wires": [["palette-result"]]
+}, {
+  "id": "palette-blue", "type": "function", "z": "tab-prototype", "name": "Color: blue (#1976d2)", "func": "const i=msg.payload; const r=context.get('r')||{color:'blue',hex:'#1976d2',states:[],flash:false}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 860, "wires": [["palette-result"]]
+}, {
+  "id": "palette-purple", "type": "function", "z": "tab-prototype", "name": "Color: purple (#7b1fa2)", "func": "const i=msg.payload; const r=context.get('r')||{color:'purple',hex:'#7b1fa2',states:[],flash:false}; if(i.type==='state'&&!r.states.includes(i.state))r.states.push(i.state); if(i.type==='flash')r.flash=i.enabled===true; context.set('r',r); msg.payload=r; return msg;", "outputs": 1, "x": 1230, "y": 900, "wires": [["palette-result"]]
+}, {
+  "id": "palette-result", "type": "debug", "z": "tab-prototype", "name": "Result: color rule", "active": true, "tosidebar": true, "complete": "payload", "targetType": "msg", "x": 1500, "y": 760, "wires": []
+}, {
+  "id": "display-overlay",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Display: overlay (frei verbinden)",
+  "props": [{"p":"payload"}],
+  "payload": "{\"type\":\"display\",\"display\":\"overlay\"}",
+  "payloadType": "json",
+  "x": 950,
+  "y": 940,
+  "wires": [[]]
+}, {
+  "id": "display-banner",
+  "type": "inject",
+  "z": "tab-prototype",
+  "name": "Display: banner (frei verbinden)",
+  "props": [{"p":"payload"}],
+  "payload": "{\"type\":\"display\",\"display\":\"banner\"}",
+  "payloadType": "json",
+  "x": 950,
+  "y": 980,
+  "wires": [[]]
+}, {
+  "id": "color-result",
+  "type": "debug",
+  "z": "tab-prototype",
+  "name": "Result: stateColors",
+  "active": true,
+  "tosidebar": true,
+  "complete": "payload",
+  "targetType": "msg",
+  "x": 730,
+  "y": 460,
+  "wires": []
+}, {
+  "id": "tab-rules",
+  "type": "tab",
+  "label": "Notification rule mapping",
+  "disabled": false
+}, {
+  "id": "rule-alarm",
+  "type": "inject",
+  "z": "tab-rules",
+  "name": "Match: alarm",
+  "props": [{"p":"payload"}],
+  "payload": "{\"state\":\"alarm\"}",
+  "payloadType": "json",
+  "x": 130,
+  "y": 120,
+  "wires": [["alarm-color","alarm-display","alarm-flash","alarm-sound","alarm-policy"]]
+}, {
+  "id": "rule-emergency",
+  "type": "inject",
+  "z": "tab-rules",
+  "name": "Match: emergency",
+  "props": [{"p":"payload"}],
+  "payload": "{\"state\":\"emergency\"}",
+  "payloadType": "json",
+  "x": 130,
+  "y": 420,
+  "wires": [["emergency-color","emergency-display","emergency-flash","emergency-sound","emergency-policy"]]
+}, {
+  "id": "alarm-color", "type": "function", "z": "tab-rules", "name": "Color: red (#d32f2f)", "func": "msg.payload.color='red'; msg.payload.hex='#d32f2f'; return msg;", "outputs": 1, "x": 410, "y": 80, "wires": [["rule-assembler"]]
+}, {
+  "id": "alarm-display", "type": "function", "z": "tab-rules", "name": "Display: overlay", "func": "msg.payload.display='overlay'; return msg;", "outputs": 1, "x": 410, "y": 120, "wires": [["rule-assembler"]]
+}, {
+  "id": "alarm-flash", "type": "function", "z": "tab-rules", "name": "Flash: enabled", "func": "msg.payload.flash=true; return msg;", "outputs": 1, "x": 410, "y": 160, "wires": [["rule-assembler"]]
+}, {
+  "id": "alarm-sound", "type": "function", "z": "tab-rules", "name": "Sound: alarm.wav", "func": "msg.payload.sound='alarm.wav'; return msg;", "outputs": 1, "x": 410, "y": 200, "wires": [["rule-assembler"]]
+}, {
+  "id": "alarm-policy", "type": "function", "z": "tab-rules", "name": "Policy: critical", "func": "msg.payload.policy='critical'; return msg;", "outputs": 1, "x": 410, "y": 240, "wires": [["rule-assembler"]]
+}, {
+  "id": "emergency-color", "type": "function", "z": "tab-rules", "name": "Color: red (#d32f2f)", "func": "msg.payload.color='red'; msg.payload.hex='#d32f2f'; return msg;", "outputs": 1, "x": 410, "y": 380, "wires": [["rule-assembler"]]
+}, {
+  "id": "emergency-display", "type": "function", "z": "tab-rules", "name": "Display: overlay", "func": "msg.payload.display='overlay'; return msg;", "outputs": 1, "x": 410, "y": 420, "wires": [["rule-assembler"]]
+}, {
+  "id": "emergency-flash", "type": "function", "z": "tab-rules", "name": "Flash: enabled", "func": "msg.payload.flash=true; return msg;", "outputs": 1, "x": 410, "y": 460, "wires": [["rule-assembler"]]
+}, {
+  "id": "emergency-sound", "type": "function", "z": "tab-rules", "name": "Sound: emergency.wav", "func": "msg.payload.sound='emergency.wav'; return msg;", "outputs": 1, "x": 410, "y": 500, "wires": [["rule-assembler"]]
+}, {
+  "id": "emergency-policy", "type": "function", "z": "tab-rules", "name": "Policy: critical", "func": "msg.payload.policy='critical'; return msg;", "outputs": 1, "x": 410, "y": 540, "wires": [["rule-assembler"]]
+}, {
+  "id": "rule-assembler",
+  "type": "function",
+  "z": "tab-rules",
+  "name": "Rule assembler",
+  "func": "const input=msg.payload; if(!input.state)return null; const rules=context.get('rules')||{}; rules[input.state]={...(rules[input.state]||{}),...input}; context.set('rules',rules); msg.payload={notificationRules:rules}; return msg;",
+  "outputs": 1,
+  "x": 720,
+  "y": 300,
+  "wires": [["rule-result"]]
+}, {
+  "id": "rule-result",
+  "type": "debug",
+  "z": "tab-rules",
+  "name": "Result: notificationRules",
+  "active": true,
+  "tosidebar": true,
+  "complete": "payload",
+  "targetType": "msg",
+  "x": 1010,
+  "y": 300,
+  "wires": []
+}, {
+  "id": "tab-notification-centered",
+  "type": "tab",
+  "label": "Notification centered mapping",
+  "disabled": false
+}, {
+  "id": "notification-alarm",
+  "type": "inject",
+  "z": "tab-notification-centered",
+  "name": "Notification: alarm",
+  "props": [{"p":"payload"}],
+  "payload": "{\"state\":\"alarm\"}",
+  "payloadType": "json",
+  "x": 140,
+  "y": 140,
+  "wires": [["notification-color","notification-display","notification-flash","notification-sound"]]
+}, {
+  "id": "notification-color",
+  "type": "function",
+  "z": "tab-notification-centered",
+  "name": "Color: red (#d32f2f)",
+  "func": "msg.payload.color='red'; msg.payload.hex='#d32f2f'; return msg;",
+  "outputs": 1,
+  "x": 420,
+  "y": 80,
+  "wires": [["notification-assembler"]]
+}, {
+  "id": "notification-display",
+  "type": "function",
+  "z": "tab-notification-centered",
+  "name": "Display: overlay",
+  "func": "msg.payload.display='overlay'; return msg;",
+  "outputs": 1,
+  "x": 420,
+  "y": 120,
+  "wires": [["notification-assembler"]]
+}, {
+  "id": "notification-flash",
+  "type": "function",
+  "z": "tab-notification-centered",
+  "name": "Flash: enabled",
+  "func": "msg.payload.flash=true; return msg;",
+  "outputs": 1,
+  "x": 420,
+  "y": 160,
+  "wires": [["notification-assembler"]]
+}, {
+  "id": "notification-sound",
+  "type": "function",
+  "z": "tab-notification-centered",
+  "name": "Sound: 1bells.wav",
+  "func": "msg.payload.soundFile='/home/pi/.signalk/sounds/1bells.wav'; return msg;",
+  "outputs": 1,
+  "x": 420,
+  "y": 200,
+  "wires": [["notification-assembler"]]
+}, {
+  "id": "notification-assembler",
+  "type": "function",
+  "z": "tab-notification-centered",
+  "name": "Notification rule assembler",
+  "func": "const input=msg.payload; if(!input.state)return null; const rules=context.get('rules')||{}; rules[input.state]={...(rules[input.state]||{}),...input}; context.set('rules',rules); msg.payload={notificationRules:rules}; return msg;",
+  "outputs": 1,
+  "x": 720,
+  "y": 140,
+  "wires": [["notification-result"]]
+}, {
+  "id": "notification-result",
+  "type": "debug",
+  "z": "tab-notification-centered",
+  "name": "Result: notification rule",
+  "active": true,
+  "tosidebar": true,
+  "complete": "payload",
+  "targetType": "msg",
+  "x": 1010,
+  "y": 140,
+  "wires": []
+}, {
+  "id": "tab-wire-mapping",
+  "type": "tab",
+  "label": "Notification wire mapping",
+  "disabled": false
+}, {
+  "id": "wire-alarm",
+  "type": "inject",
+  "z": "tab-wire-mapping",
+  "name": "Notification: alarm",
+  "props": [{"p":"payload"}],
+  "payload": "{\"state\":\"alarm\"}",
+  "payloadType": "json",
+  "x": 150,
+  "y": 160,
+  "wires": [["wire-red","wire-overlay","wire-flash","wire-bell"]]
+}, {
+  "id": "wire-emergency",
+  "type": "inject",
+  "z": "tab-wire-mapping",
+  "name": "Notification: emergency",
+  "props": [{"p":"payload"}],
+  "payload": "{\"state\":\"emergency\"}",
+  "payloadType": "json",
+  "x": 150,
+  "y": 420,
+  "wires": [["wire-red","wire-overlay","wire-flash","wire-bell"]]
+}, {
+  "id": "wire-red", "type": "function", "z": "tab-wire-mapping", "name": "Color: red (#d32f2f)", "func": "msg.payload.color='red'; msg.payload.hex='#d32f2f'; return msg;", "outputs": 1, "x": 440, "y": 80, "wires": [["wire-assembler"]]
+}, {
+  "id": "wire-overlay", "type": "function", "z": "tab-wire-mapping", "name": "Display: overlay", "func": "msg.payload.display='overlay'; return msg;", "outputs": 1, "x": 440, "y": 120, "wires": [["wire-assembler"]]
+}, {
+  "id": "wire-flash", "type": "function", "z": "tab-wire-mapping", "name": "Flash: enabled", "func": "msg.payload.flash=true; return msg;", "outputs": 1, "x": 440, "y": 160, "wires": [["wire-assembler"]]
+}, {
+  "id": "wire-bell", "type": "function", "z": "tab-wire-mapping", "name": "Sound: 1bells.wav", "func": "msg.payload.soundFile='/home/pi/.signalk/sounds/1bells.wav'; return msg;", "outputs": 1, "x": 440, "y": 200, "wires": [["wire-assembler"]]
+}, {
+  "id": "wire-assembler",
+  "type": "function",
+  "z": "tab-wire-mapping",
+  "name": "Rule assembler",
+  "func": "const input=msg.payload; if(!input.state)return null; const rules=context.get('rules')||{}; rules[input.state]={...(rules[input.state]||{}),...input}; context.set('rules',rules); msg.payload={notificationRules:rules}; return msg;",
+  "outputs": 1,
+  "x": 740,
+  "y": 160,
+  "wires": [["wire-result"]]
+}, {
+  "id": "wire-result",
+  "type": "debug",
+  "z": "tab-wire-mapping",
+  "name": "Result: notificationRules",
+  "active": true,
+  "tosidebar": true,
+  "complete": "payload",
+  "targetType": "msg",
+  "x": 1010,
+  "y": 160,
+  "wires": []
+}, {
+  "id": "tab-adjective-mapping",
+  "type": "tab",
+  "label": "Notification adjective mapping",
+  "disabled": false
+}, {
+  "id": "adj-notif-alarm", "type": "function", "z": "tab-adjective-mapping", "name": "Notif: alarm", "func": "msg.payload={state:'alarm'}; return msg;", "outputs": 1, "x": 130, "y": 160, "wires": [["adj-color-red","adj-sound-bell","adj-flash","adj-overlay","adj-table"]]
+}, {
+  "id": "adj-notif-emergency", "type": "function", "z": "tab-adjective-mapping", "name": "Notif: emergency", "func": "msg.payload={state:'emergency'}; return msg;", "outputs": 1, "x": 130, "y": 420, "wires": [["adj-color-red","adj-sound-bell","adj-flash","adj-overlay","adj-table"]]
+}, {
+  "id": "adj-color-red", "type": "change", "z": "tab-adjective-mapping", "name": "Color: red (#d32f2f)", "rules": [{"t":"set","p":"payload.color","pt":"msg","to":"red","tot":"str"},{"t":"set","p":"payload.hex","pt":"msg","to":"#d32f2f","tot":"str"}], "x": 420, "y": 80, "wires": [["adj-assembler"]]
+}, {
+  "id": "adj-sound-bell", "type": "change", "z": "tab-adjective-mapping", "name": "Sound: 1bells.wav", "rules": [{"t":"set","p":"payload.soundFile","pt":"msg","to":"/home/pi/.signalk/sounds/1bells.wav","tot":"str"}], "x": 420, "y": 120, "wires": [["adj-assembler"]]
+}, {
+  "id": "adj-flash", "type": "change", "z": "tab-adjective-mapping", "name": "Flash", "rules": [{"t":"set","p":"payload.flash","pt":"msg","to":"true","tot":"bool"}], "x": 420, "y": 160, "wires": [["adj-assembler"]]
+}, {
+  "id": "adj-overlay", "type": "change", "z": "tab-adjective-mapping", "name": "Overlay", "rules": [{"t":"set","p":"payload.display","pt":"msg","to":"overlay","tot":"str"}], "x": 420, "y": 200, "wires": [["adj-assembler"]]
+}, {
+  "id": "adj-table", "type": "change", "z": "tab-adjective-mapping", "name": "Table (optional)", "rules": [{"t":"set","p":"payload.visibleInTable","pt":"msg","to":"true","tot":"bool"}], "x": 420, "y": 240, "wires": [["adj-assembler"]]
+}, {
+  "id": "adj-assembler", "type": "function", "z": "tab-adjective-mapping", "name": "Notification rule assembler", "func": "const input=msg.payload; if(!input.state)return null; const rules=context.get('rules')||{}; rules[input.state]={...(rules[input.state]||{}),...input}; context.set('rules',rules); msg.payload={notificationRules:rules}; return msg;", "outputs": 1, "x": 720, "y": 160, "wires": [["adj-result"]]
+}, {
+  "id": "adj-result", "type": "debug", "z": "tab-adjective-mapping", "name": "Result: notificationRules", "active": true, "tosidebar": true, "complete": "payload", "targetType": "msg", "x": 1010, "y": 160, "wires": []
 }]
