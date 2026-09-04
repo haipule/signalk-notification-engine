@@ -29,6 +29,7 @@ table { width: 100%; border-collapse: collapse; } th, td { padding: .8rem; text-
 .close-detail { min-width: 48px; font-size: 1.5rem; line-height: 1; } .detail-sheet h2 { margin: .5rem 0 1rem; }
 .detail-list { margin: 0; font-size: .9rem; } .detail-list div { margin: .7rem 0; } dt { color: #8396aa; } dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
 .detail-note { color: #9bb0c5; font-size: .85rem; margin-top: 1rem; }
+.detail-rules { white-space: pre-wrap; max-height: 18rem; overflow: auto; padding: .75rem; background: #0c1827; border: 1px solid #30465d; border-radius: .35rem; font-size: .75rem; }
 @media (max-width: 720px) {
   header { align-items: start; gap: .7rem; flex-direction: column; } main { padding: .8rem; max-height: none; overflow: visible; } .alarm-layout { display: block; }
   .alarm-layout { height: auto; min-height: 0; } .alarm-layout > section { overflow: visible; } .detail-sheet { top: auto; left: 0; right: 0; bottom: 0; width: auto; min-height: 0; max-height: 72vh; overflow: auto; border-radius: 1rem 1rem 0 0; box-shadow: 0 -12px 40px #0009; transform: translateY(0); }

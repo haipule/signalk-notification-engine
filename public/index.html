@@ -28,6 +28,7 @@
             <button data-action="acknowledge" title="Acknowledge" aria-label="Acknowledge">✓</button>
             <button data-action="clear" title="Clear" aria-label="Clear">⏹</button>
             <button id="show-history" type="button" title="History" aria-label="History">🕘</button>
+            <button id="show-rules" type="button" title="Rules" aria-label="Rules">≡</button>
           </div><div class="detail-window-actions"><button id="drag-detail" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-detail" class="close-detail" aria-label="Close notification details">×</button></div></div></div>
           <h2 id="detail-message">Select a notification</h2>
           <dl class="detail-list">
@@ -41,6 +42,7 @@
             <div><dt>Policy</dt><dd id="detail-policy"></dd></div>
           </dl>
           <p id="detail-action-note" class="detail-note"></p>
+          <pre id="detail-rules" class="detail-rules" hidden></pre>
         </aside>
       </div>
       <aside id="history-sheet" class="detail-sheet history-sheet" tabindex="-1" aria-label="Notification history" aria-hidden="true">

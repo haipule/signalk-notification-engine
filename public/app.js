@@ -22,6 +22,7 @@ let historyFocusId = null
 let historyPath = ''
 let historyOccurrenceId = ''
 let historyDisplayLimit = 20
+let activeRules = []
 
 document.querySelector('#refresh').addEventListener('click', refresh)
 for (const button of actionBar.querySelectorAll('[data-global-action]')) {
@@ -29,6 +30,7 @@ for (const button of actionBar.querySelectorAll('[data-global-action]')) {
 }
 document.querySelector('#close-detail').addEventListener('click', closeDetails)
 document.querySelector('#show-history').addEventListener('click', () => showSelectedHistory())
+document.querySelector('#show-rules').addEventListener('click', () => showSelectedRules())
 document.querySelector('#close-history').addEventListener('click', closeHistory)
 document.querySelector('#delete-history').addEventListener('click', deleteLocalHistory)
 detailSheet.addEventListener('pointerdown', () => { detailSheet.style.zIndex = '12' })
@@ -333,6 +335,14 @@ function renderDetails(notification) {
   }
 }
 
+function showSelectedRules(notification = activeNotifications.find(item => item.id === selectedId)) {
+  if (!notification) return
+  const matches = activeRules.filter(rule => rule.match?.state === notification.state && (!rule.match.path || rule.match.path === notification.path))
+  const element = document.querySelector('#detail-rules')
+  element.hidden = false
+  element.textContent = matches.length ? JSON.stringify(matches, null, 2) : 'No matching deployed rule.'
+}
+
 function formatState(state) { return String(state || 'unknown').toUpperCase() }
 function formatCategory(category) { return String(category || 'OTHER').toUpperCase() }
 function formatMethod(method) {
@@ -398,6 +408,7 @@ async function refresh() {
     configuredStateOrder = Array.isArray(notifications.stateOrder) ? notifications.stateOrder : configuredStateOrder
     stateColors = notifications.stateColors || stateColors
     visualRules = notifications.visualRules || visualRules
+    activeRules = Array.isArray(notifications.rules) ? notifications.rules : activeRules
     for (const [state, color] of Object.entries(stateColors)) document.documentElement.style.setProperty(`--state-${state}`, color)
     infoAutoCloseSeconds = Number.isInteger(notifications.infoAutoCloseSeconds) ? notifications.infoAutoCloseSeconds : 0
     shortcutInfo = typeof notifications.shortcutInfo === 'string' ? notifications.shortcutInfo : shortcutInfo
