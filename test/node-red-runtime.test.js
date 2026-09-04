@@ -13,8 +13,13 @@ const config = {
 }
 
 test('reads and fingerprints the active flow configuration', async () => {
-  const result = await readConfiguration({ runtime: { flows: { getFlows: async () => ({ rev: 'r1', flows: [{ type: 'inject', name: 'Notification Engine config', payloadType: 'json', payload: config }] }) } } })
+  const result = await readConfiguration({ runtime: { flows: { getFlows: async () => ({ rev: 'r1', flows: [
+    { id: 'n', type: 'function', func: "msg.payload={state:'alarm'}; return msg;", wires: [['a']] },
+    { id: 'a', type: 'debug', name: 'Activate', wires: [[]] },
+    { type: 'inject', name: 'Notification Engine config', payloadType: 'json', payload: config }
+  ] }) } } })
   assert.deepEqual(result.config, config)
+  assert.equal(result.rules[0].match.state, 'alarm')
   assert.equal(result.checksum.length, 64)
 })
 

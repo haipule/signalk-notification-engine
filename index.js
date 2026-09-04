@@ -11,6 +11,7 @@ const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const { fromDataModel } = require('./lib/notification-snapshot')
 const AudioPlayer = require('./lib/audio-player')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
+const { rulesMarkdown } = require('./lib/flow-rules')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
@@ -89,6 +90,7 @@ module.exports = function createPlugin(app) {
   let audioReady = false
   let nodeRedUnsubscribe = null
   let nodeRedConfigChecksum = null
+  let activeRules = []
   const audioPlayer = new AudioPlayer({ onError: error => app.error?.(`Unable to play notification sound: ${error.message}`) })
 
   function applyRuntimeConfiguration(flowOptions) {
@@ -319,6 +321,8 @@ module.exports = function createPlugin(app) {
       const nodeRed = getNodeRed()
       const nodeRedConfig = await readConfiguration(nodeRed)
       nodeRedConfigChecksum = nodeRedConfig.checksum
+      activeRules = nodeRedConfig.rules
+      writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
       const flowOptions = {
         ...options,
         stateOrder: nodeRedConfig.config.notificationEngine.stateOrder,
@@ -342,6 +346,8 @@ module.exports = function createPlugin(app) {
         const next = await readConfiguration(nodeRed)
         if (next.checksum === nodeRedConfigChecksum) return
         nodeRedConfigChecksum = next.checksum
+        activeRules = next.rules
+        writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
         applyRuntimeConfiguration({ ...options, ...next.config.notificationEngine })
         app.debug?.(`Notification Engine configuration updated from Node-RED`)
       })
@@ -398,7 +404,7 @@ module.exports = function createPlugin(app) {
         // Refresh on request as well as on the background interval. This
         // keeps the WebApp useful even if a producer appears after startup.
         await syncSnapshot()
-        response.json({ notifications: plugin.getNotifications(), stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, updatedAt: new Date().toISOString() })
+        response.json({ notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, updatedAt: new Date().toISOString() })
       })
       readOnly.get('/history', (_request, response) => {
         response.json({ events: store.history() })
@@ -810,6 +816,19 @@ module.exports = function createPlugin(app) {
     selected.add('emergency')
     selected.add('alarm')
     return selected
+  }
+
+  function writeRuleDescriptionFiles(rules, revision) {
+    const directory = path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'deployed-rules')
+    fs.mkdirSync(directory, { recursive: true })
+    const json = JSON.stringify({ schemaVersion: 1, revision, deployedAt: new Date().toISOString(), rules }, null, 2)
+    const files = [['deployed-rules.json', json], ['deployed-rules.md', rulesMarkdown(rules, revision)]]
+    for (const [name, contents] of files) {
+      const target = path.join(directory, name)
+      const temporary = `${target}.tmp`
+      fs.writeFileSync(temporary, contents)
+      fs.renameSync(temporary, target)
+    }
   }
 
 
