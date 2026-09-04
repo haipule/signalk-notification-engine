@@ -98,7 +98,7 @@ module.exports = function createPlugin(app) {
     soundsByState = normalizeSoundsByState(flowOptions?.soundsByState, flowOptions?.soundPaletteFile)
     audioPlayer.player = String(flowOptions?.audioPlayer || 'aplay')
     audioPlayer.device = String(flowOptions?.audioDevice || 'default')
-    policyResolver = new PolicyResolver(normalizePolicies(flowOptions?.policies), soundsByState)
+    policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...normalizePolicies(flowOptions?.policies)], soundsByState)
     configuredClassifier = classify.withOverrides(normalizeClassificationRules(flowOptions?.classificationRules))
     configuredStateOrder = normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
     stateColors = normalizeStateColors(flowOptions?.stateColors)
@@ -325,6 +325,7 @@ module.exports = function createPlugin(app) {
       writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
       const flowOptions = {
         ...options,
+        activeRules: nodeRedConfig.rules,
         stateOrder: nodeRedConfig.config.notificationEngine.stateOrder,
         visibleStates: nodeRedConfig.config.notificationEngine.visibleStates
       }
@@ -348,7 +349,7 @@ module.exports = function createPlugin(app) {
         nodeRedConfigChecksum = next.checksum
         activeRules = next.rules
         writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
-        applyRuntimeConfiguration({ ...options, ...next.config.notificationEngine })
+        applyRuntimeConfiguration({ ...options, ...next.config.notificationEngine, activeRules: next.rules })
         app.debug?.(`Notification Engine configuration updated from Node-RED`)
       })
       void initialize(currentLifecycle, flowOptions?.testNotif)
@@ -669,6 +670,20 @@ module.exports = function createPlugin(app) {
           }
         }))
       : []
+  }
+
+  function normalizeFlowRules(rules) {
+    return Array.isArray(rules) ? rules.map(rule => {
+      const hasSound = Boolean(rule.actions?.sound || rule.actions?.soundFile)
+      return {
+      name: rule.id,
+      state: rule.match?.state,
+      match: { state: rule.match?.state, path: rule.match?.path, category: rule.match?.category },
+      audio: hasSound ? 'on' : 'inherit',
+      sound: hasSound ? { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || 'once', repeatCount: rule.actions.sound?.repeatCount || 1 } : null,
+      visible: rule.actions?.visibleInTable !== false
+      }
+    }) : []
   }
 
   function normalizeClassificationRules(rules) {
