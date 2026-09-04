@@ -860,5 +860,12 @@ module.exports = function createPlugin(app) {
     return String(value || '').trim().toLowerCase().replace(/\*$/, '')
   }
 
+  // Rule definitions come from the deployed Node-RED builder flow. Keep only
+  // operational settings in the Signal K plugin configuration form.
+  for (const field of ['policies', 'classificationRules', 'stateOrder', 'stateColors', 'colorPaletteFile', 'visualRules', 'soundsByState', 'soundPaletteFile']) {
+    delete plugin.schema.properties[field]
+  }
+  delete plugin.uiSchema.soundsByState
+
   return plugin
 }
