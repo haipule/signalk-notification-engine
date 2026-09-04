@@ -99,7 +99,7 @@ function renderNotifications(notifications) {
   notificationContainer.replaceChildren()
   const visible = notifications
     .filter(notification => notification.policy?.visible !== false)
-    .filter(notification => ['emergency', 'alarm', 'normal'].includes(notification.state) || activeRules.some(rule => rule.match?.state === notification.state))
+    .filter(notification => activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true))
     .sort(bySeverity)
   const stateCounts = Object.fromEntries(['emergency', 'alarm', 'warn', 'alert'].map(state => [state, 0]))
   let normalCount = 0
@@ -337,10 +337,22 @@ function renderDetails(notification) {
 
 function showSelectedRules(notification = activeNotifications.find(item => item.id === selectedId)) {
   if (!notification) return
-  const matches = activeRules.filter(rule => rule.match?.state === notification.state && (!rule.match.path || rule.match.path === notification.path))
+  const matches = activeRules.filter(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
   const element = document.querySelector('#detail-rules')
   element.hidden = false
   element.textContent = matches.length ? JSON.stringify(matches, null, 2) : 'No matching deployed rule.'
+}
+
+function ruleMatchesNotification(rule, notification) {
+  if (rule.match?.state !== notification.state) return false
+  if (rule.match?.category && rule.match.category !== notification.category) return false
+  if (!rule.match?.path) return true
+  if (!notification.path) return false
+  const pattern = String(rule.match.path)
+    .split('*')
+    .map(part => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+    .join('.*')
+  return new RegExp(`^${pattern}$`).test(notification.path)
 }
 
 function formatState(state) { return String(state || 'unknown').toUpperCase() }
