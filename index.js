@@ -673,7 +673,8 @@ module.exports = function createPlugin(app) {
   }
 
   function normalizeFlowRules(rules) {
-    return Array.isArray(rules) ? rules.map(rule => {
+    const ordered = Array.isArray(rules) ? [...rules].sort((left, right) => ruleSpecificity(right) - ruleSpecificity(left)) : []
+    return ordered.map(rule => {
       const hasSound = Boolean(rule.actions?.sound || rule.actions?.soundFile)
       return {
       name: rule.id,
@@ -683,7 +684,15 @@ module.exports = function createPlugin(app) {
       sound: hasSound ? { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || 'once', repeatCount: rule.actions.sound?.repeatCount || 1 } : null,
       visible: rule.actions?.visibleInTable !== false
       }
-    }) : []
+    })
+  }
+
+  function ruleSpecificity(rule) {
+    const match = rule?.match || {}
+    if (match.path && !match.path.includes('*')) return 400
+    if (match.path) return 300
+    if (match.category) return 200
+    return 100
   }
 
   function normalizeClassificationRules(rules) {
