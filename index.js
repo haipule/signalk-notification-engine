@@ -832,7 +832,7 @@ module.exports = function createPlugin(app) {
   }
 
   function isLocallyEnabledState(state) {
-    return state === 'emergency' || state === 'alarm' || configuredStateOrder.includes(state)
+    return state === 'emergency' || state === 'alarm' || activeRules.some(rule => rule.match?.state === state)
   }
 
   function normalizeHistoryStates(states) {
