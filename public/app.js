@@ -99,7 +99,7 @@ function renderNotifications(notifications) {
   notificationContainer.replaceChildren()
   const visible = notifications
     .filter(notification => notification.policy?.visible !== false)
-    .filter(notification => ['emergency', 'alarm'].includes(notification.state) || activeRules.some(rule => rule.match?.state === notification.state))
+    .filter(notification => ['emergency', 'alarm', 'normal'].includes(notification.state) || activeRules.some(rule => rule.match?.state === notification.state))
     .sort(bySeverity)
   const stateCounts = Object.fromEntries(['emergency', 'alarm', 'warn', 'alert'].map(state => [state, 0]))
   let normalCount = 0
