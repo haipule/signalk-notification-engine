@@ -430,16 +430,32 @@ module.exports = function createPlugin(app) {
         store.replaceHistory(historyRepository.events)
         response.status(204).end()
       })
-      readWrite.post('/notifications/:id/:action', (request, response) => {
+      readWrite.post('/notifications/:id/:action', async (request, response) => {
         try {
           const record = store.get(request.params.id)
           if (request.params.action === 'silence') {
             silencedAudio.set(record.occurrenceId, record.state)
             stopNotificationAudio(record.occurrenceId)
           }
-          actions.execute(record, request.params.action)
+          await actions.execute(record, request.params.action)
           store.recordOperatorAction(request.params.action, record)
           response.status(202).json({ state: 'ACCEPTED' })
+        } catch (error) {
+          response.status(409).json({ state: 'REJECTED', message: error.message })
+        }
+      })
+      readWrite.post('/notifications/action-all/:action', async (request, response) => {
+        try {
+          const records = plugin.getNotifications()
+          const affected = await actions.executeAll(records, request.params.action)
+          for (const record of affected) {
+            if (request.params.action === 'silence') {
+              silencedAudio.set(record.occurrenceId, record.state)
+              stopNotificationAudio(record.occurrenceId)
+            }
+            store.recordOperatorAction(request.params.action, record)
+          }
+          response.status(202).json({ state: 'ACCEPTED', count: affected.length })
         } catch (error) {
           response.status(409).json({ state: 'REJECTED', message: error.message })
         }

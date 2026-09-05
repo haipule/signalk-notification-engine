@@ -449,9 +449,16 @@ async function runAction(id, action, refreshAfter = true) {
 }
 
 async function runGlobalAction(action) {
-  const candidates = activeNotifications.filter(notification => actionAllowed(notification, action))
-  for (const notification of candidates) await runAction(notification.id, action, false)
-  await refresh()
+  try {
+    const response = await fetch(`${pluginApi}/notifications/action-all/${action}`, { method: 'POST' })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}))
+      throw new Error(body.message || response.statusText)
+    }
+    await refresh()
+  } catch (error) {
+    summary.textContent = `Action failed: ${error.message}`
+  }
 }
 
 async function refresh() {
