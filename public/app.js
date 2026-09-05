@@ -32,6 +32,9 @@ document.querySelector('#close-detail').addEventListener('click', closeDetails)
 document.querySelector('#show-history').addEventListener('click', () => showSelectedHistory())
 document.querySelector('#show-rules').addEventListener('click', () => showSelectedRules())
 document.querySelector('#close-history').addEventListener('click', closeHistory)
+document.querySelector('#close-rules').addEventListener('click', closeRules)
+document.querySelector('#show-deployed-rules').addEventListener('click', showDeployedRules)
+document.querySelector('#close-deployed-rules').addEventListener('click', closeDeployedRules)
 document.querySelector('#delete-history').addEventListener('click', deleteLocalHistory)
 detailSheet.addEventListener('pointerdown', () => { detailSheet.style.zIndex = '12' })
 document.querySelector('#history-sheet').addEventListener('pointerdown', event => { event.currentTarget.style.zIndex = '12'; detailSheet.style.zIndex = '11' })
@@ -40,6 +43,8 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     if (detailSheet.getAttribute('aria-hidden') === 'false') closeDetails()
     if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false') closeHistory()
+    if (document.querySelector('#rules-sheet').getAttribute('aria-hidden') === 'false') closeRules()
+    if (document.querySelector('#deployed-rules-sheet').getAttribute('aria-hidden') === 'false') closeDeployedRules()
     return
   }
   if (event.target.matches('input, textarea, select')) return
@@ -93,13 +98,15 @@ function enableDragging(sheet, dragButton) {
 }
 enableDragging(detailSheet, document.querySelector('#drag-detail'))
 enableDragging(document.querySelector('#history-sheet'), document.querySelector('#drag-history'))
+enableDragging(document.querySelector('#rules-sheet'), document.querySelector('#drag-rules'))
+enableDragging(document.querySelector('#deployed-rules-sheet'), document.querySelector('#drag-deployed-rules'))
 
 /** Render Signal K state only; actions are intentionally introduced later. */
 function renderNotifications(notifications) {
   notificationContainer.replaceChildren()
   const visible = notifications
     .filter(notification => notification.policy?.visible !== false)
-    .filter(notification => activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true))
+    .filter(notification => ['emergency', 'alarm'].includes(notification.state) || activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true))
     .sort(bySeverity)
   const stateCounts = Object.fromEntries(['emergency', 'alarm', 'warn', 'alert'].map(state => [state, 0]))
   let normalCount = 0
@@ -134,10 +141,13 @@ function renderNotifications(notifications) {
         selectNotification(notification.id)
       }
     })
+    const acknowledged = notification.status?.acknowledged === true || notification.status?.acknowledged === 'true' || Boolean(notification.status?.acknowledgedAt)
     const stateLabel = card.querySelector('.state')
-    stateLabel.classList.add(`state-label-${notification.state}`)
+    stateLabel.classList.add(`state-label-${acknowledged ? 'acknowledged' : notification.state}`)
+    stateLabel.classList.toggle('state-acknowledged', acknowledged)
+    stateLabel.style.setProperty('color', acknowledged ? '#168a55' : '', 'important')
     stateLabel.classList.toggle('state-attention', ['warn', 'alert', 'alarm', 'emergency'].includes(notification.state))
-    setText(card, '.state', formatState(notification.state))
+    setText(card, '.state', formatState(acknowledged ? 'acknowledged' : notification.state))
     setText(card, '.category', formatCategory(notification.category))
     setText(card, '.message', notification.message || 'No message supplied')
     setText(card, '.source', notification.source?.label || 'Unknown source')
@@ -145,15 +155,21 @@ function renderNotifications(notifications) {
     rows.append(card)
   }
   notificationContainer.append(table)
-  updateActions(visible.find(item => item.id === selectedId) || null)
+  const selected = visible.find(item => item.id === selectedId) || null
+  updateActions(selected)
+  if (document.querySelector('#rules-sheet').getAttribute('aria-hidden') === 'false') {
+    if (selected) showSelectedRules(selected)
+    else closeRules()
+  }
 }
 
 function renderVisualAlerts(notifications) {
   visualAlerts.replaceChildren()
-  const candidates = notifications.filter(item => ['emergency', 'alarm', 'warn', 'alert'].includes(item.state) && item.method?.includes('visual'))
+  const candidates = notifications.filter(item => ['emergency', 'alarm', 'warn', 'alert'].includes(item.state) && item.method?.includes('visual') && item.status?.acknowledged !== true)
   for (const notification of candidates) {
+    const tableRule = activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
     const rule = visualRules[notification.state] || { display: 'table' }
-    if (rule.display === 'table') continue
+    if (rule.display === 'table' || (tableRule && !['emergency', 'alarm'].includes(notification.state))) continue
     const alert = document.createElement('div')
     alert.className = `visual-alert visual-${rule.display}${rule.flash ? ' visual-flash' : ''}`
     alert.style.setProperty('--visual-alert-color', rule.color || stateColors[notification.state] || '#d32f2f')
@@ -305,6 +321,7 @@ function selectNotification(id) {
   const notification = activeNotifications.find(item => item.id === id)
   if (notification) renderDetails(notification)
   renderNotifications(activeNotifications)
+  if (notification && document.querySelector('#rules-sheet').getAttribute('aria-hidden') === 'false') showSelectedRules(notification)
   if (notification && document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false') showSelectedHistory(notification)
 }
 
@@ -341,6 +358,32 @@ function showSelectedRules(notification = activeNotifications.find(item => item.
   const element = document.querySelector('#detail-rules')
   element.hidden = false
   element.textContent = matches.length ? JSON.stringify(matches, null, 2) : 'No matching deployed rule.'
+  const sheet = document.querySelector('#rules-sheet')
+  sheet.setAttribute('aria-hidden', 'false')
+  sheet.style.zIndex = '13'
+  sheet.focus()
+}
+
+function closeRules() {
+  document.querySelector('#rules-sheet').setAttribute('aria-hidden', 'true')
+}
+
+async function showDeployedRules() {
+  const sheet = document.querySelector('#deployed-rules-sheet')
+  const content = document.querySelector('#deployed-rules-content')
+  try {
+    const response = await fetch(`${pluginApi}/rules`)
+    content.textContent = await response.text()
+  } catch (error) {
+    content.textContent = `Unable to load deployed rules: ${error.message}`
+  }
+  sheet.setAttribute('aria-hidden', 'false')
+  sheet.style.zIndex = '14'
+  sheet.focus()
+}
+
+function closeDeployedRules() {
+  document.querySelector('#deployed-rules-sheet').setAttribute('aria-hidden', 'true')
 }
 
 function ruleMatchesNotification(rule, notification) {
@@ -389,7 +432,7 @@ function actionAllowed(notification, action) {
   return !['normal', 'nominal'].includes(notification.state) && status.canClear === true
 }
 
-async function runAction(id, action) {
+async function runAction(id, action, refreshAfter = true) {
   try {
     const response = await fetch(`${pluginApi}/notifications/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
     if (!response.ok) {
@@ -399,7 +442,7 @@ async function runAction(id, action) {
       const body = await response.json().catch(() => ({}))
       throw new Error(body.message || response.statusText)
     }
-    await refresh()
+    if (refreshAfter) await refresh()
   } catch (error) {
     summary.textContent = `Action failed: ${error.message}`
   }
@@ -407,7 +450,7 @@ async function runAction(id, action) {
 
 async function runGlobalAction(action) {
   const candidates = activeNotifications.filter(notification => actionAllowed(notification, action))
-  await Promise.all(candidates.map(notification => runAction(notification.id, action)))
+  for (const notification of candidates) await runAction(notification.id, action, false)
   await refresh()
 }
 

@@ -407,6 +407,11 @@ module.exports = function createPlugin(app) {
         await syncSnapshot()
         response.json({ notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, updatedAt: new Date().toISOString() })
       })
+      readOnly.get('/rules', (_request, response) => {
+        const file = path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'deployed-rules', 'deployed-rules.md')
+        if (!fs.existsSync(file)) return response.status(404).type('text/plain').send('No deployed rules documentation available.')
+        response.type('text/plain').send(fs.readFileSync(file, 'utf8'))
+      })
       readOnly.get('/history', (_request, response) => {
         response.json({ events: store.history() })
       })

@@ -10,3 +10,7 @@
   Selected notifications.
 - Start a new local notification lifecycle after configured producer-specific
   end markers such as Hoekens `normal`/`Off`.
+# Unreleased
+
+- Keep table visibility controlled by Notification Engine Rule Builder, with emergency and alarm always visible; mark acknowledged states green.
+- Update the Node-RED administration link.
