@@ -141,7 +141,7 @@ function renderNotifications(notifications) {
         selectNotification(notification.id)
       }
     })
-    const acknowledged = notification.status?.acknowledged === true || notification.status?.acknowledged === 'true' || Boolean(notification.status?.acknowledgedAt)
+    const acknowledged = isAcknowledged(notification.status)
     const stateLabel = card.querySelector('.state')
     stateLabel.classList.add(`state-label-${acknowledged ? 'acknowledged' : notification.state}`)
     stateLabel.classList.toggle('state-acknowledged', acknowledged)
@@ -165,7 +165,7 @@ function renderNotifications(notifications) {
 
 function renderVisualAlerts(notifications) {
   visualAlerts.replaceChildren()
-  const candidates = notifications.filter(item => ['emergency', 'alarm', 'warn', 'alert'].includes(item.state) && item.method?.includes('visual') && item.status?.acknowledged !== true)
+  const candidates = notifications.filter(item => ['emergency', 'alarm', 'warn', 'alert'].includes(item.state) && item.method?.includes('visual') && !isAcknowledged(item.status))
   for (const notification of candidates) {
     const tableRule = activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
     const rule = visualRules[notification.state] || { display: 'table' }
@@ -181,6 +181,10 @@ function renderVisualAlerts(notifications) {
     })
     visualAlerts.append(alert)
   }
+}
+
+function isAcknowledged(status) {
+  return status?.acknowledged === true || status?.acknowledged === 'true' || Boolean(status?.acknowledgedAt)
 }
 
 function updateActions(notification) {

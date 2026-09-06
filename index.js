@@ -67,12 +67,17 @@ module.exports = function createPlugin(app) {
       const policy = policyResolver.resolve(event.notification)
       const locallyEnabled = isLocallyEnabledState(event.notification.state)
       const audioEligible = audioReady && locallyEnabled && event.type !== 'action_requested'
+      const signalKSilenced = event.notification.status?.silenced === true
       if (event.type === 'cleared') {
         silencedAudio.delete(event.notification.occurrenceId)
         stopNotificationAudio(event.notification.occurrenceId)
       }
       else if (['normal', 'nominal'].includes(event.notification.state)) {
         silencedAudio.delete(event.notification.occurrenceId)
+        stopNotificationAudio(event.notification.occurrenceId)
+      }
+      else if (signalKSilenced) {
+        silencedAudio.set(event.notification.occurrenceId, event.notification.state)
         stopNotificationAudio(event.notification.occurrenceId)
       }
       else if (silencedAudio.get(event.notification.occurrenceId) === event.notification.state) stopNotificationAudio(event.notification.occurrenceId)
@@ -431,9 +436,11 @@ module.exports = function createPlugin(app) {
         response.status(204).end()
       })
       readWrite.post('/notifications/:id/:action', async (request, response) => {
+        let silencedRecord = null
         try {
           const record = store.get(request.params.id)
           if (request.params.action === 'silence') {
+            silencedRecord = record
             silencedAudio.set(record.occurrenceId, record.state)
             stopNotificationAudio(record.occurrenceId)
           }
@@ -441,22 +448,28 @@ module.exports = function createPlugin(app) {
           store.recordOperatorAction(request.params.action, record)
           response.status(202).json({ state: 'ACCEPTED' })
         } catch (error) {
+          if (silencedRecord) silencedAudio.delete(silencedRecord.occurrenceId)
           response.status(409).json({ state: 'REJECTED', message: error.message })
         }
       })
       readWrite.post('/notifications/action-all/:action', async (request, response) => {
+        let silencedRecords = []
         try {
           const records = plugin.getNotifications()
-          const affected = await actions.executeAll(records, request.params.action)
-          for (const record of affected) {
-            if (request.params.action === 'silence') {
+          if (request.params.action === 'silence') {
+            silencedRecords = records.filter(record => actions.allowed(record, 'silence'))
+            for (const record of silencedRecords) {
               silencedAudio.set(record.occurrenceId, record.state)
               stopNotificationAudio(record.occurrenceId)
             }
+          }
+          const affected = await actions.executeAll(records, request.params.action)
+          for (const record of affected) {
             store.recordOperatorAction(request.params.action, record)
           }
           response.status(202).json({ state: 'ACCEPTED', count: affected.length })
         } catch (error) {
+          for (const record of silencedRecords) silencedAudio.delete(record.occurrenceId)
           response.status(409).json({ state: 'REJECTED', message: error.message })
         }
       })
