@@ -141,7 +141,7 @@ function renderNotifications(notifications) {
         selectNotification(notification.id)
       }
     })
-    const acknowledged = isAcknowledged(notification.status)
+    const acknowledged = isAcknowledged(notification.status) && !isResolvedState(notification.state)
     const stateLabel = card.querySelector('.state')
     stateLabel.classList.add(`state-label-${acknowledged ? 'acknowledged' : notification.state}`)
     stateLabel.classList.toggle('state-acknowledged', acknowledged)
@@ -185,6 +185,10 @@ function renderVisualAlerts(notifications) {
 
 function isAcknowledged(status) {
   return status?.acknowledged === true || status?.acknowledged === 'true' || Boolean(status?.acknowledgedAt)
+}
+
+function isResolvedState(state) {
+  return state === 'normal' || state === 'nominal'
 }
 
 function updateActions(notification) {

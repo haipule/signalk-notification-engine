@@ -165,3 +165,26 @@
 - Bestehendes Anchor-Audio und spätere Voice-Ausgabe sauber über einen
   gemeinsamen Alarm- bzw. Audio-Dienst integrieren.
 - Verhalten bei gleichzeitigem `emergency`, `alarm` und `warn` festlegen.
+
+## 10. Diskussionspunkte: Audio und Historie
+
+- [ ] Audio-Backend abstrahieren, damit neben Linux/ALSA (`aplay`) auch
+  PulseAudio/PipeWire, macOS, Windows und Container-Umgebungen unterstützt
+  werden können.
+- [ ] Entscheiden, ob Browser-Audio als zusätzlicher Ausgabekanal angeboten
+  werden soll: Audioereignisse per WebSocket oder SSE an die WebApp senden und
+  dort über Web Audio API oder `HTMLAudioElement` abspielen.
+- [ ] Für Browser-Audio Einschränkungen bewerten: erforderliche Benutzeraktion
+  wegen Autoplay-Regeln, geschlossene oder schlafende Tabs, Lautstärke,
+  mehrere Browser und Eignung als sicherheitskritischer Alarmkanal.
+- [ ] Festlegen, ob der Raspberry Pi-Audioausgang Primärkanal bleibt und
+  Browser-Audio nur optional pro Gerät oder Policy aktiviert wird.
+- [ ] Prüfen, wie bestehende externe Audioquellen wie Hoekens-/Node-RED-
+  Skripte in einen gemeinsamen Audio-Dienst integriert oder klar getrennt
+  werden.
+- [ ] SQLite als mögliche Ablösung der JSON-Historie evaluieren; insbesondere
+  Ressourcenverbrauch auf dem Pi, native npm-Abhängigkeiten, Transaktionen,
+  parallele Browserzugriffe, Retention und Abfragen.
+- [ ] Datenbankschema für Alarm-Lebenszyklen und Ereignisse entwerfen und
+  Migration der bestehenden `notification-history.json` ohne Datenverlust
+  planen.
