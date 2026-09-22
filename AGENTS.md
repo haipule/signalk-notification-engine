@@ -17,6 +17,10 @@ integrated into the Signal K installation on the Raspberry Pi. It is not an
 independent external Node-RED service. Changes to the prototype and its
 successor should therefore preserve Signal K plugin/API boundaries and be
 validated against the live internal instance over SSH (`raspi`).
+
+### Pi SSH access
+
+The reachable Signal K host is `pi@192.168.100.10`; use the SSH alias `raspi` only if it resolves to the same host. The embedded Node-RED flow is `/home/pi/.signalk/red/flows_openplotter.json`, and the installed plugin is `/home/pi/.signalk/node_modules/signalk-notification-engine`. Use SSH for read-only inspection by default, never store passwords or private keys in this repository, and back up the installed plugin before replacement.
 The separate systemd service `nodered.service` is not part of this project and
 is currently stopped; do not deploy flows to `/home/pi/.node-red` or restart
 that service for this work.
