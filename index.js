@@ -8,7 +8,7 @@ const NotificationActions = require('./lib/actions')
 const { PolicyResolver } = require('./lib/policies')
 const HistoryRepository = require('./lib/history-repository')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
-const { fromDataModel } = require('./lib/notification-snapshot')
+const { fromDataModel, mergeSnapshots } = require('./lib/notification-snapshot')
 const AudioPlayer = require('./lib/audio-player')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { rulesMarkdown } = require('./lib/flow-rules')
@@ -63,47 +63,66 @@ module.exports = function createPlugin(app) {
     onEvent: event => {
       historyRepository?.append(event)
     },
-    onChange: event => {
-      const policy = policyResolver.resolve(event.notification)
-      const locallyEnabled = isLocallyEnabledState(event.notification.state)
-      const audioEligible = audioReady && locallyEnabled && event.type !== 'action_requested'
-      const signalKSilenced = event.notification.status?.silenced === true
-      if (event.type === 'cleared') {
-        silencedAudio.delete(event.notification.occurrenceId)
-        stopNotificationAudio(event.notification.occurrenceId)
-      }
-      else if (['normal', 'nominal'].includes(event.notification.state)) {
-        silencedAudio.delete(event.notification.occurrenceId)
-        stopNotificationAudio(event.notification.occurrenceId)
-      }
-      else if (signalKSilenced) {
-        silencedAudio.set(event.notification.occurrenceId, event.notification.state)
-        stopNotificationAudio(event.notification.occurrenceId)
-      }
-      else if (silencedAudio.get(event.notification.occurrenceId) === event.notification.state) stopNotificationAudio(event.notification.occurrenceId)
-      else if (audioEligible && policy.audio !== 'off' && policy.soundConfig?.active !== false && policy.soundConfig?.file) {
-        silencedAudio.delete(event.notification.occurrenceId)
-        startNotificationAudio(event.notification.occurrenceId, policy.soundConfig)
-      }
-    }
+    onChange: event => applyNotificationAudio(event)
   })
+  function applyNotificationAudio(event) {
+    const policy = policyResolver.resolve(event.notification)
+    const locallyEnabled = isLocallyEnabledState(event.notification.state)
+    const audioEligible = audioReady && locallyEnabled && event.type !== 'action_requested'
+    const signalKSilenced = event.notification.status?.silenced === true
+    if (event.type === 'cleared') {
+      silencedAudio.delete(event.notification.occurrenceId)
+      stopNotificationAudio(event.notification.occurrenceId)
+    } else if (['normal', 'nominal'].includes(event.notification.state)) {
+      silencedAudio.delete(event.notification.occurrenceId)
+      stopNotificationAudio(event.notification.occurrenceId)
+    } else if (signalKSilenced) {
+      silencedAudio.set(event.notification.occurrenceId, event.notification.state)
+      stopNotificationAudio(event.notification.occurrenceId)
+    } else if (silencedAudio.get(event.notification.occurrenceId) === event.notification.state) stopNotificationAudio(event.notification.occurrenceId)
+    else if (audioEligible && policy.audio !== 'off' && policy.soundConfig?.active !== false && policy.soundConfig?.file) {
+      silencedAudio.delete(event.notification.occurrenceId)
+      startNotificationAudio(event.notification.occurrenceId, policy.soundConfig)
+    } else if (policy.audio === 'off' || policy.visible === false) {
+      stopNotificationAudio(event.notification.occurrenceId)
+    }
+  }
+
   const actions = new NotificationActions(app)
-  let policyResolver = new PolicyResolver()
+  let policyResolver = new PolicyResolver([], {}, readSignalKValue)
   let unsubscribes = []
   let lifecycle = 0
   let snapshotTimer = null
   let audioReady = false
   let nodeRedUnsubscribe = null
   let nodeRedConfigChecksum = null
+  let nodeRedRuntime = null
+  let runtimeOptions = {}
+  let configReloadPromise = null
   let activeRules = []
+  const conditionValues = new Map()
+  let conditionUnsubscribes = []
   const audioPlayer = new AudioPlayer({ onError: error => app.error?.(`Unable to play notification sound: ${error.message}`) })
+
+  function readSignalKValue(pathName) {
+    const cached = conditionValues.get(pathName)
+    if (conditionValues.has(pathName)) return cached
+    const direct = app.getSelfPath?.(pathName)
+    if (direct !== undefined) return unwrapSignalKValue(direct)
+    const full = app.getPath?.(`vessels.self.${pathName}`)
+    return unwrapSignalKValue(full)
+  }
+
+  function unwrapSignalKValue(value) {
+    return value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value
+  }
 
   function applyRuntimeConfiguration(flowOptions) {
     colorPalette = loadPalette(flowOptions?.colorPaletteFile, visualColorPool)
     soundsByState = normalizeSoundsByState(flowOptions?.soundsByState, flowOptions?.soundPaletteFile)
     audioPlayer.player = String(flowOptions?.audioPlayer || 'aplay')
     audioPlayer.device = String(flowOptions?.audioDevice || 'default')
-    policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...normalizePolicies(flowOptions?.policies)], soundsByState)
+    policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...normalizePolicies(flowOptions?.policies)], soundsByState, readSignalKValue)
     configuredClassifier = classify.withOverrides(normalizeClassificationRules(flowOptions?.classificationRules))
     configuredStateOrder = normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
     stateColors = normalizeStateColors(flowOptions?.stateColors)
@@ -120,6 +139,30 @@ module.exports = function createPlugin(app) {
     clearHistoryOccurrenceId = String(flowOptions?.clearHistoryOccurrenceId || '')
     testNotificationEnabled = flowOptions?.testNotif?.enabled === true
     historyRetentionDays = Number.isInteger(flowOptions?.historyRetentionDays) ? Math.max(0, Math.min(3650, flowOptions.historyRetentionDays)) : 0
+    subscribeToConditions()
+  }
+
+  // Node-RED does not emit a deploy event on every supported Signal K build.
+  // Re-read the flow on API access as a safety net so a deployed rule cannot
+  // remain active in this plugin merely because the event was missed.
+  async function refreshNodeRedConfiguration() {
+    if (!nodeRedRuntime || configReloadPromise) return configReloadPromise
+    configReloadPromise = (async () => {
+      try {
+        const next = await readConfiguration(nodeRedRuntime)
+        if (next.checksum === nodeRedConfigChecksum) return
+        nodeRedConfigChecksum = next.checksum
+        activeRules = next.rules
+        writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
+        applyRuntimeConfiguration({ ...runtimeOptions, ...next.config.notificationEngine, activeRules: next.rules })
+        app.debug?.(`Notification Engine configuration updated from Node-RED`)
+      } catch (error) {
+        app.error?.(`Unable to refresh Node-RED notification rules: ${error.message}`)
+      } finally {
+        configReloadPromise = null
+      }
+    })()
+    return configReloadPromise
   }
 
   const plugin = {
@@ -324,6 +367,8 @@ module.exports = function createPlugin(app) {
       void stopTestNotification()
       const currentLifecycle = ++lifecycle
       const nodeRed = getNodeRed()
+      nodeRedRuntime = nodeRed
+      runtimeOptions = { ...options }
       const nodeRedConfig = await readConfiguration(nodeRed)
       nodeRedConfigChecksum = nodeRedConfig.checksum
       activeRules = nodeRedConfig.rules
@@ -349,13 +394,7 @@ module.exports = function createPlugin(app) {
         onError: message => app.error?.(message)
       })
       nodeRedUnsubscribe = subscribeToDeploy(nodeRed, async () => {
-        const next = await readConfiguration(nodeRed)
-        if (next.checksum === nodeRedConfigChecksum) return
-        nodeRedConfigChecksum = next.checksum
-        activeRules = next.rules
-        writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
-        applyRuntimeConfiguration({ ...options, ...next.config.notificationEngine, activeRules: next.rules })
-        app.debug?.(`Notification Engine configuration updated from Node-RED`)
+        await refreshNodeRedConfiguration()
       })
       void initialize(currentLifecycle, flowOptions?.testNotif)
       if (options?.playTestTone === true && typeof app.savePluginOptions === 'function') {
@@ -407,8 +446,11 @@ module.exports = function createPlugin(app) {
     registerWithRouter(router) {
       const readOnly = router.access('readonly')
       readOnly.get('/notifications', async (_request, response) => {
-        // Refresh on request as well as on the background interval. This
-        // keeps the WebApp useful even if a producer appears after startup.
+        // Refresh on request as well as on the deploy event. The embedded
+        // runtime can miss a deploy notification, while the Alarm Centre
+        // polls this endpoint regularly; re-reading here makes a deployed
+        // Node-RED configuration converge without requiring a Signal K restart.
+        await refreshNodeRedConfiguration()
         await syncSnapshot()
         response.json({ notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, updatedAt: new Date().toISOString() })
       })
@@ -435,23 +477,6 @@ module.exports = function createPlugin(app) {
         store.replaceHistory(historyRepository.events)
         response.status(204).end()
       })
-      readWrite.post('/notifications/:id/:action', async (request, response) => {
-        let silencedRecord = null
-        try {
-          const record = store.get(request.params.id)
-          if (request.params.action === 'silence') {
-            silencedRecord = record
-            silencedAudio.set(record.occurrenceId, record.state)
-            stopNotificationAudio(record.occurrenceId)
-          }
-          await actions.execute(record, request.params.action)
-          store.recordOperatorAction(request.params.action, record)
-          response.status(202).json({ state: 'ACCEPTED' })
-        } catch (error) {
-          if (silencedRecord) silencedAudio.delete(silencedRecord.occurrenceId)
-          response.status(409).json({ state: 'REJECTED', message: error.message })
-        }
-      })
       readWrite.post('/notifications/action-all/:action', async (request, response) => {
         let silencedRecords = []
         try {
@@ -470,6 +495,26 @@ module.exports = function createPlugin(app) {
           response.status(202).json({ state: 'ACCEPTED', count: affected.length })
         } catch (error) {
           for (const record of silencedRecords) silencedAudio.delete(record.occurrenceId)
+          response.status(409).json({ state: 'REJECTED', message: error.message })
+        }
+      })
+      // Keep the literal action-all route above this parameterized route.
+      // Otherwise Express treats "action-all" as a notification id and the
+      // global action never reaches executeAll().
+      readWrite.post('/notifications/:id/:action', async (request, response) => {
+        let silencedRecord = null
+        try {
+          const record = store.get(request.params.id)
+          if (request.params.action === 'silence') {
+            silencedRecord = record
+            silencedAudio.set(record.occurrenceId, record.state)
+            stopNotificationAudio(record.occurrenceId)
+          }
+          await actions.execute(record, request.params.action)
+          store.recordOperatorAction(request.params.action, record)
+          response.status(202).json({ state: 'ACCEPTED' })
+        } catch (error) {
+          if (silencedRecord) silencedAudio.delete(silencedRecord.occurrenceId)
           response.status(409).json({ state: 'REJECTED', message: error.message })
         }
       })
@@ -591,7 +636,7 @@ module.exports = function createPlugin(app) {
       const fullModelNotifications = typeof app.getPath === 'function'
         ? fromDataModel(app.getPath('vessels.self.notifications'))
         : {}
-      const snapshot = { ...selfNotifications, ...fullModelNotifications, ...apiNotifications, ...managed }
+      const snapshot = mergeSnapshots(selfNotifications, fullModelNotifications, apiNotifications, managed)
       if (!testNotificationEnabled) {
         for (const [id, notification] of Object.entries(snapshot)) {
           if (notification.value?.data?.notificationManagerTest === true) delete snapshot[id]
@@ -643,6 +688,44 @@ module.exports = function createPlugin(app) {
     )
   }
 
+  function subscribeToConditions() {
+    stopConditionSubscriptions()
+    const paths = [...new Set(activeRules.flatMap(rule => rule.match?.conditions?.map(condition => condition.path) || []))]
+    for (const pathName of paths) {
+      const direct = app.getSelfPath?.(pathName)
+      const full = direct === undefined ? app.getPath?.(`vessels.self.${pathName}`) : direct
+      conditionValues.set(pathName, unwrapSignalKValue(full))
+    }
+    if (paths.length === 0 || !app.subscriptionmanager?.subscribe) return
+    app.subscriptionmanager.subscribe(
+      { context: '*', sourcePolicy: 'all', subscribe: paths.map(path => ({ path })) },
+      conditionUnsubscribes,
+      error => app.error?.(`Signal K condition subscription error: ${error}`),
+      delta => {
+        let changed = false
+        for (const update of delta?.updates || []) {
+          for (const item of update.values || []) {
+            if (!paths.includes(item.path)) continue
+            conditionValues.set(item.path, unwrapSignalKValue(item.value))
+            changed = true
+          }
+        }
+        if (changed) refreshConditionEffects()
+      }
+    )
+  }
+
+  function stopConditionSubscriptions() {
+    for (const unsubscribe of conditionUnsubscribes) unsubscribe()
+    conditionUnsubscribes = []
+    conditionValues.clear()
+  }
+
+  function refreshConditionEffects() {
+    for (const notification of store.list()) applyNotificationAudio({ type: 'condition_updated', notification })
+  }
+
+
   /** Log notification changes to correlate an active alarm by ID. */
   function logNotificationDelta(delta) {
     const changes = []
@@ -664,6 +747,7 @@ module.exports = function createPlugin(app) {
   }
 
   function stopSubscriptions() {
+    stopConditionSubscriptions()
     for (const unsubscribe of unsubscribes) {
       unsubscribe()
     }
@@ -710,23 +794,25 @@ module.exports = function createPlugin(app) {
     const ordered = Array.isArray(rules) ? [...rules].sort((left, right) => ruleSpecificity(right) - ruleSpecificity(left)) : []
     return ordered.map(rule => {
       const hasSound = Boolean(rule.actions?.sound || rule.actions?.soundFile)
+      const ignored = rule.actions?.ignore === true
       return {
       name: rule.id,
       state: rule.match?.state,
-      match: { state: rule.match?.state, path: rule.match?.path, category: rule.match?.category },
-      audio: hasSound ? 'on' : 'inherit',
-      sound: hasSound ? { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || 'once', repeatCount: rule.actions.sound?.repeatCount || 1 } : null,
-      visible: rule.actions?.visibleInTable !== false
+      match: { state: rule.match?.state, path: rule.match?.path, category: rule.match?.category, ...(rule.match?.conditions ? { conditions: rule.match.conditions } : {}) },
+      audio: ignored ? 'off' : hasSound ? 'on' : 'inherit',
+      sound: ignored ? null : hasSound ? { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || rule.actions.soundMode || 'once', repeatCount: rule.actions.sound?.repeatCount || rule.actions.repeatCount || 1 } : null,
+      visible: !ignored && rule.actions?.visibleInTable !== false
       }
     })
   }
 
   function ruleSpecificity(rule) {
     const match = rule?.match || {}
-    if (match.path && !match.path.includes('*')) return 400
-    if (match.path) return 300
-    if (match.category) return 200
-    return 100
+    const hasConditions = Array.isArray(match.conditions) && match.conditions.length > 0
+    if (match.path && !match.path.includes('*')) return hasConditions ? 450 : 400
+    if (match.path) return hasConditions ? 350 : 300
+    if (match.category) return hasConditions ? 250 : 200
+    return hasConditions ? 150 : 100
   }
 
   function normalizeClassificationRules(rules) {

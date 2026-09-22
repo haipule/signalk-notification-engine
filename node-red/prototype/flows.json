@@ -379,7 +379,7 @@
   "type": "function",
   "z": "tab-notification-centered",
   "name": "Sound: 1bells.wav",
-  "func": "msg.payload.soundFile='/home/pi/.signalk/sounds/1bells.wav'; return msg;",
+  "func": "msg.payload.soundFile='/home/pi/.signalk/sounds/1bells.wav'; msg.payload.soundMode='loop'; return msg;",
   "outputs": 1,
   "x": 420,
   "y": 200,
@@ -440,7 +440,7 @@
 }, {
   "id": "wire-flash", "type": "function", "z": "tab-wire-mapping", "name": "Flash: enabled", "func": "msg.payload.flash=true; return msg;", "outputs": 1, "x": 440, "y": 160, "wires": [["wire-assembler"]]
 }, {
-  "id": "wire-bell", "type": "function", "z": "tab-wire-mapping", "name": "Sound: 1bells.wav", "func": "msg.payload.soundFile='/home/pi/.signalk/sounds/1bells.wav'; return msg;", "outputs": 1, "x": 440, "y": 200, "wires": [["wire-assembler"]]
+  "id": "wire-bell", "type": "function", "z": "tab-wire-mapping", "name": "Sound: 1bells.wav", "func": "msg.payload.soundFile='/home/pi/.signalk/sounds/1bells.wav'; msg.payload.soundMode='loop'; return msg;", "outputs": 1, "x": 440, "y": 200, "wires": [["wire-assembler"]]
 }, {
   "id": "wire-assembler",
   "type": "function",

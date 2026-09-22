@@ -58,8 +58,9 @@
 - [ ] Node-RED-Node-Set bei der Plugin-Installation automatisch in einem
   update-sicheren Examples-/Local-Ordner der eingebetteten Node-RED-Instanz
   bereitstellen; nicht in verwaltete `node_modules`-Examples schreiben.
-- [ ] In der WebApp einen `Rules`-Button ergänzen, der für die ausgewählte
-  Notification die zugehörige Regel in einem separaten Fenster anzeigt.
+- [x] In der WebApp einen `Rules`-Button im Infofenster ergänzen, der für die
+  ausgewählte Notification die zugehörige Regel in einem separaten Fenster
+  anzeigt.
 - [ ] Im Config-Flow die Sound-Eigenschaften `once`, `repeat` und `loop` als
   eigene Nodes unterstützen.
 - [ ] Einen pseudo-terminalen `ACTIVATE`-Debug-Node als Regelabschluss
@@ -125,9 +126,14 @@
 - Dokumentation der neuen Einstellungen vervollständigen.
 - Aktuellen Stand auf dem Raspberry Pi installieren und testen.
 - Danach den getesteten Entwicklungsstand committen.
+- [ ] Nach erreichter Entwicklungsreife das Plugin in ein öffentliches Git-
+  Repository überführen und als npm-Paket veröffentlichen; anschließend die
+  Appstore-Metadaten und die Installationsdokumentation aktualisieren.
 
 ## 6. UI-Aktionen und Piktogramme
 
+- [ ] Im History-Fenster den Lösch-Button nach erfolgreichem Löschen der
+  Historie ausblenden.
 - [ ] Buttons im Infofenster und für „Delete this history“ deutlich auffälliger
   gestalten.
 - [ ] Passende, verständliche Piktogramme für `Silence`, `Acknowledge`,

@@ -1,6 +1,6 @@
 {
   "name": "signalk-notification-engine",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "Signal K notification automation engine with visual flows.",
   "main": "index.js",
   "scripts": {

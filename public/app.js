@@ -19,9 +19,11 @@ let infoCloseTimer = null
 let shortcutInfo = 'i'
 let shortcutHistory = 'h'
 let historyFocusId = null
+let historyFocusNotification = null
 let historyPath = ''
 let historyOccurrenceId = ''
 let historyDisplayLimit = 20
+let historyMode = 'selected'
 let activeRules = []
 
 document.querySelector('#refresh').addEventListener('click', refresh)
@@ -30,11 +32,10 @@ for (const button of actionBar.querySelectorAll('[data-global-action]')) {
 }
 document.querySelector('#close-detail').addEventListener('click', closeDetails)
 document.querySelector('#show-history').addEventListener('click', () => showSelectedHistory())
+document.querySelector('#show-alarm-history').addEventListener('click', showAlarmHistory)
 document.querySelector('#show-rules').addEventListener('click', () => showSelectedRules())
 document.querySelector('#close-history').addEventListener('click', closeHistory)
 document.querySelector('#close-rules').addEventListener('click', closeRules)
-document.querySelector('#show-deployed-rules').addEventListener('click', showDeployedRules)
-document.querySelector('#close-deployed-rules').addEventListener('click', closeDeployedRules)
 document.querySelector('#delete-history').addEventListener('click', deleteLocalHistory)
 detailSheet.addEventListener('pointerdown', () => { detailSheet.style.zIndex = '12' })
 document.querySelector('#history-sheet').addEventListener('pointerdown', event => { event.currentTarget.style.zIndex = '12'; detailSheet.style.zIndex = '11' })
@@ -44,7 +45,6 @@ document.addEventListener('keydown', event => {
     if (detailSheet.getAttribute('aria-hidden') === 'false') closeDetails()
     if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false') closeHistory()
     if (document.querySelector('#rules-sheet').getAttribute('aria-hidden') === 'false') closeRules()
-    if (document.querySelector('#deployed-rules-sheet').getAttribute('aria-hidden') === 'false') closeDeployedRules()
     return
   }
   if (event.target.matches('input, textarea, select')) return
@@ -71,7 +71,7 @@ document.addEventListener('keydown', event => {
 })
 document.addEventListener('click', event => {
   if (!selectedId) return
-  if (event.target.closest('.notification-row, #detail-sheet, #history-sheet, #actions, #visual-alerts')) return
+  if (event.target.closest('.notification-row, #detail-sheet, #history-sheet, #rules-sheet, #actions, #visual-alerts')) return
   selectedId = null
   renderNotifications(activeNotifications)
 })
@@ -99,14 +99,19 @@ function enableDragging(sheet, dragButton) {
 enableDragging(detailSheet, document.querySelector('#drag-detail'))
 enableDragging(document.querySelector('#history-sheet'), document.querySelector('#drag-history'))
 enableDragging(document.querySelector('#rules-sheet'), document.querySelector('#drag-rules'))
-enableDragging(document.querySelector('#deployed-rules-sheet'), document.querySelector('#drag-deployed-rules'))
 
 /** Render Signal K state only; actions are intentionally introduced later. */
 function renderNotifications(notifications) {
   notificationContainer.replaceChildren()
+  const ignoredCount = notifications.filter(notification => notification.policy?.visible === false).length
+  const ignoredElement = document.querySelector('#ignored-count')
+  if (ignoredElement) {
+    ignoredElement.hidden = ignoredCount === 0
+    ignoredElement.textContent = ignoredCount === 1 ? '· 1 ignored' : `· ${ignoredCount} ignored`
+  }
   const visible = notifications
     .filter(notification => notification.policy?.visible !== false)
-    .filter(notification => ['emergency', 'alarm'].includes(notification.state) || activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true))
+    .filter(notification => isVisibleInTable(notification))
     .sort(bySeverity)
   const stateCounts = Object.fromEntries(['emergency', 'alarm', 'warn', 'alert'].map(state => [state, 0]))
   let normalCount = 0
@@ -118,6 +123,10 @@ function renderNotifications(notifications) {
   renderVisualAlerts(visible)
   if (selectedId && !visible.some(notification => notification.id === selectedId)) closeDetails()
   summary.textContent = `${stateCounts.emergency} emergency · ${stateCounts.alarm} alarm · ${stateCounts.warn} warn · ${stateCounts.alert} alert · ${normalCount} normal`
+  if (ignoredElement) {
+    summary.append(' ')
+    summary.append(ignoredElement)
+  }
 
   if (visible.length === 0) {
     notificationContainer.innerHTML = '<p class="empty">No active notifications.</p>'
@@ -141,13 +150,12 @@ function renderNotifications(notifications) {
         selectNotification(notification.id)
       }
     })
-    const acknowledged = isAcknowledged(notification.status) && !isResolvedState(notification.state)
     const stateLabel = card.querySelector('.state')
-    stateLabel.classList.add(`state-label-${acknowledged ? 'acknowledged' : notification.state}`)
-    stateLabel.classList.toggle('state-acknowledged', acknowledged)
-    stateLabel.style.setProperty('color', acknowledged ? '#168a55' : '', 'important')
+    stateLabel.classList.add(`state-label-${notification.state}`)
+    stateLabel.classList.toggle('state-acknowledged', false)
+    stateLabel.style.removeProperty('color')
     stateLabel.classList.toggle('state-attention', ['warn', 'alert', 'alarm', 'emergency'].includes(notification.state))
-    setText(card, '.state', formatState(acknowledged ? 'acknowledged' : notification.state))
+    setText(card, '.state', formatState(notification.state))
     setText(card, '.category', formatCategory(notification.category))
     setText(card, '.message', notification.message || 'No message supplied')
     setText(card, '.source', notification.source?.label || 'Unknown source')
@@ -181,6 +189,11 @@ function renderVisualAlerts(notifications) {
     })
     visualAlerts.append(alert)
   }
+}
+
+function isVisibleInTable(notification) {
+  if (['emergency', 'alarm'].includes(notification.state)) return true
+  return activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
 }
 
 function isAcknowledged(status) {
@@ -231,7 +244,27 @@ function renderHistory(events) {
     const day = new Date(event.at).toLocaleDateString()
     const datePrefix = day !== lastDay ? `<time class="history-day">${day}</time>` : '<span class="history-day history-day-empty" aria-hidden="true"></span>'
     const time = new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    item.innerHTML = `${datePrefix}<time class="history-time">${time}</time><span class="history-summary"><strong>${label}</strong> <span class="history-state state-label-${notification.state || 'unknown'}">${state}</span>${repetition}${durationLabel}</span>`
+    const message = notification.message ? ` · ${escapeHtml(notification.message)}` : ''
+    item.innerHTML = `${datePrefix}<time class="history-time">${time}</time><span class="history-summary"><strong>${label}</strong> <span class="history-state state-label-${notification.state || 'unknown'}">${state}</span>${message}${repetition}${durationLabel}</span>`
+    if (historyMode === 'critical') {
+      item.classList.add('history-selectable')
+      item.tabIndex = 0
+      item.setAttribute('role', 'button')
+      item.setAttribute('aria-label', `${state}: ${notification.message || 'No message supplied'}`)
+      const openHistoricalDetails = () => {
+        const historical = { ...notification, historyOnly: true, status: null, policy: null }
+        historyFocusNotification = historical
+        selectedId = null
+        renderDetails(historical)
+      }
+      item.addEventListener('click', openHistoricalDetails)
+      item.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          openHistoricalDetails()
+        }
+      })
+    }
     lastDay = day
     historyContainer.append(item)
   }
@@ -239,9 +272,21 @@ function renderHistory(events) {
 }
 
 function renderSelectedHistory() {
-  const selected = activeNotifications.find(item => item.id === historyFocusId)
+  const selected = activeNotifications.find(item => item.id === historyFocusId) || historyFocusNotification
   if (!selected) return
   renderHistory(historyForNotification(selected))
+}
+
+function renderCriticalHistory() {
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000
+  const events = (window.notificationHistory || []).filter(event => {
+    const at = Date.parse(event.at)
+    return Number.isFinite(at) && at >= cutoff && ['emergency', 'alarm'].includes(event.notification?.state)
+  })
+  renderHistory(events)
+  document.querySelector('#history-title').textContent = 'Emergency & alarm history'
+  document.querySelector('#history-key').textContent = 'Showing emergency and alarm events from the last 24 hours. Select an entry for details.'
+  document.querySelector('#delete-history').hidden = true
 }
 
 async function deleteLocalHistory() {
@@ -281,18 +326,36 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]))
 }
 
-function showSelectedHistory(selected = activeNotifications.find(item => item.id === selectedId)) {
+function showSelectedHistory(selected = activeNotifications.find(item => item.id === selectedId) || historyFocusNotification) {
   selected ||= activeNotifications[0]
   if (!selected) return
+  historyMode = 'selected'
+  historyFocusNotification = selected
   historyFocusId = selected.id
   const path = selected.path || ''
   historyPath = path
   historyOccurrenceId = selected.occurrenceId || ''
   historyDisplayLimit = 20
+  document.querySelector('#history-title').textContent = 'Notification history'
+  document.querySelector('#delete-history').hidden = selected.historyOnly === true
   renderSelectedHistory()
   document.querySelector('#history-key').textContent = `First seen: ${formatDateTime(selected.firstSeenAt || historyForNotification(selected)[0]?.notification?.firstSeenAt)}`
   document.querySelector('#history-sheet').setAttribute('aria-hidden', 'false')
   document.querySelector('#history-sheet').style.zIndex = '12'
+}
+
+function showAlarmHistory() {
+  historyMode = 'critical'
+  historyFocusId = null
+  historyFocusNotification = null
+  historyPath = ''
+  historyOccurrenceId = ''
+  historyDisplayLimit = 20
+  renderCriticalHistory()
+  const sheet = document.querySelector('#history-sheet')
+  sheet.setAttribute('aria-hidden', 'false')
+  sheet.style.zIndex = '12'
+  sheet.focus()
 }
 
 function historyForNotification(notification) {
@@ -351,6 +414,7 @@ function renderDetails(notification) {
   updateActions(notification)
   const unavailable = ['silence', 'acknowledge', 'clear'].filter(action => !actionAllowed(notification, action))
   const notes = []
+  if (notification.historyOnly) notes.push('This is a historical event; actions are unavailable.')
   if (visualRules[notification.state]?.acknowledgeRequired && !notification.status?.acknowledged) notes.push('Acknowledgement required.')
   if (notification.state === 'emergency' && !actionAllowed(notification, 'silence')) notes.push('Silence is not permitted for emergency in Signal K.')
   if (unavailable.includes('clear')) notes.push('Clear is not permitted by the notification source.')
@@ -362,10 +426,12 @@ function renderDetails(notification) {
 
 function showSelectedRules(notification = activeNotifications.find(item => item.id === selectedId)) {
   if (!notification) return
-  const matches = activeRules.filter(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
+  const matches = activeRules.filter(rule => ruleMatchesNotification(rule, notification))
   const element = document.querySelector('#detail-rules')
   element.hidden = false
-  element.textContent = matches.length ? JSON.stringify(matches, null, 2) : 'No matching deployed rule.'
+  element.textContent = matches.length
+    ? JSON.stringify({ notification: { state: notification.state, category: notification.category, path: notification.path }, matchingRules: matches }, null, 2)
+    : 'No matching deployed rule. This notification is shown because emergency and alarm states are always visible.'
   const sheet = document.querySelector('#rules-sheet')
   sheet.setAttribute('aria-hidden', 'false')
   sheet.style.zIndex = '13'
@@ -374,24 +440,6 @@ function showSelectedRules(notification = activeNotifications.find(item => item.
 
 function closeRules() {
   document.querySelector('#rules-sheet').setAttribute('aria-hidden', 'true')
-}
-
-async function showDeployedRules() {
-  const sheet = document.querySelector('#deployed-rules-sheet')
-  const content = document.querySelector('#deployed-rules-content')
-  try {
-    const response = await fetch(`${pluginApi}/rules`)
-    content.textContent = await response.text()
-  } catch (error) {
-    content.textContent = `Unable to load deployed rules: ${error.message}`
-  }
-  sheet.setAttribute('aria-hidden', 'false')
-  sheet.style.zIndex = '14'
-  sheet.focus()
-}
-
-function closeDeployedRules() {
-  document.querySelector('#deployed-rules-sheet').setAttribute('aria-hidden', 'true')
 }
 
 function ruleMatchesNotification(rule, notification) {
@@ -433,6 +481,7 @@ function bySeverity(left, right) {
 }
 
 function actionAllowed(notification, action) {
+  if (notification?.historyOnly) return false
   const status = notification.status
   if (!status) return false
   if (action === 'silence') return notification.state !== 'emergency' && status.canSilence === true && status.silenced !== true
@@ -485,7 +534,9 @@ async function refresh() {
     shortcutHistory = typeof notifications.shortcutHistory === 'string' ? notifications.shortcutHistory : shortcutHistory
     renderNotifications(notifications.notifications)
     window.notificationHistory = history.events || []
-    if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyPath) {
+    if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'critical') {
+      renderCriticalHistory()
+    } else if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyPath) {
       const selected = activeNotifications.find(item => item.id === historyFocusId)
       renderSelectedHistory()
     } else {

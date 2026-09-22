@@ -55,10 +55,21 @@ The Notification Engine must not modify files below Signal K's managed
 may change the runtime event API; the engine must check that the expected event
 interface exists and refuse startup with a Signal-K log error if it does not.
 
-Node-RED flow files are stored separately under Signal K's `red` directory and
-are not modified by a Node-RED package update. After a compatible update and
-Signal-K restart, the existing deployed flows remain the source of the
-configuration.
+Node-RED flow files are stored separately in the configured Node-RED user
+directory (on the current Raspberry Pi installation this is
+`/home/pi/.node-red/flows.json`; some Signal K installations use
+`/home/pi/.signalk/red/flows_openplotter.json`) and are not modified by a
+Node-RED package update. After a compatible update and Signal-K restart, the
+existing deployed flows remain the source of the configuration.
+
+The Notification Engine also keeps the last flow that contained a valid
+`Notification Engine config` node in a sibling directory named
+`notification-engine-backups/last-valid-flow.json`. A valid startup or deploy
+updates this backup atomically. If a deploy removes or corrupts the
+Notification Engine configuration, the embedded runtime restores that backup
+through Node-RED's `setFlows` API, retaining the currently deployed
+credentials. A flow without a valid engine configuration is therefore never
+accepted silently as the new notification configuration.
 
 ## Change detection
 

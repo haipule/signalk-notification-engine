@@ -21,6 +21,31 @@ The separate systemd service `nodered.service` is not part of this project and
 is currently stopped; do not deploy flows to `/home/pi/.node-red` or restart
 that service for this work.
 
+### Node-RED builder semantics
+
+The graphical builder is a message-flow builder. Each wire branch adds one
+property to `msg.payload` when that branch is triggered; branches are not an
+implicit shared object that may be merged indiscriminately. A sound branch may
+therefore add `soundFile`, another branch may add `sound.mode` or
+`sound.repeatCount`, and a path branch may add `match.path`. The rule extractor
+must preserve the branch/activation semantics and must not combine properties
+from unrelated parallel branches into one rule. A branch with a matching
+`match.path` has priority over a state-only branch: its sound file, playback
+mode, and other properties must override the corresponding general state
+defaults. Always validate the generated rules against the live embedded
+Node-RED flow and the deployed-rules output, especially when sound paths or
+loop/repeat behaviour are involved.
+
+## Deployment requirement
+
+Every code change intended for testing or use must be packaged and deployed
+to the Raspberry Pi (`raspi`) before the task is considered complete. After
+deployment, restart `signalk.service` when required, verify that the service
+becomes active, and perform a live health/configuration check. Keep a backup
+of the previously installed plugin package before replacing it. This does not
+authorize deploying Node-RED flows to `/home/pi/.node-red`; use the Signal K
+embedded Node-RED paths described above.
+
 Signal-K plugin lifecycle and logging remain Signal-K responsibilities. Keep
 plugin start/stop handling and Signal-K logging configuration in the Signal-K
 Plugin Config. Port only notification and flow behaviour to the internal
@@ -96,5 +121,5 @@ compatibility; if it is unavailable, notification processing must not start.
 - Show `silenced` and `acknowledged` as independent status indicators; a
   cleared notification belongs in history, not the active table.
 - Individual actions belong in the selected info window; global actions are
-  separate and clearly labelled. The desktop info window is draggable, while
+  separate and clearly labelled. The current info window is not draggable;
   mobile may use the bottom-sheet presentation.

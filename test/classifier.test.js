@@ -8,6 +8,10 @@ test('classifies NOAA hurricane notifications as weather', () => {
   assert.equal(classify({ path: 'notifications.noaaHurricane.nearest' }), 'WEATHER')
 })
 
+test('keeps unclassified environment notifications as other', () => {
+  assert.equal(classify({ path: 'notifications.environment.bilgeWater.stbd' }), 'OTHER')
+})
+
 test('keeps unknown notification paths as other', () => {
   assert.equal(classify({ path: 'notifications.custom.example' }), 'OTHER')
 })

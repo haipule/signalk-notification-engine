@@ -15,9 +15,11 @@
 - An action request is appended to the local audit trail without claiming that
   the producer has changed its underlying alarm state.
 - Automatic categories are currently assigned by the built-in classifier.
-  `notifications.noaaHurricane.*` is classified as `WEATHER`; unknown paths
-  fall back to `OTHER`. Path-prefix overrides can be supplied through Plugin
-  Config and take precedence over the automatic classifier.
+  `notifications.noaaHurricane.*` is classified as `WEATHER`; environment
+  notifications are not assumed to be weather, so paths such as
+  `notifications.environment.bilgeWater.*` fall back to `OTHER`. Path-prefix
+  overrides can be supplied through Plugin Config and take precedence over the
+  automatic classifier.
 - Local policies can match category, path prefix, or source. They affect only
   presentation priority, visibility, and future audio behaviour; they never
   modify an alarm's Signal K `state` or its base category.
