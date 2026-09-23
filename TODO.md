@@ -82,6 +82,16 @@
 
 ## 3. End-to-end validation
 
+- [ ] Source-Verlust bei bestehenden Signal-K-Notifications reproduzieren und
+  beheben. Beispiel: `notifications.propulsion.stbdEngine.exhaustTemperature`
+  mit Notification-ID `2ff367b5-4465-456b-9402-3ca7d8948aed` wird im Signal-K-
+  Datenmodell mit `$source: self.notificationhandler` geliefert, erscheint im
+  Centre aber als `Unknown source`. Delta-, Snapshot-, API- und Merge-Pfad
+  einzeln protokollieren; die Source darf bei wechselnder Notification-ID oder
+  beim Zusammenführen von `app.notifications.list()` nicht verloren gehen.
+  Akzeptanzkriterium: Das Centre zeigt für diesen Pfad dauerhaft
+  `self.notificationhandler` und die Historie verwendet dieselbe Quelle.
+
 - Live-Aktualisierung praktisch testen; die Ansicht sollte Zustandswechsel
   innerhalb des 5-Sekunden-Intervalls übernehmen.
 - [ ] Erkennungsverzögerung vergleichen: Testalarm gegen echten Alarm; Delta-
