@@ -32,7 +32,7 @@ contain changes that have not yet been deployed to the Raspberry Pi.
 
 - All notifications are visible, including unknown ones.
 - Signal K remains authoritative for notification state and lifecycle.
-- The manager applies local policies: category, display priority, audio,
+- The manager applies local policies: display priority, audio,
   repetition, retention, and later external actions.
 - `silence`, `acknowledge`, and `clear` are separate operations and only shown
   when Signal K permits them.
@@ -43,10 +43,11 @@ Notification state visibility and sorting are configured together in Plugin
 Config. Listed states are visible in the listed order; `emergency` and `alarm`
 are always visible first.
 
-Policies are evaluated in order and may match by category, path prefix, or
+Policies are evaluated in order and may match by state, path prefix, or
 source. Unknown notifications remain visible unless an explicit rule hides
-them. The local history is an audit/history model owned by this plugin; it is
-not a replacement for Signal K's notification or history APIs. Lifecycles are
+them. The local history is an audit/history model owned by this plugin; deleting
+it does not delete or alter the Signal K notification. It is not a replacement
+for Signal K's notification or history APIs. Lifecycles are
 tracked with a local `occurrenceId`, and producer-specific end markers can be
 configured in `lifecycle-rules.json`.
 

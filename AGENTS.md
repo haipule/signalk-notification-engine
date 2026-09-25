@@ -78,6 +78,40 @@ compatibility; if it is unavailable, notification processing must not start.
 - Do not take ownership of existing audio scripts until an explicit migration
   and stop/hand-off behaviour has been implemented and tested.
 
+## History and configuration policy
+
+- The History delete action removes only the Notification Engine's local audit
+  entry. It must never be described or implemented as deleting a Signal K
+  notification; Signal K remains the authority for the notification lifecycle.
+- `visibleInTable` is the default signal for local history recording: when a
+  notification is explicitly visible, `history` inherits enabled behaviour.
+- A rule may explicitly override that default with `history: true` or
+  `history: false`; visibility and retention remain related but are not
+  inseparably coupled.
+- `emergency` and `alarm` follow the same rule resolution as other
+  notifications; they are not hard-coded as permanently retained exceptions.
+- Removing visibility stops new history recording for that notification, but
+  does not delete existing audit entries automatically. Retroactive deletion
+  requires an explicit, separately named purge option.
+- Keep local history in the atomic, bounded JSON repository for now. Move it
+  to SQLite only when query volume, retention length, or reporting needs
+  clearly exceed the JSON model; a migration must preserve entries and have a
+  rollback/backup path.
+- Do not move all notification conditions into a database at this stage.
+  Node-RED remains the graphical rule authoring layer and Signal K Plugin
+  Config remains the protected configuration boundary. A database must not
+  become an untracked third source of truth for rules.
+
+## Category policy
+
+- Categories are automatic display/classification metadata only. The built-in
+  classifier may label a notification for the Alarm Centre, but users do not
+  assign categories through Node-RED `payload.category` nodes.
+- Policies and builder rules match operational properties such as state, path,
+  source, and conditions. Category is not a second rule language or a policy
+  selector; this keeps one path from having two competing meanings.
+- The old category-assignment prototype is obsolete and must not be deployed.
+
 ## Implementation order
 
 1. Complete and keep `docs/notification-api-analysis.md` accurate.

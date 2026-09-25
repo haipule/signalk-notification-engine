@@ -9,6 +9,7 @@ const { PolicyResolver } = require('./lib/policies')
 const HistoryRepository = require('./lib/history-repository')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const { fromDataModel, mergeSnapshots } = require('./lib/notification-snapshot')
+const { normalizeSource } = require('./lib/notification-source')
 const AudioPlayer = require('./lib/audio-player')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { rulesMarkdown } = require('./lib/flow-rules')
@@ -42,7 +43,6 @@ module.exports = function createPlugin(app) {
   let shortcutInfo = 'i'
   let shortcutHistory = 'h'
   let historyRules = []
-  let historyStates = new Set(['emergency', 'alarm'])
   let lifecycleRules = []
   let clearHistoryOnStart = false
   let clearHistoryPath = ''
@@ -101,6 +101,7 @@ module.exports = function createPlugin(app) {
   let configReloadPromise = null
   let activeRules = []
   const conditionValues = new Map()
+  const originalSources = new Map()
   let conditionUnsubscribes = []
   const audioPlayer = new AudioPlayer({ onError: error => app.error?.(`Unable to play notification sound: ${error.message}`) })
 
@@ -123,7 +124,7 @@ module.exports = function createPlugin(app) {
     audioPlayer.player = String(flowOptions?.audioPlayer || 'aplay')
     audioPlayer.device = String(flowOptions?.audioDevice || 'default')
     policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...normalizePolicies(flowOptions?.policies)], soundsByState, readSignalKValue)
-    configuredClassifier = classify.withOverrides(normalizeClassificationRules(flowOptions?.classificationRules))
+    configuredClassifier = classify
     configuredStateOrder = normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
     stateColors = normalizeStateColors(flowOptions?.stateColors)
     visualRules = normalizeVisualRules(flowOptions?.visualRules, stateColors)
@@ -132,7 +133,6 @@ module.exports = function createPlugin(app) {
     shortcutHistory = normalizeShortcut(flowOptions?.shortcutHistory, 'h')
     if (shortcutInfo && shortcutInfo === shortcutHistory) shortcutHistory = ''
     historyRules = normalizeHistoryRules(flowOptions?.historyRules)
-    historyStates = normalizeHistoryStates(flowOptions?.historyStates)
     clearHistoryOnStart = flowOptions?.clearHistoryOnStart === true
     clearHistoryPath = normalizeClearPath(flowOptions?.clearHistoryPath)
     clearHistoryPathOnSave = flowOptions?.clearHistoryPathOnSave === true
@@ -184,7 +184,6 @@ module.exports = function createPlugin(app) {
             additionalProperties: false,
             properties: {
               name: { type: 'string', title: 'Name', default: '' },
-              category: { type: 'string', title: 'Category', default: '', enum: ['', 'ANCHOR', 'NAVIGATION', 'COLLISION', 'WEATHER', 'ELECTRICAL', 'PROPULSION', 'SYSTEM', 'SECURITY', 'OTHER'] },
               pathPrefix: { type: 'string', title: 'Path Prefix', default: '' },
               source: { type: 'string', title: 'Source Label', default: '' },
               priority: { type: 'string', title: 'Display Priority', enum: ['low', 'normal', 'high', 'critical'], default: 'normal' },
@@ -196,19 +195,6 @@ module.exports = function createPlugin(app) {
                 repeatCount: { type: 'integer', title: 'Repeat count (repeat only)', minimum: 1, maximum: 100, default: 1 }
               } },
               visible: { type: 'boolean', title: 'Show in Alarm Centre', default: true }
-            }
-          }
-        }
-        ,
-        classificationRules: {
-          type: 'array', title: 'Classification Rules',
-          description: 'Override automatic categories by notification path prefix.',
-          default: [],
-          items: {
-            type: 'object', additionalProperties: false,
-            properties: {
-              pathPrefix: { type: 'string', title: 'Notification Path Prefix', default: '' },
-              category: { type: 'string', title: 'Category', enum: ['ANCHOR', 'NAVIGATION', 'COLLISION', 'WEATHER', 'ELECTRICAL', 'PROPULSION', 'SYSTEM', 'SECURITY', 'OTHER'], default: 'OTHER' }
             }
           }
         }
@@ -299,13 +285,6 @@ module.exports = function createPlugin(app) {
             source: { type: 'string', title: 'Source Label', default: '' },
             history: { type: 'boolean', title: 'Record in History', default: true }
           } }
-        }
-        ,
-        historyStates: {
-          type: 'array', title: 'Notification History For',
-          description: 'Choose states recorded in local history. Emergency and alarm are always recorded.',
-          default: ['emergency', 'alarm'],
-          items: { type: 'string', enum: ['emergency', 'alarm', 'alert', 'warn', 'nominal', 'normal', 'info', 'notification'] }
         }
         ,
         clearHistoryOnStart: {
@@ -637,6 +616,7 @@ module.exports = function createPlugin(app) {
         ? fromDataModel(app.getPath('vessels.self.notifications'))
         : {}
       const snapshot = mergeSnapshots(selfNotifications, fullModelNotifications, apiNotifications, managed)
+      enrichOriginalSources(snapshot)
       if (!testNotificationEnabled) {
         for (const [id, notification] of Object.entries(snapshot)) {
           if (notification.value?.data?.notificationManagerTest === true) delete snapshot[id]
@@ -649,6 +629,33 @@ module.exports = function createPlugin(app) {
       app.error?.(`Unable to read in-process notification snapshot: ${error.message}`)
       return apiNotifications
     }
+  }
+
+  /**
+   * Notification producers often write a notification under the same path as
+   * the condition they report, while the notification node itself is stamped
+   * with the handler source. Recover the producer source from that underlying
+   * Signal K path when available.
+   */
+  function enrichOriginalSources(snapshot) {
+    for (const notification of Object.values(snapshot || {})) {
+      const dataPath = String(notification.path || '').replace(/^notifications\./, '')
+      const source = originalSources.get(dataPath) || readOriginalSource(notification.path)
+      if (source) notification.source = source
+    }
+  }
+
+  function readOriginalSource(notificationPath) {
+    const dataPath = String(notificationPath || '').replace(/^notifications\./, '')
+    if (!dataPath) return null
+    const candidates = []
+    if (typeof app.getSelfPath === 'function') candidates.push(app.getSelfPath(dataPath))
+    if (typeof app.getPath === 'function') candidates.push(app.getPath(`vessels.self.${dataPath}`))
+    for (const value of candidates) {
+      const source = normalizeSource(value?.$source || value?.source || value?.value?.$source || value?.value?.source)
+      if (source) return source
+    }
+    return null
   }
 
   /** Read the server's official, read-only notification projection locally. */
@@ -673,17 +680,29 @@ module.exports = function createPlugin(app) {
       return
     }
 
+    const mirroredPaths = [...new Set(store.list()
+      .map(notification => String(notification.path || '').replace(/^notifications\./, ''))
+      .filter(Boolean))]
     app.subscriptionmanager.subscribe(
       {
         context: '*',
         sourcePolicy: 'all',
-        subscribe: [{ path: 'notifications.*' }]
+        subscribe: [{ path: 'notifications.*' }, ...mirroredPaths.map(path => ({ path }))]
       },
       unsubscribes,
       error => app.error?.(`Notification subscription error: ${error}`),
       delta => {
         logNotificationDelta(delta)
-        store.applyDelta(delta)
+        for (const update of delta?.updates || []) {
+          for (const item of update.values || []) {
+            if (String(item.path || '').startsWith('notifications.')) continue
+            const source = normalizeSource(update.source || update.$source || item.source || item.$source)
+            if (!source) continue
+            originalSources.set(item.path, source)
+            store.setSourceForPath(item.path, source)
+          }
+        }
+        store.applyDelta(delta, path => originalSources.get(String(path || '').replace(/^notifications\./, '')))
       }
     )
   }
@@ -782,7 +801,6 @@ module.exports = function createPlugin(app) {
             ? { active: true, file: policy.sound, mode: 'once', repeatCount: 1 }
             : policy.sound,
           match: {
-            category: policy.category || undefined,
             pathPrefix: policy.pathPrefix || undefined,
             source: policy.source || undefined
           }
@@ -795,30 +813,32 @@ module.exports = function createPlugin(app) {
     return ordered.map(rule => {
       const hasSound = Boolean(rule.actions?.sound || rule.actions?.soundFile)
       const ignored = rule.actions?.ignore === true
+      const history = typeof rule.actions?.history === 'boolean'
+        ? rule.actions.history
+        : rule.actions?.visibleInTable === true
       return {
       name: rule.id,
       state: rule.match?.state,
-      match: { state: rule.match?.state, path: rule.match?.path, category: rule.match?.category, ...(rule.match?.conditions ? { conditions: rule.match.conditions } : {}) },
+        match: { state: rule.match?.state, path: rule.match?.path, ...(rule.match?.conditions ? { conditions: rule.match.conditions } : {}) },
       audio: ignored ? 'off' : hasSound ? 'on' : 'inherit',
       sound: ignored ? null : hasSound ? { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || rule.actions.soundMode || 'once', repeatCount: rule.actions.sound?.repeatCount || rule.actions.repeatCount || 1 } : null,
-      visible: !ignored && rule.actions?.visibleInTable !== false
+        visible: !ignored && rule.actions?.visibleInTable !== false,
+        ...(typeof history === 'boolean' ? { history } : {})
       }
     })
   }
 
   function ruleSpecificity(rule) {
     const match = rule?.match || {}
-    const hasConditions = Array.isArray(match.conditions) && match.conditions.length > 0
-    if (match.path && !match.path.includes('*')) return hasConditions ? 450 : 400
-    if (match.path) return hasConditions ? 350 : 300
-    if (match.category) return hasConditions ? 250 : 200
-    return hasConditions ? 150 : 100
-  }
-
-  function normalizeClassificationRules(rules) {
-    return Array.isArray(rules)
-      ? rules.filter(rule => rule && typeof rule.pathPrefix === 'string' && rule.pathPrefix.length > 0)
-      : []
+    const conditionCount = Array.isArray(match.conditions) ? match.conditions.length : 0
+    const base = match.path && !match.path.includes('*')
+      ? 400
+      : match.path
+        ? 300
+        : 100
+    // Within one state/path scope, every additional satisfied condition makes
+    // the policy more specific and therefore overrides the shorter chain.
+    return base + conditionCount
   }
 
   function normalizeStateOrder(order, legacySortOrder, legacyVisibleStates) {
@@ -943,24 +963,20 @@ module.exports = function createPlugin(app) {
   }
 
   function shouldRecordHistory(notification) {
+    const resolvedPolicy = policyResolver.resolve(notification)
+    if (typeof resolvedPolicy.history === 'boolean') return resolvedPolicy.history
     const rule = historyRules.find(candidate =>
       (!candidate.pathPrefix || String(notification.path || '').toLowerCase().startsWith(candidate.pathPrefix)) &&
       (!candidate.source || candidate.source === notification.source?.label)
     )
     if (rule) return rule.history
-    return historyStates.has(notification.state)
+    return false
   }
 
   function isLocallyEnabledState(state) {
     return state === 'emergency' || state === 'alarm' || activeRules.some(rule => rule.match?.state === state)
   }
 
-  function normalizeHistoryStates(states) {
-    const selected = new Set(Array.isArray(states) ? states.filter(state => typeof state === 'string') : [])
-    selected.add('emergency')
-    selected.add('alarm')
-    return selected
-  }
 
   function writeRuleDescriptionFiles(rules, revision) {
     const directory = path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'deployed-rules')
@@ -982,7 +998,7 @@ module.exports = function createPlugin(app) {
 
   // Rule definitions come from the deployed Node-RED builder flow. Keep only
   // operational settings in the Signal K plugin configuration form.
-  for (const field of ['policies', 'classificationRules', 'stateOrder', 'stateColors', 'colorPaletteFile', 'visualRules', 'soundsByState', 'soundPaletteFile', 'historyRules', 'historyStates']) {
+  for (const field of ['policies', 'stateOrder', 'stateColors', 'colorPaletteFile', 'visualRules', 'soundsByState', 'soundPaletteFile', 'historyRules']) {
     delete plugin.schema.properties[field]
   }
   delete plugin.uiSchema.soundsByState

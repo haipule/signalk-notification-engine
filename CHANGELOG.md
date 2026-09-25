@@ -1,11 +1,29 @@
 # Changelog
 
+- Make `visibleInTable` the default opt-in for local history, with explicit
+  `history: true/false` overrides; remove forced emergency/alarm retention.
+
+- Normalize Signal K notification sources from label, `$source`, type, and
+  string representations so the centre does not incorrectly show `Unknown
+  source`.
+
+- Interpret Node-RED notification rules from `msg.payload` independent of the
+  producing node type; preserve path/condition branches and prefer longer
+  satisfied condition chains.
+- Keep new notifications at the top of the centre by default and allow
+  user-selected A–Z/Z–A sorting for table columns.
+- Keep notification hierarchy authoritative, including INFO; status and state
+  are not user-sortable and text sorting only applies within each hierarchy level.
+- Reuse the existing Node-RED Rule Builder tab when opening it from the WebApp.
 - Add declarative Signal K conditions to Node-RED notification rules.
 - Prioritize path-specific rules and apply conditions to alarm and warn presentation.
 
 - Keep unclassified `notifications.environment.*` notifications in `OTHER`
   instead of assuming they are weather; explicit path rules can still assign a
   category.
+
+- Categories are now display-only metadata; Node-RED builder rules and
+  presentation policies no longer assign or match them.
 
 ## Unreleased
 

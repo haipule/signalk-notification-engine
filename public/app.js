@@ -25,6 +25,8 @@ let historyOccurrenceId = ''
 let historyDisplayLimit = 20
 let historyMode = 'selected'
 let activeRules = []
+const sortStorageKey = 'notification-engine.table-sort'
+let tableSort = loadTableSort()
 
 document.querySelector('#refresh').addEventListener('click', refresh)
 for (const button of actionBar.querySelectorAll('[data-global-action]')) {
@@ -112,7 +114,7 @@ function renderNotifications(notifications) {
   const visible = notifications
     .filter(notification => notification.policy?.visible !== false)
     .filter(notification => isVisibleInTable(notification))
-    .sort(bySeverity)
+  sortNotifications(visible)
   const stateCounts = Object.fromEntries(['emergency', 'alarm', 'warn', 'alert'].map(state => [state, 0]))
   let normalCount = 0
   for (const notification of visible) {
@@ -134,7 +136,22 @@ function renderNotifications(notifications) {
     return
   }
   const table = document.createElement('table')
-  table.innerHTML = '<thead><tr><th>Status</th><th>Notification</th><th>Category</th><th>Source</th><th>State</th></tr></thead><tbody></tbody>'
+  table.innerHTML = `<thead><tr>
+    <th>Status</th>
+    ${sortableHeader('notification', 'Notification')}
+    ${sortableHeader('category', 'Category')}
+    ${sortableHeader('source', 'Source')}
+    <th>State</th>
+  </tr></thead><tbody></tbody>`
+  for (const header of table.querySelectorAll('[data-sort-column]')) {
+    header.addEventListener('click', () => selectTableSort(header.dataset.sortColumn))
+    header.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        selectTableSort(header.dataset.sortColumn)
+      }
+    })
+  }
   const rows = table.querySelector('tbody')
 
   for (const notification of visible) {
@@ -254,6 +271,10 @@ function renderHistory(events) {
       const openHistoricalDetails = () => {
         const historical = { ...notification, historyOnly: true, status: null, policy: null }
         historyFocusNotification = historical
+        historyFocusId = null
+        historyPath = historical.path || ''
+        historyOccurrenceId = historical.occurrenceId || ''
+        document.querySelector('#delete-history').hidden = !historyOccurrenceId
         selectedId = null
         renderDetails(historical)
       }
@@ -290,14 +311,15 @@ function renderCriticalHistory() {
 }
 
 async function deleteLocalHistory() {
-  const selected = activeNotifications.find(item => item.id === historyFocusId)
-  if (!selected?.occurrenceId) {
+  const selected = activeNotifications.find(item => item.id === historyFocusId) || historyFocusNotification
+  const occurrenceId = selected?.occurrenceId || historyOccurrenceId
+  if (!occurrenceId) {
     historyCount.textContent = 'This history has no occurrence ID and cannot be deleted here.'
     return
   }
-  if (!window.confirm('Delete this notification history? Signal K notifications will not be changed.')) return
+  if (!window.confirm('Delete this local history entry? The Signal K notification will remain unchanged.')) return
   try {
-    const response = await fetch(`${pluginApi}/history?occurrenceId=${encodeURIComponent(selected.occurrenceId)}`, { method: 'DELETE' })
+    const response = await fetch(`${pluginApi}/history?occurrenceId=${encodeURIComponent(occurrenceId)}`, { method: 'DELETE' })
     if (!response.ok) throw new Error(`Could not delete history (${response.status})`)
     renderHistory([])
     await refresh()
@@ -337,7 +359,7 @@ function showSelectedHistory(selected = activeNotifications.find(item => item.id
   historyOccurrenceId = selected.occurrenceId || ''
   historyDisplayLimit = 20
   document.querySelector('#history-title').textContent = 'Notification history'
-  document.querySelector('#delete-history').hidden = selected.historyOnly === true
+  document.querySelector('#delete-history').hidden = !historyOccurrenceId
   renderSelectedHistory()
   document.querySelector('#history-key').textContent = `First seen: ${formatDateTime(selected.firstSeenAt || historyForNotification(selected)[0]?.notification?.firstSeenAt)}`
   document.querySelector('#history-sheet').setAttribute('aria-hidden', 'false')
@@ -382,6 +404,72 @@ function setText(parent, selector, text) { parent.querySelector(selector).textCo
 function formatStatus(status) {
   if (!status) return 'Managed by source'
   return [status.silenced && 'silenced', status.acknowledged && 'acknowledged'].filter(Boolean).join(', ') || 'active'
+}
+
+function loadTableSort() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(sortStorageKey) || 'null')
+    if (stored?.column && ['notification', 'category', 'source', 'updated'].includes(stored.column) && ['asc', 'desc'].includes(stored.direction)) return stored
+  } catch {}
+  return { column: 'updated', direction: 'desc' }
+}
+
+function saveTableSort() {
+  try { localStorage.setItem(sortStorageKey, JSON.stringify(tableSort)) } catch {}
+}
+
+function selectTableSort(column) {
+  tableSort = tableSort.column === column
+    ? { column, direction: tableSort.direction === 'asc' ? 'desc' : 'asc' }
+    : { column, direction: 'asc' }
+  saveTableSort()
+  renderNotifications(activeNotifications)
+}
+
+function sortableHeader(column, label) {
+  const active = tableSort.column === column
+  const indicator = active ? (tableSort.direction === 'asc' ? ' ↑' : ' ↓') : ''
+  return `<th aria-sort="${active ? (tableSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" class="sort-header" data-sort-column="${column}" aria-label="Sort ${label} ${active && tableSort.direction === 'asc' ? 'descending' : 'ascending'}">${label}${indicator}</button></th>`
+}
+
+function sortNotifications(notifications) {
+  const direction = tableSort.direction === 'asc' ? 1 : -1
+  notifications.sort((left, right) => {
+    // "Newest" is a global ordering. Applying the severity hierarchy first
+    // makes the control appear inert because newer lower-severity items remain
+    // below older alarms.
+    if (tableSort.column === 'updated') return direction * compareNewest(left, right)
+    const hierarchyDifference = compareHierarchy(left, right)
+    if (hierarchyDifference !== 0) return hierarchyDifference
+    const difference = String(sortValue(left, tableSort.column)).localeCompare(String(sortValue(right, tableSort.column)), undefined, { numeric: true, sensitivity: 'base' })
+    if (difference !== 0) return direction * difference
+    return compareNewest(left, right)
+  })
+}
+
+function sortValue(notification, column) {
+  if (column === 'notification') return notification.message || ''
+  if (column === 'category') return formatCategory(notification.category)
+  if (column === 'source') return notification.source?.label || 'Unknown source'
+  return ''
+}
+
+function compareHierarchy(left, right) {
+  const order = ['emergency', 'alarm', ...configuredStateOrder, 'info']
+  const leftState = String(left.state || '').toLowerCase()
+  const rightState = String(right.state || '').toLowerCase()
+  const leftRank = order.indexOf(leftState)
+  const rightRank = order.indexOf(rightState)
+  return (leftRank < 0 ? order.length : leftRank) - (rightRank < 0 ? order.length : rightRank)
+}
+
+function notificationTime(notification) {
+  return Date.parse(notification.lastUpdatedAt || notification.updatedAt || notification.firstSeenAt || notification.createdAt || '') || 0
+}
+
+function compareNewest(left, right) {
+  const difference = notificationTime(right) - notificationTime(left)
+  return difference || String(right.id || '').localeCompare(String(left.id || ''))
 }
 function formatPolicy(policy) {
   return policy?.matchedPolicy ? `${policy.priority} · ${policy.matchedPolicy}` : `${policy?.priority || 'normal'} · default`
@@ -444,7 +532,6 @@ function closeRules() {
 
 function ruleMatchesNotification(rule, notification) {
   if (rule.match?.state !== notification.state) return false
-  if (rule.match?.category && rule.match.category !== notification.category) return false
   if (!rule.match?.path) return true
   if (!notification.path) return false
   const pattern = String(rule.match.path)

@@ -54,3 +54,40 @@ test('does not replace a known source with a later view source for the same id',
   assert.equal(merged['alarm-1'].source.label, 'notification-engine')
   assert.equal(merged['alarm-1'].value.message, 'Sensor fault')
 })
+
+test('normalizes alternate source shapes from the data model', () => {
+  const snapshot = fromDataModel({
+    propulsion: {
+      stbdEngine: {
+        transmission: {
+          oilTemperature: {
+            value: { id: 'engine-1', state: 'warn', $source: 'self.notificationhandler' }
+          }
+        }
+      }
+    }
+  })
+
+  assert.deepEqual(snapshot['engine-1'].source, { label: 'self.notificationhandler' })
+})
+
+test('prefers the original producer source over the notification handler source', () => {
+  const snapshot = fromDataModel({
+    propulsion: {
+      portEngine: {
+        transmission: {
+          oilTemperature: {
+            $source: 'self.notificationhandler',
+            value: {
+              id: 'oil-1',
+              state: 'normal',
+              data: { source: 'engineroomPort.XX' }
+            }
+          }
+        }
+      }
+    }
+  })
+
+  assert.deepEqual(snapshot['oil-1'].source, { label: 'engineroomPort.XX' })
+})

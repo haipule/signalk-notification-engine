@@ -14,15 +14,13 @@
   Notification API after server-side capability checks.
 - An action request is appended to the local audit trail without claiming that
   the producer has changed its underlying alarm state.
-- Automatic categories are currently assigned by the built-in classifier.
+- Automatic categories are assigned by the built-in classifier for display only.
   `notifications.noaaHurricane.*` is classified as `WEATHER`; environment
   notifications are not assumed to be weather, so paths such as
   `notifications.environment.bilgeWater.*` fall back to `OTHER`. Path-prefix
-  overrides can be supplied through Plugin Config and take precedence over the
-  automatic classifier.
-- Local policies can match category, path prefix, or source. They affect only
+- Local policies match state, path prefix, source, and conditions. They affect
   presentation priority, visibility, and future audio behaviour; they never
-  modify an alarm's Signal K `state` or its base category.
+  modify an alarm's Signal K `state` or manually assign a category.
 
 ## API routes
 
@@ -53,11 +51,10 @@
   keep one alarm lifecycle together when the technical Signal K ID changes.
 - The local `occurrenceId` is shown in notification details and can be entered
   in `Clear History Occurrence ID` for configuration-based cleanup.
-- By default only `alarm` and `emergency` states are recorded. Other states
-  can be enabled through `historyStates` in Plugin Config. Emergency and alarm
-  cannot be disabled. A rule can match a notification
-  path, a source label, or both; `history: false` explicitly excludes the
-  matching group.
+- A rule with `visibleInTable: true` records history by default. An explicit
+  `history: true` or `history: false` on the same Node-RED rule overrides that
+  default. History is therefore no longer forced by notification state; a rule
+  can match a notification path, source label, or both.
 - `clearHistoryOnStart` is a one-shot cleanup switch in Plugin Config. Enable
   it, restart the plugin, then disable it again; it removes the local history
   file but does not alter Signal K notifications.
@@ -91,9 +88,9 @@ Visibility` list. Listed states are shown and sorted in the listed order;
 `emergency` and `alarm` are always shown first as safety-critical states.
 
 Policies are configured in order in **Server → Plugin Config**. The first
-matching policy wins. A policy must define at least one of category, path
-prefix, or source label. Each configured category, path prefix, or source is
-currently an alternative match; one matching condition is sufficient. Its
+matching policy wins. A policy must define at least one of state, path prefix,
+source label, or condition. Each configured match is evaluated against the
+notification. Its
 display priority can be `low`, `normal`, `high`, or
 `critical`. The configuration is ordered in three layers: `Notification State
 Colors` and `Visual Presentation by State` define visual defaults, `Standard
@@ -102,9 +99,8 @@ may override the sound with `Specific Sound`. A policy sound has precedence
 over the state default; `audio: inherit` keeps that resolved sound, while
 `audio: off` suppresses it and `audio: on` explicitly enables audio. Audio
 remains a declared policy result until an audio backend is implemented.
-Automatic category mappings and
-their future user overrides are also configuration concerns; the WebApp only
-displays the resulting category.
+The WebApp displays the resulting automatic category. Categories are not a
+second rule or policy language.
 
 `Color Palette File` and `Sound Palette File` optionally point to user-editable
 JSON files. The color file contains the eight stable color names used by both

@@ -17,11 +17,11 @@ for Signal K API calls and lifecycle state.
 | Current Plugin Config area | First target | Reason |
 | --- | --- | --- |
 | `policies` | Node-RED | Flow conditions and presentation decisions |
-| `classificationRules` | Node-RED | Notification classification logic |
+| `classificationRules` | Removed | Categories are automatic display metadata; do not configure them in Node-RED. |
 | `stateOrder`, `visibleStates` | Node-RED | Visibility and ordering policy |
 | `stateColors`, `visualRules` | Node-RED | Visual presentation decisions |
 | `soundsByState`, `soundPaletteFile` | Node-RED | Sound selection and timing |
-| `historyRules`, `historyStates` | Node-RED | History routing decisions |
+| `historyRules` | Node-RED | Legacy history routing decisions |
 | `testNotif` | Node-RED | Test trigger and test lifecycle |
 | `audioPlayer`, `audioDevice`, `testTonePath` | Signal K initially | Host/device boundary and safe execution |
 | `historyLimit`, `historyRetentionDays` | Signal K initially | Local persistence ownership |

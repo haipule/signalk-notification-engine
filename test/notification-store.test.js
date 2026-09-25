@@ -39,6 +39,53 @@ test('updates and removes records from notification deltas', () => {
   assert.equal(store.history()[0].type, 'cleared')
 })
 
+test('normalizes string and $source delta representations', () => {
+  const store = new NotificationStore({ classify })
+  store.applyDelta({ updates: [{ $source: 'fallback-source', values: [{
+    path: 'notifications.custom.engine',
+    value: { id: 'engine-1', state: 'warn', message: 'Oil temperature' }
+  }] }] })
+  assert.deepEqual(store.list()[0].source, { label: 'fallback-source' })
+
+  store.applyDelta({ updates: [{ source: { $source: 'self.notificationhandler' }, values: [{
+    path: 'notifications.custom.engine',
+    value: { id: 'engine-1', state: 'alarm', message: 'Oil temperature high' }
+  }] }] })
+  assert.deepEqual(store.list()[0].source, { label: 'self.notificationhandler' })
+})
+
+test('reads a source embedded on the notification value', () => {
+  const store = new NotificationStore({ classify })
+  store.applyDelta({ updates: [{ values: [{
+    path: 'notifications.propulsion.portEngine.transmission.oilTemperature',
+    value: {
+      id: 'oil-1',
+      state: 'normal',
+      message: 'OK',
+      $source: 'engineroomPort.XX'
+    }
+  }] }] })
+
+  assert.deepEqual(store.list()[0].source, { label: 'engineroomPort.XX' })
+})
+
+test('prefers the producer source in a delta over the handler source', () => {
+  const store = new NotificationStore({ classify })
+  store.applyDelta({ updates: [{
+    source: { label: 'self.notificationhandler' },
+    values: [{
+      path: 'notifications.propulsion.portEngine.transmission.oilTemperature',
+      value: {
+        id: 'oil-2',
+        state: 'normal',
+        data: { source: 'engineroomPort.XX' }
+      }
+    }]
+  }] })
+
+  assert.deepEqual(store.list()[0].source, { label: 'engineroomPort.XX' })
+})
+
 test('does not record an audit update when a snapshot value is unchanged', () => {
   const store = new NotificationStore({ classify })
   const snapshot = {
@@ -49,6 +96,27 @@ test('does not record an audit update when a snapshot value is unchanged', () =>
   store.replaceSnapshot(snapshot)
 
   assert.equal(store.history().length, 1)
+})
+
+test('preserves a known source when a later snapshot omits it', () => {
+  const store = new NotificationStore({ classify })
+  store.replaceSnapshot({
+    'alarm-1': {
+      path: 'notifications.custom.engine',
+      source: { label: 'engine-monitor' },
+      value: { id: 'alarm-1', state: 'alarm', message: 'Overheat' }
+    }
+  })
+
+  store.replaceSnapshot({
+    'alarm-1': {
+      path: 'notifications.custom.engine',
+      source: null,
+      value: { id: 'alarm-1', state: 'alarm', message: 'Overheat' }
+    }
+  })
+
+  assert.deepEqual(store.list()[0].source, { label: 'engine-monitor' })
 })
 
 test('starts a new occurrence after a configured lifecycle end marker', () => {

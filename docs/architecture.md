@@ -22,14 +22,28 @@ Optional audio backends
   mock → existing script adapter → native ALSA / other backends
 ```
 
+The plugin normalizes producer identity at the Signal K boundary. Deltas and
+data-model/API snapshots may represent the same source as `label`, `$source`,
+`type`, or a string; internally they are stored as `{ label }` (with `type`
+preserved when present). The WebApp and policy layer therefore never need to
+interpret a server-version-specific source shape.
+
+Node-RED is a graphical policy authoring layer, not a second notification
+engine. The extractor reads the declarative `msg.payload` produced by any
+connected node. A chain ending at the `Activate` debug node becomes one policy;
+`payload.match.path` and `payload.match.conditions` stay attached to that chain.
+When multiple policies share a state/path scope, a longer fully satisfied
+condition chain has precedence over a shorter one.
+
 ## Product model
 
 Every incoming notification is represented in the active view. The plugin first assigns an automatic
 base category from its path/source/data rules; unknown notifications become
-`OTHER`. Persistent user classification overrides are configured in Signal K's
-Plugin Config, not edited directly in the WebApp. Policies then match path,
-source, or category and determine local presentation behaviour. No matching
-policy means visible, no custom audio, and retained in history.
+`OTHER`. The built-in classifier is display-only. Policies then match path or
+source and determine local presentation behaviour. No matching
+policy means visible and no custom audio; history is recorded only when the
+matching rule enables it through `visibleInTable` or an explicit `history`
+override.
 
 This avoids an allow-list failure mode where a new notification is invisible.
 It also keeps complex policy configuration out of the immediate active-alarm

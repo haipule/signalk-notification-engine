@@ -4,7 +4,7 @@
   "description": "Signal K notification automation engine with visual flows.",
   "main": "index.js",
   "scripts": {
-    "check": "node --check index.js && node --check lib/audio-player.js && node --check lib/notification-store.js && node --check lib/classifier.js && node --check lib/actions.js && node --check lib/policies.js && node --check lib/history-repository.js && node --check lib/lifecycle-rules.js && node --check lib/notification-snapshot.js && node --check lib/node-red-config.js && node --check lib/node-red-runtime.js && node --check public/app.js && node --check test/*.test.js",
+    "check": "node --check index.js && node --check lib/audio-player.js && node --check lib/notification-source.js && node --check lib/notification-store.js && node --check lib/classifier.js && node --check lib/actions.js && node --check lib/policies.js && node --check lib/history-repository.js && node --check lib/lifecycle-rules.js && node --check lib/notification-snapshot.js && node --check lib/node-red-config.js && node --check lib/node-red-runtime.js && node --check public/app.js && node --check test/*.test.js",
     "test": "node --test",
     "prepublishOnly": "npm run check && npm test"
   },

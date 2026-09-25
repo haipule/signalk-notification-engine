@@ -4,11 +4,18 @@
 
 - Store: snapshot reconstruction, delta upsert, normal/cleared state, duplicate
   input, and restart recovery.
+- Source boundary: normalize Signal K `label`, `$source`, `type`, and string
+  representations from both deltas and snapshots.
 - Classifier: path before source before structured data before optional text
   fallback; unknown notifications remain `OTHER`.
 - Actions: `canSilence`, `canAcknowledge`, `canClear`, emergency behaviour, and
   disabled Notification API mode.
-- Policy: deterministic precedence and safe default policy.
+- Policy: deterministic precedence, safe default policy, and longer satisfied
+  condition chains overriding shorter chains.
+- Node-RED rule extraction: payload-state sources independent of node type,
+  path/condition branch isolation, and activation at `Activate`.
+- WebApp table sorting: newest-first default, column A–Z/Z–A toggles, and
+  persisted sort selection.
 
 ## Integration tests
 
