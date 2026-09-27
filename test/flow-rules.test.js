@@ -72,6 +72,18 @@ test('uses payload.state from an inject node without depending on its type', () 
   }])
 })
 
+test('canonicalizes known notification states and rejects unknown states', () => {
+  const known = [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: JSON.stringify({ state: 'WARN' }), wires: [['activate']] },
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [] }
+  ]
+  assert.equal(extractActiveRules(known)[0].match.state, 'warn')
+
+  const unknown = structuredClone(known)
+  unknown[0].payload = JSON.stringify({ state: 'Info' })
+  assert.throws(() => extractActiveRules(unknown), /Invalid notification state 'Info'/)
+})
+
 test('keeps conditions attached only to their branch and preserves all conditions', () => {
   const flow = [
     { id: 'n', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['short'], ['long']] },

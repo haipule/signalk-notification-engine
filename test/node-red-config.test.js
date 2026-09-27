@@ -2,7 +2,7 @@
 
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const { CONFIG_NODE_NAME, checksumConfig, extractConfig } = require('../lib/node-red-config')
+const { CONFIG_NODE_NAME, checksumConfig, extractConfig, validateConfig } = require('../lib/node-red-config')
 
 function flow(config) {
   return [{ type: 'inject', name: CONFIG_NODE_NAME, payloadType: 'json', payload: config }]
@@ -42,4 +42,18 @@ test('accepts all supported notification states', () => {
   configured.notificationEngine.stateOrder = ['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal']
   configured.notificationEngine.visibleStates = [...configured.notificationEngine.stateOrder]
   assert.deepEqual(extractConfig(flow(configured)), configured)
+})
+
+test('canonicalizes configured states and rejects unknown states', () => {
+  const normalized = validateConfig({
+    schemaVersion: 1,
+    notificationEngine: { stateOrder: ['WARN', 'Normal'], visibleStates: ['ALARM'] }
+  })
+  assert.deepEqual(normalized.notificationEngine.stateOrder, ['warn', 'normal'])
+  assert.deepEqual(normalized.notificationEngine.visibleStates, ['alarm'])
+
+  assert.throws(() => validateConfig({
+    schemaVersion: 1,
+    notificationEngine: { stateOrder: ['Info'], visibleStates: ['alarm'] }
+  }), /allowed states/)
 })

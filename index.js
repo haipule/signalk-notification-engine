@@ -54,6 +54,7 @@ module.exports = function createPlugin(app) {
   let testNotificationEnabled = false
   const audioTimers = new Map()
   const audioSignatures = new Map()
+  const audioFailures = new Map()
   const silencedAudio = new Map()
   const store = new NotificationStore({
     classify: notification => configuredClassifier(notification),
@@ -99,6 +100,7 @@ module.exports = function createPlugin(app) {
   let nodeRedRuntime = null
   let runtimeOptions = {}
   let configReloadPromise = null
+  let configurationError = null
   let activeRules = []
   const conditionValues = new Map()
   const originalSources = new Map()
@@ -145,18 +147,27 @@ module.exports = function createPlugin(app) {
   // Node-RED does not emit a deploy event on every supported Signal K build.
   // Re-read the flow on API access as a safety net so a deployed rule cannot
   // remain active in this plugin merely because the event was missed.
-  async function refreshNodeRedConfiguration() {
+  async function refreshNodeRedConfiguration({ force = false } = {}) {
+    // A failed configuration is latched. Polling the WebApp must not repeatedly
+    // parse the same unsafe deploy or continue operating with stale rules; only
+    // a new runtime deploy event is allowed to attempt recovery.
+    if (configurationError && !force) return
     if (!nodeRedRuntime || configReloadPromise) return configReloadPromise
     configReloadPromise = (async () => {
       try {
         const next = await readConfiguration(nodeRedRuntime)
-        if (next.checksum === nodeRedConfigChecksum) return
+        if (next.checksum === nodeRedConfigChecksum && !configurationError) return
+        const recovering = Boolean(configurationError)
         nodeRedConfigChecksum = next.checksum
         activeRules = next.rules
         writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
         applyRuntimeConfiguration({ ...runtimeOptions, ...next.config.notificationEngine, activeRules: next.rules })
+        configurationError = null
+        if (recovering) await resumeNotificationProcessing()
         app.debug?.(`Notification Engine configuration updated from Node-RED`)
       } catch (error) {
+        configurationError = { message: error.message, failedAt: new Date().toISOString() }
+        suspendNotificationProcessing()
         app.error?.(`Unable to refresh Node-RED notification rules: ${error.message}`)
       } finally {
         configReloadPromise = null
@@ -177,7 +188,7 @@ module.exports = function createPlugin(app) {
         policies: {
           type: 'array',
           title: 'Presentation Policies',
-          description: 'First matching policy controls only local presentation and future audio handling.',
+          description: 'Matching policies are inherited from general to specific and control only local presentation and audio handling.',
           default: [],
           items: {
             type: 'object',
@@ -350,6 +361,7 @@ module.exports = function createPlugin(app) {
       runtimeOptions = { ...options }
       const nodeRedConfig = await readConfiguration(nodeRed)
       nodeRedConfigChecksum = nodeRedConfig.checksum
+      configurationError = null
       activeRules = nodeRedConfig.rules
       writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
       const flowOptions = {
@@ -373,7 +385,7 @@ module.exports = function createPlugin(app) {
         onError: message => app.error?.(message)
       })
       nodeRedUnsubscribe = subscribeToDeploy(nodeRed, async () => {
-        await refreshNodeRedConfiguration()
+        await refreshNodeRedConfiguration({ force: true })
       })
       void initialize(currentLifecycle, flowOptions?.testNotif)
       if (options?.playTestTone === true && typeof app.savePluginOptions === 'function') {
@@ -397,6 +409,7 @@ module.exports = function createPlugin(app) {
       for (const timer of audioTimers.values()) clearInterval(timer)
       audioTimers.clear()
       audioSignatures.clear()
+      audioFailures.clear()
       silencedAudio.clear()
       audioPlayer.stop()
       stopSubscriptions()
@@ -405,6 +418,7 @@ module.exports = function createPlugin(app) {
       nodeRedUnsubscribe?.()
       nodeRedUnsubscribe = null
       nodeRedConfigChecksum = null
+      configurationError = null
       await historyRepository?.flush()
       historyRepository = null
       store.clear()
@@ -430,8 +444,8 @@ module.exports = function createPlugin(app) {
         // polls this endpoint regularly; re-reading here makes a deployed
         // Node-RED configuration converge without requiring a Signal K restart.
         await refreshNodeRedConfiguration()
-        await syncSnapshot()
-        response.json({ notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, updatedAt: new Date().toISOString() })
+        if (!configurationError) await syncSnapshot()
+        response.json({ notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, configurationStatus: configurationError ? { state: 'error', ...configurationError } : { state: 'ready' }, stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, updatedAt: new Date().toISOString() })
       })
       readOnly.get('/rules', (_request, response) => {
         const file = path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'deployed-rules', 'deployed-rules.md')
@@ -457,6 +471,7 @@ module.exports = function createPlugin(app) {
         response.status(204).end()
       })
       readWrite.post('/notifications/action-all/:action', async (request, response) => {
+        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
         let silencedRecords = []
         try {
           const records = plugin.getNotifications()
@@ -481,6 +496,7 @@ module.exports = function createPlugin(app) {
       // Otherwise Express treats "action-all" as a notification id and the
       // global action never reaches executeAll().
       readWrite.post('/notifications/:id/:action', async (request, response) => {
+        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
         let silencedRecord = null
         try {
           const record = store.get(request.params.id)
@@ -531,6 +547,7 @@ module.exports = function createPlugin(app) {
       }
     }
     await syncSnapshot()
+    if (configurationError) return
     if (clearHistoryOnStart) {
       await historyRepository.clear()
       store.replaceHistory([])
@@ -773,6 +790,28 @@ module.exports = function createPlugin(app) {
     unsubscribes = []
   }
 
+  /** Stop all rule-dependent processing while retaining the last observed view. */
+  function suspendNotificationProcessing() {
+    audioReady = false
+    for (const timer of audioTimers.values()) clearTimeout(timer)
+    audioTimers.clear()
+    audioSignatures.clear()
+    audioFailures.clear()
+    audioPlayer.stop()
+    stopSubscriptions()
+    stopSnapshotSync()
+  }
+
+  /** Rebuild the authoritative view after a subsequent valid Node-RED deploy. */
+  async function resumeNotificationProcessing() {
+    stopSubscriptions()
+    stopSnapshotSync()
+    await syncSnapshot()
+    subscribeToNotifications()
+    audioReady = true
+    startSnapshotSync()
+  }
+
   /**
    * Reconcile the current server snapshot periodically.
    *
@@ -813,16 +852,17 @@ module.exports = function createPlugin(app) {
     return ordered.map(rule => {
       const hasSound = Boolean(rule.actions?.sound || rule.actions?.soundFile)
       const ignored = rule.actions?.ignore === true
+      const hasExplicitVisibility = typeof rule.actions?.visibleInTable === 'boolean'
       const history = typeof rule.actions?.history === 'boolean'
         ? rule.actions.history
-        : rule.actions?.visibleInTable === true
+        : rule.actions?.visibleInTable === true ? true : undefined
       return {
       name: rule.id,
       state: rule.match?.state,
         match: { state: rule.match?.state, path: rule.match?.path, ...(rule.match?.conditions ? { conditions: rule.match.conditions } : {}) },
-      audio: ignored ? 'off' : hasSound ? 'on' : 'inherit',
-      sound: ignored ? null : hasSound ? { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || rule.actions.soundMode || 'once', repeatCount: rule.actions.sound?.repeatCount || rule.actions.repeatCount || 1 } : null,
-        visible: !ignored && rule.actions?.visibleInTable !== false,
+      ...(ignored || hasSound ? { audio: ignored ? 'off' : 'on' } : {}),
+      ...(hasSound && !ignored ? { sound: { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || rule.actions.soundMode || 'once', repeatCount: rule.actions.sound?.repeatCount || rule.actions.repeatCount || 1 } } : {}),
+        ...(ignored || hasExplicitVisibility ? { visible: !ignored && rule.actions?.visibleInTable !== false } : {}),
         ...(typeof history === 'boolean' ? { history } : {})
       }
     })
@@ -902,11 +942,25 @@ module.exports = function createPlugin(app) {
     audioSignatures.set(key, signature)
     let played = 0
     const play = () => {
+      if (audioSignatures.get(key) !== signature) return
       played += 1
-      audioPlayer.play(path.resolve(__dirname, file), key, mode !== 'once' ? () => {
+      audioPlayer.play(path.resolve(__dirname, file), key, mode !== 'once' ? result => {
         if (audioSignatures.get(key) !== signature) return
-        if (mode === 'loop' || played < repeatCount) play()
-        else audioSignatures.delete(key)
+        if (result?.ok) {
+          audioFailures.delete(key)
+          if (mode === 'loop' || played < repeatCount) play()
+          else audioSignatures.delete(key)
+          return
+        }
+        const failures = (audioFailures.get(key) || 0) + 1
+        audioFailures.set(key, failures)
+        const delay = Math.min(60000, 1000 * (2 ** Math.min(failures - 1, 6)))
+        app.error?.(`Notification audio retry ${failures} in ${delay}ms for ${key}`)
+        const timer = setTimeout(() => {
+          audioTimers.delete(key)
+          play()
+        }, delay)
+        audioTimers.set(key, timer)
       } : null)
     }
     play()
@@ -915,9 +969,10 @@ module.exports = function createPlugin(app) {
 
   function stopNotificationAudio(key) {
     const timer = audioTimers.get(key)
-    if (timer) clearInterval(timer)
+    if (timer) clearTimeout(timer)
     audioTimers.delete(key)
     audioSignatures.delete(key)
+    audioFailures.delete(key)
     audioPlayer.stopKey(key)
   }
 

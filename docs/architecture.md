@@ -32,8 +32,16 @@ Node-RED is a graphical policy authoring layer, not a second notification
 engine. The extractor reads the declarative `msg.payload` produced by any
 connected node. A chain ending at the `Activate` debug node becomes one policy;
 `payload.match.path` and `payload.match.conditions` stay attached to that chain.
-When multiple policies share a state/path scope, a longer fully satisfied
-condition chain has precedence over a shorter one.
+Matching policies are composed property by property from general to specific.
+A path-specific sound rule can therefore inherit visibility and history from a
+general state rule, while a longer fully satisfied condition chain overrides
+only the properties it explicitly defines.
+
+Runtime Node-RED validation has a fail-closed boundary. If a deployed
+configuration cannot be validated or restored, the plugin latches the error,
+stops rule-dependent subscriptions, snapshot polling, and audio, and rejects
+write actions. WebApp polling exposes the latched health state but does not
+revalidate the same bad flow repeatedly; only a later deploy attempts recovery.
 
 ## Product model
 
@@ -66,3 +74,6 @@ The WebApp is an observation and action surface, not the authority for
 classification or configuration. It links to Signal K's Plugin Config for
 persistent rule changes. The compact-card and responsive detail-sheet design
 changes presentation only; all action capability checks remain server-side.
+When polling fails, the last rendered table is explicitly marked stale and all
+actions are disabled until a successful refresh. This avoids presenting a
+frozen tablet as a current alarm display.

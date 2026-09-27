@@ -26,6 +26,27 @@ test('converts nested data-model notifications to a snapshot', () => {
   })
 })
 
+test('does not manufacture a parent notification from a child named state', () => {
+  const snapshot = fromDataModel({
+    propulsion: {
+      stbdEngine: {
+        state: {
+          value: { id: 'engine-state-1', state: 'normal', message: 'Stopped', method: [] },
+          $source: 'self.notificationhandler'
+        },
+        temperature: {
+          value: { id: 'engine-temperature-1', state: 'nominal', message: 'Normal', method: ['visual'] },
+          $source: 'self.notificationhandler'
+        }
+      }
+    }
+  })
+
+  assert.deepEqual(Object.keys(snapshot).sort(), ['engine-state-1', 'engine-temperature-1'])
+  assert.equal(snapshot['engine-state-1'].path, 'notifications.propulsion.stbdEngine.state')
+  assert.equal(snapshot['engine-state-1'].value.state, 'normal')
+})
+
 test('also accepts direct notification values from the in-process data model', () => {
   const snapshot = fromDataModel({
     server: { newVersion: { id: 'version-1', state: 'normal', message: 'Update available' } }

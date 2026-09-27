@@ -1,5 +1,131 @@
 # TODO
 
+## Sicherheitsreview 2026-09-26
+
+### Prio 0 – Alarmkorrektheit vor neuen Funktionen
+
+- [x] Snapshot-Rekonstruktion strikt typisieren. Nur Datenmodellwerte mit
+  einem gültigen String-State als Notification übernehmen; verschachtelte
+  Elternpfade wie `notifications.propulsion.stbdEngine` dürfen nicht als
+  Phantom-Notification erscheinen.
+- [x] Policy-Fallback korrigieren. Eine spezifische Regel mit nicht erfüllten
+  Bedingungen darf eine allgemeinere passende Regel weder verstecken noch
+  deren Audioausgabe abschalten; nur vollständig erfüllte Regeln sind
+  Match-Kandidaten.
+- [x] Match-Semantik vereinheitlichen. Mehrere innerhalb einer Regel gesetzte
+  Kriterien (`state`, `path`, `pathPrefix`, `source`, `conditions`) werden mit
+  UND verknüpft; Alternativen werden durch getrennte Flow-Zweige ausgedrückt.
+- [x] Notification-States an einer gemeinsamen Grenze kanonisieren und
+  validieren. Bekannte Zustände werden kleingeschrieben, unbekannte Zustände
+  werden mit einer klaren Deploy-Fehlermeldung abgelehnt.
+- [x] Regressionstests für Phantom-Elternpfade, Conditional-Fallback,
+  Pfad-und-Quelle-Matches sowie State-Kanonisierung ergänzen.
+- [x] Nach lokalen Checks und Paketprüfung auf den Raspberry Pi deployen und
+  dort Node-RED-Konfiguration, aktive Notifications und Alarmdarstellung live
+  verifizieren.
+
+### Prio 1 – Audio zuverlässig und eindeutig machen
+
+- [ ] Audio-Watchdog mit Startprüfung und periodischer passiver Prüfung bauen:
+  konfiguriertes ALSA-Gerät, Geräteerreichbarkeit, Backend-Prozess und letzter
+  erfolgreicher Exitcode müssen überwacht werden, ohne dabei regelmäßig einen
+  hörbaren Ton auszulösen.
+- [ ] Bei einem Audiofehler eine eigene visuelle Systemnotification wie
+  `notifications.system.notificationEngine.audio` veröffentlichen. Sie darf
+  selbst keine Audioaktion auslösen, muss auf allen WebApps sichtbar bleiben
+  und darf erst nach nachgewiesener Audio-Erholung auf `normal` wechseln;
+  Alarm-Rekursionen sind ausdrücklich auszuschließen.
+- [ ] Fehlgeschlagene Loop-Wiedergabe mit Circuit Breaker und begrenztem
+  exponentiellem Backoff versehen. Ein fehlendes Gerät darf weder fortlaufend
+  neue `aplay`-Prozesse starten noch das Journal fluten; Retry-Zustand und
+  nächster Versuch gehören in Diagnostics und Historie.
+  Exponentieller Retry-Backoff bis maximal 60 Sekunden ist implementiert;
+  Circuit-Breaker-Zustand, Diagnostics und Historieneintrag fehlen noch.
+- [ ] Bewussten hörbaren Selbsttest für Inbetriebnahme und Wartung anbieten und
+  dessen Bestätigung protokollieren. Dokumentieren, dass eine rein passive
+  Softwareprüfung nur Gerät/Backend nachweist, nicht Endstufe, Lautsprecher,
+  Lautstärke oder tatsächlich hörbaren Schall; vollständige automatische
+  Ende-zu-Ende-Prüfung erfordert Hardware-Loopback oder ein Mikrofon.
+- [ ] In der WebApp einen klar bezeichneten Button `Alarmton testen` ergänzen.
+  Der Klick startet einen fest definierten, begrenzten Testton und protokolliert
+  mindestens Zeitpunkt, auslösenden Signal-K-Benutzer, Gerät, Datei,
+  Player-Exitcode und technischen Erfolg. Ohne ausdrückliche Gegenmeldung gilt
+  der betriebliche Test als bestanden; die UI darf dies dennoch nur als
+  `Test ausgelöst / technisch abgespielt` und nicht als nachweislich
+  `vom Menschen gehört` bezeichnen.
+- [ ] Neben dem Testton einen sofort sichtbaren Button `Ton nicht gehört`
+  anbieten. Dieser erzeugt die visuelle Audio-Systemnotification, markiert den
+  letzten Alarmtest als fehlgeschlagen und hält den Fehler aktiv, bis ein
+  späterer Test technisch erfolgreich war und der Bediener ihn nicht als
+  unhörbar meldet.
+- [x] `aplay`-Erfolg und -Fehler über Exitcode und Signal unterscheiden;
+  normale Wiedergabeinformationen auf stderr nicht als „Unable to play“
+  protokollieren.
+- [ ] Audio-Diagnose um Start, Ende, Exitcode, Signal und betroffenen
+  Notification-Lifecycle erweitern.
+- [ ] Zuständigkeit für den Hoekens-Ankeralarmton eindeutig festlegen und die
+  bestehende Audioquelle erst nach getesteter Übergabe abschalten; doppelte
+  Wiedergabe und konkurrierenden ALSA-Zugriff ausschließen.
+- [ ] Testmatrix für Loop, Silence, Acknowledge, Normal, Clear, fehlendes
+  Audiogerät und gleichzeitige Alarme praktisch auf dem Pi ausführen.
+
+### Prio 2 – End-to-End-Sicherheitsnachweis
+
+- [ ] Dokumentierte Pi-Testmatrix für Hoekens `warn`, `alarm`, `normal` und
+  `null`, Android-UDP-Ausfall und -Wiederkehr, neue Ankervorgänge nach ACK,
+  wechselnde und wiederverwendete IDs sowie Neustarts während aktiver Alarme
+  erstellen und ausführen.
+- [ ] Erwartete Anzeige, Audioaktion, Historienereignisse und erlaubte Actions
+  für jeden End-to-End-Fall festhalten.
+- [ ] Ungültigen Node-RED-Deploy, fehlendes Audio-Gerät, geschlossene WebApp,
+  Netzverlust und mehrere gleichzeitige Alarmprioritäten abdecken.
+  Reparaturen für den ungültigen Deploy, Audio-Retry-Backoff und die sichtbare
+  Offline-/Stale-Anzeige sind auf dem Pi implementiert und der normale
+  Post-Deploy-Zustand ist geprüft; die betroffenen Fehler- und Mehrgerätefälle
+  müssen erneut ausgeführt werden.
+- [ ] Ungültigen Node-RED-Deploy mit der neuen Fail-closed-Sperre wiederholen:
+  sichtbaren Konfigurationsfehler, gestoppte Verarbeitung, abgelehnte Actions,
+  ausbleibenden Poll-Logspam und Erholung durch einen gültigen Deploy prüfen.
+- [ ] Fehlendes ALSA-Gerät erneut simulieren und nachweisen, dass der Alarm
+  sichtbar bleibt, der Retry-Abstand exponentiell bis 60 Sekunden wächst und
+  weder Prozess- noch Journal-Sturm entsteht.
+- [ ] Tab 3 bei aktivem kontrolliertem Testalarm vom Netz trennen: deutliche
+  Offline-/Stale-Anzeige, deaktivierte Einzel- und Globalaktionen sowie saubere
+  automatische Synchronisierung nach Wiederverbindung prüfen.
+- [ ] History-Reparatur live bestätigen: allgemeine `visibleInTable`-/History-
+  Regeln werden von einer spezifischen Soundregel geerbt und derselbe
+  Occurrence-Verlauf enthält nach Auflösung den finalen Zustand `normal`.
+
+### Prio 3 – Betriebsdiagnose
+
+- [ ] Diagnostics-Ansicht/API für letzte Snapshot- und Delta-Zeitpunkte,
+  Node-RED-Revision und Flow-Pfad, Konfigurationsstatus, aktive
+  Audio-Prozesse, letzten Audio-Exitcode sowie Historien-Schreibstatus bauen.
+- [ ] Zustand und Alter kritischer Eingangsquellen wie `android_udp.gps`
+  sichtbar machen.
+- [ ] Hohe Signal-K-CPU-Last, volle Swap-Nutzung, 81 Prozent
+  Dateisystembelegung und sekündliches Node-RED-/Engine-Monitor-Logging
+  getrennt profilieren und bewerten.
+
+### Prio 4 – Komponentengrenzen nach der Stabilisierung
+
+- [ ] Den rund 1.000 Zeilen großen Einstiegspunkt entlang klarer Start-/Stop-
+  und Fehlergrenzen in Plugin-Runtime, Snapshot-Service, Audio-Controller,
+  Configuration-Service, History-Service und HTTP-Routen zerlegen.
+
+### Prio 5 – Dokumentation und Release-Basis
+
+- [ ] Namen, Routen und Datenpfade von `signalk-notification-manager` auf
+  `signalk-notification-engine` vereinheitlichen und die dokumentierte Version
+  aktualisieren.
+- [ ] Ausschließlich die eingebettete Signal-K-Node-RED-Instanz und deren
+  gültigen Flow-Pfad dokumentieren; die separate `/home/pi/.node-red`-Instanz
+  aus den Arbeitsanweisungen entfernen.
+- [ ] Changelog konsolidieren sowie Paketarchive und `work/` bewusst ignorieren
+  oder als Entwicklungsabhängigkeiten dokumentieren.
+- [ ] Git-Remote, Release-Tags und unabhängige CI-Prüfungen einrichten, bevor
+  das Paket öffentlich veröffentlicht wird.
+
 ## Priorisierte Historienoptimierung
 
 - [x] Konfigurationsabhängigkeit erzwingen: Nur Zustände aus `Notification

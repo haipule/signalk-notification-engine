@@ -194,3 +194,29 @@ test('notifies audio consumers even when history recording is disabled', () => {
   assert.equal(changes[0].type, 'raised')
   assert.equal(store.history().length, 0)
 })
+
+test('retains the final hidden normal state once an occurrence entered history', () => {
+  const store = new NotificationStore({
+    classify,
+    shouldRecord: notification => notification.state === 'alarm'
+  })
+  const delta = state => ({ updates: [{ values: [{
+    path: 'notifications.custom.engine',
+    value: { id: 'engine-1', state, message: state === 'alarm' ? 'Overheat' : 'OK' }
+  }] }] })
+
+  store.applyDelta(delta('alarm'))
+  store.applyDelta(delta('normal'))
+
+  assert.deepEqual(store.history().map(event => event.notification.state), ['normal', 'alarm'])
+})
+
+test('does not record an initially hidden normal occurrence', () => {
+  const store = new NotificationStore({ classify, shouldRecord: notification => notification.state === 'alarm' })
+  store.applyDelta({ updates: [{ values: [{
+    path: 'notifications.custom.engine',
+    value: { id: 'engine-1', state: 'normal', message: 'OK' }
+  }] }] })
+
+  assert.equal(store.history().length, 0)
+})

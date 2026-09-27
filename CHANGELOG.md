@@ -1,5 +1,25 @@
 # Changelog
 
+- Compose matching notification policies property by property so specific
+  sound rules inherit general visibility and history behaviour.
+- Preserve the final authoritative normal/cleared transition for occurrences
+  that already entered local history.
+- Treat audio-player exit status as authoritative, ignore harmless stderr on a
+  zero exit, and back off failed loop playback exponentially up to 60 seconds.
+- Fail closed after an invalid runtime Node-RED configuration: stop audio and
+  rule-dependent processing, expose a latched error, reject actions, and retry
+  only after a later deploy.
+- Mark a disconnected Alarm Centre view as stale/offline and disable local and
+  global notification actions until connectivity returns.
+
+- Reject unknown Node-RED notification states while canonicalizing supported
+  states, and remove the invalid `Info` rule from the deployed builder flow.
+- Do not manufacture parent notifications from nested Signal K paths ending in
+  `.state`.
+- Require every configured policy match field and condition to match, and fall
+  back to the next applicable general rule when a specific condition is not
+  satisfied.
+
 - Make `visibleInTable` the default opt-in for local history, with explicit
   `history: true/false` overrides; remove forced emergency/alarm retention.
 

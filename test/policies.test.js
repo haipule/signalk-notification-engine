@@ -62,3 +62,37 @@ test('prefers the longer satisfied condition chain in the same scope', () => {
   assert.equal(resolver.resolve({ state: 'warn', path: 'notifications.engine' }).matchedPolicy, 'long')
   assert.equal(resolver.resolve({ state: 'warn', path: 'notifications.engine' }).sound, 'long.wav')
 })
+
+test('falls back to a general rule when a specific condition is not satisfied', () => {
+  const resolver = new PolicyResolver([
+    { name: 'general', match: { state: 'warn', path: 'notifications.engine' }, sound: 'general.wav' },
+    { name: 'conditional', match: { state: 'warn', path: 'notifications.engine', conditions: [{ path: 'engine.running', operator: 'eq', value: true }] }, sound: 'conditional.wav' }
+  ], {}, () => false)
+
+  const result = resolver.resolve({ state: 'warn', path: 'notifications.engine' })
+  assert.equal(result.matchedPolicy, 'general')
+  assert.equal(result.sound, 'general.wav')
+  assert.equal(result.visible, true)
+})
+
+test('requires every configured base match criterion', () => {
+  const resolver = new PolicyResolver([
+    { name: 'anchor source', match: { path: 'notifications.navigation.anchor', source: 'hoekens-anchor-alarm' }, sound: 'anchor.wav' }
+  ])
+
+  assert.equal(resolver.resolve({ state: 'warn', path: 'notifications.navigation.anchor', source: { label: 'other' } }).matchedPolicy, null)
+  assert.equal(resolver.resolve({ state: 'warn', path: 'notifications.navigation.anchor', source: { label: 'hoekens-anchor-alarm' } }).matchedPolicy, 'anchor source')
+})
+
+test('inherits visibility and history while a path rule overrides only sound', () => {
+  const resolver = new PolicyResolver([
+    { name: 'warn defaults', match: { state: 'warn' }, visible: true, history: true, sound: 'warn.wav' },
+    { name: 'anchor sound', match: { state: 'warn', path: 'notifications.navigation.anchor' }, sound: 'anchor.wav' }
+  ])
+
+  const result = resolver.resolve({ state: 'warn', path: 'notifications.navigation.anchor' })
+  assert.equal(result.visible, true)
+  assert.equal(result.history, true)
+  assert.equal(result.sound, 'anchor.wav')
+  assert.equal(result.matchedPolicy, 'anchor sound')
+})

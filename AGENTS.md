@@ -10,6 +10,16 @@ Signal K notification source permits.
 Signal K and the plugin that raised a notification are authoritative. This
 project never invents a competing alarm lifecycle.
 
+## Rule interpretation and escalation
+
+All existing project rules remain binding during implementation. Do not
+silently reinterpret, weaken, or bypass a rule to make an implementation fit.
+If two rules appear to conflict, a rule is technically ambiguous, or a
+safety-relevant decision is not covered clearly enough, stop before making the
+affected change and discuss the concrete alternatives with the user. Record
+the agreed decision in the appropriate project documentation before relying on
+it in later work.
+
 ## Signal K internal Node-RED
 
 The planned graphical flow configuration targets the Node-RED instance

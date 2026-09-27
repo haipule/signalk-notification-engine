@@ -9,6 +9,10 @@ const template = document.querySelector('#notification-template')
 const actionBar = document.querySelector('#actions')
 const detailSheet = document.querySelector('#detail-sheet')
 const visualAlerts = document.querySelector('#visual-alerts')
+const healthBanner = document.querySelector('#health-banner')
+let isConnected = false
+let configurationReady = true
+let lastSuccessfulRefreshAt = null
 let selectedId = null
 let activeNotifications = []
 let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
@@ -568,6 +572,7 @@ function bySeverity(left, right) {
 }
 
 function actionAllowed(notification, action) {
+  if (!isConnected || !configurationReady) return false
   if (notification?.historyOnly) return false
   const status = notification.status
   if (!status) return false
@@ -578,6 +583,7 @@ function actionAllowed(notification, action) {
 
 async function runAction(id, action, refreshAfter = true) {
   try {
+    if (!isConnected || !configurationReady) throw new Error('Actions are disabled while the Alarm Centre is offline or configuration is invalid.')
     const response = await fetch(`${pluginApi}/notifications/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -594,6 +600,7 @@ async function runAction(id, action, refreshAfter = true) {
 
 async function runGlobalAction(action) {
   try {
+    if (!isConnected || !configurationReady) throw new Error('Actions are disabled while the Alarm Centre is offline or configuration is invalid.')
     const response = await fetch(`${pluginApi}/notifications/action-all/${action}`, { method: 'POST' })
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
@@ -608,9 +615,13 @@ async function runGlobalAction(action) {
 async function refresh() {
   try {
     const [notifications, history] = await Promise.all([
-      fetch(`${pluginApi}/notifications`).then(response => response.json()),
-      fetch(`${pluginApi}/history`).then(response => response.json())
+      fetchJson(`${pluginApi}/notifications`),
+      fetchJson(`${pluginApi}/history`)
     ])
+    isConnected = true
+    lastSuccessfulRefreshAt = new Date()
+    configurationReady = notifications.configurationStatus?.state !== 'error'
+    updateHealthBanner(notifications.configurationStatus)
     configuredStateOrder = Array.isArray(notifications.stateOrder) ? notifications.stateOrder : configuredStateOrder
     stateColors = notifications.stateColors || stateColors
     visualRules = notifications.visualRules || visualRules
@@ -620,6 +631,7 @@ async function refresh() {
     shortcutInfo = typeof notifications.shortcutInfo === 'string' ? notifications.shortcutInfo : shortcutInfo
     shortcutHistory = typeof notifications.shortcutHistory === 'string' ? notifications.shortcutHistory : shortcutHistory
     renderNotifications(notifications.notifications)
+    updateGlobalActions()
     window.notificationHistory = history.events || []
     if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'critical') {
       renderCriticalHistory()
@@ -630,9 +642,43 @@ async function refresh() {
       renderHistory([])
     }
   } catch (error) {
-    summary.textContent = `Could not load notifications: ${error.message}`
+    isConnected = false
+    configurationReady = false
+    updateHealthBanner()
+    updateActions(activeNotifications.find(item => item.id === selectedId) || null)
+    updateGlobalActions()
+  }
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
+
+function updateHealthBanner(configurationStatus = null) {
+  if (!isConnected) {
+    const lastUpdate = lastSuccessfulRefreshAt ? lastSuccessfulRefreshAt.toLocaleTimeString() : 'never'
+    healthBanner.textContent = `No connection to Signal K · displayed data is stale · last update ${lastUpdate}`
+    healthBanner.hidden = false
+    return
+  }
+  if (configurationStatus?.state === 'error') {
+    healthBanner.textContent = `Notification processing disabled · invalid Node-RED configuration: ${configurationStatus.message}`
+    healthBanner.hidden = false
+    return
+  }
+  healthBanner.hidden = true
+  healthBanner.textContent = ''
+}
+
+function updateGlobalActions() {
+  for (const button of actionBar.querySelectorAll('[data-global-action]')) {
+    button.disabled = !isConnected || !configurationReady
+    button.title = button.disabled ? 'Unavailable while offline or configuration is invalid' : button.getAttribute('aria-label')
   }
 }
 
 refresh()
+updateGlobalActions()
 setInterval(refresh, 5000)
