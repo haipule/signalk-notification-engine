@@ -1,5 +1,83 @@
 # TODO
 
+## Arbeitsstand zum Feierabend – 2026-09-28
+
+- [x] Source-Reparatur live abgenommen: Der aktuelle Snapshot und zwei neue
+  History-Lebenszyklen für
+  `notifications.propulsion.stbdEngine.exhaustTemperature` verwenden
+  durchgehend `engineroomStbd.XX`; kein neues `Unknown source` und kein neues
+  Überschreiben durch `self.notificationhandler`.
+- [x] Version `0.1.10` auf dem Pi installiert: Die Notification-Spalte wird
+  innerhalb der maßgeblichen Zustandsreihenfolge segmentweise nach dem
+  punktgetrennten Signal-K-Pfad sortiert, sodass gemeinsame Pfadpräfixe als
+  Gruppen zusammenbleiben.
+- [x] Version `0.1.11` auf dem Pi installiert: Read-only Diagnostics-API und
+  WebApp-Fenster erfassen Client-Poll, Server-Snapshot, Deltas, Node-RED-Status,
+  Audio-Prozesse/-Ergebnis und History-Schreibstatus. Damit ist die notwendige
+  Instrumentierung für den späteren Stale-/Reconnect-Test vorhanden.
+- [ ] Tab-3-Stale-/Reconnect-Test weiterhin zurückgestellt. Tab 3 steht derzeit
+  nicht zur Verfügung. Beim späteren Test muss die WebApp zuerst vollständig
+  neu geladen werden; danach WLAN aus/an sowie Poll-, Timeout- und
+  Watchdog-Zeitpunkte über Diagnostics vergleichen. Bis dahin keine weiteren
+  Änderungen an den Stale-Timern vornehmen.
+- [x] Version `0.1.12` auf dem Pi installiert: Passiver Audio-Watchdog prüft
+  `aplay` und das konfigurierte ALSA-Playback-PCM beim Start und minütlich,
+  ohne das Gerät zu öffnen oder einen Ton abzuspielen. Live: Watchdog `ready`,
+  `/usr/bin/aplay`, `plughw:2,0`, PCM `02-00` playback-fähig, keine aktiven
+  Audioprozesse und keine wartenden Retries. Die Prüfung bestätigt ausdrücklich
+  nicht Verstärker, Lautsprecher, Lautstärke oder tatsächliche Hörbarkeit.
+- [x] Abschlusszustand auf dem Pi: Signal K und `signalk-health.timer` aktiv,
+  separater `nodered.service` inaktiv, Node-RED-Konfiguration `ready`, letzter
+  beobachteter Snapshot 227 ms, Load Average `1.22 / 1.26 / 1.37`.
+- [ ] **Hier weiterarbeiten:** Circuit-Breaker für fehlgeschlagene
+  Audiowiedergabe festlegen und implementieren. Vor der Änderung ist die
+  sicherheitsrelevante Regel mit dem Benutzer abzustimmen und anschließend hier
+  zu dokumentieren. Offener Vorschlag: nach fünf aufeinanderfolgenden
+  Wiedergabefehlern pro Notification-Lifecycle öffnen, während der sichtbare
+  Alarm unverändert aktiv bleibt; danach höchstens ein Probeversuch alle fünf
+  Minuten. Zustand, Fehleranzahl, nächster Versuch und Übergänge müssen in
+  Diagnostics und lokaler History erscheinen. Noch nicht entschieden ist, ob
+  dieser Schwellenwert und dieses Probeintervall übernommen werden.
+- [ ] Nach dem Circuit-Breaker die eigene rekursionssichere visuelle
+  Audio-Systemnotification und anschließend den bewusst ausgelösten hörbaren
+  Bedienertest bearbeiten. Bestehende Audioquellen dürfen bis zur ausdrücklich
+  getesteten Übergabe nicht abgeschaltet werden.
+
+## Nächste Arbeitsschritte – vereinbart am 2026-09-28
+
+- [x] Zuerst den Source-Verlust bei bestehenden Signal-K-Notifications
+  reproduzieren und beheben. Für
+  `notifications.propulsion.stbdEngine.exhaustTemperature` die Quelle durch
+  Notification API, Datenmodell-Snapshot, Delta, Store-Merge und Historie
+  verfolgen. Akzeptanzkriterium: Das Alarm Centre und neue History-Einträge
+  zeigen dauerhaft die von Signal K gelieferte Quelle statt `Unknown source`.
+  Analyse und Reparaturstand `0.1.9`: Der Live-Pfad liefert als Produzent
+  `engineroomStbd.XX`, während die Notification-Projektion
+  `self.notificationhandler` trägt. Alte History-Einträge zeigen ein Flattern
+  zwischen beiden Quellen. Notification-Deltas lesen die Quelle nun sofort am
+  zugrunde liegenden Datenpfad, und eine bekannte Produzentenquelle darf nicht
+  mehr durch die Handler-Projektion überschrieben werden. 75 Tests sind grün
+  und `0.1.9` ist auf dem Pi installiert. Offen bleibt die Live-Bestätigung im
+  Alarm Centre sowie anhand eines neuen History-Eintrags bei der nächsten
+  tatsächlichen Zustandsänderung. Live-Abnahme am 2026-09-28 bestanden: Der
+  aktuelle Snapshot und zwei nach der Reparatur neu angelegte Lebenszyklen
+  verwenden durchgehend `engineroomStbd.XX`; weder `Unknown source` noch
+  `self.notificationhandler` trat in diesen neuen Einträgen auf.
+- [x] Danach die Diagnostics-API und -Ansicht ergänzen: letzte Snapshot- und
+  Delta-Zeitpunkte, Client-Poll-Start/-Ende, Request-Dauer, Timeout- oder
+  Netzwerkfehler, Node-RED-Revision, Konfigurationsstatus, aktive
+  Audio-Prozesse, letzter Audio-Exitcode und Historien-Schreibstatus. In
+  Version `0.1.11` als read-only API und WebApp-Fenster umgesetzt und live auf
+  dem Pi mit bereiter Node-RED-Konfiguration validiert.
+- [ ] Tab-3-/WLAN-Tests vorläufig aussetzen. Keine weiteren Alarmtests oder
+  Änderungen an den Stale-Timern durchführen, bis die Poll-, Timeout- und
+  Watchdog-Zeitpunkte instrumentiert sind. Danach den Stale-/Reconnect-Test
+  mit Tab 3 gezielt wiederholen. Die Instrumentierung ist seit `0.1.11`
+  vorhanden; Tab 3 steht am 2026-09-28 nicht zur Verfügung, daher bleibt der
+  praktische Retest zurückgestellt und blockiert die übrige Arbeit nicht.
+- [ ] Nach der Diagnostics-Arbeit den passiven Audio-Watchdog und den noch
+  fehlenden Circuit-Breaker-/Historienstatus vervollständigen.
+
 ## Sicherheitsreview 2026-09-26
 
 ### Prio 0 – Alarmkorrektheit vor neuen Funktionen
@@ -26,10 +104,13 @@
 
 ### Prio 1 – Audio zuverlässig und eindeutig machen
 
-- [ ] Audio-Watchdog mit Startprüfung und periodischer passiver Prüfung bauen:
+- [x] Audio-Watchdog mit Startprüfung und periodischer passiver Prüfung bauen:
   konfiguriertes ALSA-Gerät, Geräteerreichbarkeit, Backend-Prozess und letzter
   erfolgreicher Exitcode müssen überwacht werden, ohne dabei regelmäßig einen
-  hörbaren Ton auszulösen.
+  hörbaren Ton auszulösen. Version `0.1.12` prüft Backend und ALSA-PCM beim
+  Start sowie minütlich passiv; aktive Prozesse und letzter Exit stehen in
+  Diagnostics. Verstärker, Lautsprecher und Hörbarkeit bleiben ausdrücklich
+  außerhalb dieser passiven Prüfung.
 - [ ] Bei einem Audiofehler eine eigene visuelle Systemnotification wie
   `notifications.system.notificationEngine.audio` veröffentlichen. Sie darf
   selbst keine Audioaktion auslösen, muss auf allen WebApps sichtbar bleiben
@@ -71,6 +152,11 @@
 
 ### Prio 2 – End-to-End-Sicherheitsnachweis
 
+- [x] Den nicht zum Projekt gehörenden `nodered.service` auf dem Pi prüfen und
+  wieder stoppen. Der Dienst war bereits dauerhaft `disabled`, lief aber noch
+  als alter manueller Startprozess seit 2026-09-16 auf Port 1880. Signal K,
+  dessen Health-Timer und die eingebettete Node-RED-Instanz blieben aktiv;
+  Flows unter `/home/pi/.node-red` bleiben für dieses Projekt tabu.
 - [ ] Dokumentierte Pi-Testmatrix für Hoekens `warn`, `alarm`, `normal` und
   `null`, Android-UDP-Ausfall und -Wiederkehr, neue Ankervorgänge nach ACK,
   wechselnde und wiederverwendete IDs sowie Neustarts während aktiver Alarme
@@ -86,21 +172,57 @@
 - [ ] Ungültigen Node-RED-Deploy mit der neuen Fail-closed-Sperre wiederholen:
   sichtbaren Konfigurationsfehler, gestoppte Verarbeitung, abgelehnte Actions,
   ausbleibenden Poll-Logspam und Erholung durch einen gültigen Deploy prüfen.
-- [ ] Fehlendes ALSA-Gerät erneut simulieren und nachweisen, dass der Alarm
+  Der Runtime-Fehlerfall ist am 2026-09-27 bestätigt: sichtbarer Fehler,
+  deaktivierte Globalaktionen und nur ein Logeintrag über mehrere Poll-Zyklen.
+  Der exakte gültige Flow wurde anschließend aus der Sicherung wiederhergestellt
+  und Signal K gesund neu gestartet; die Erholung durch einen gültigen
+  Runtime-Deploy im Editor bleibt noch separat nachzuweisen.
+- [x] Fehlendes ALSA-Gerät erneut simulieren und nachweisen, dass der Alarm
   sichtbar bleibt, der Retry-Abstand exponentiell bis 60 Sekunden wächst und
   weder Prozess- noch Journal-Sturm entsteht.
 - [ ] Tab 3 bei aktivem kontrolliertem Testalarm vom Netz trennen: deutliche
   Offline-/Stale-Anzeige, deaktivierte Einzel- und Globalaktionen sowie saubere
   automatische Synchronisierung nach Wiederverbindung prüfen.
-- [ ] History-Reparatur live bestätigen: allgemeine `visibleInTable`-/History-
+  Retest am 2026-09-27 fehlgeschlagen: Nach Abschalten des WLANs blieb der
+  letzte Alarm ohne Offline-/Stale-Hinweis sichtbar und die Buttons wirkten
+  weiterhin verfügbar. Nach Wiederverbindung erschien kein Doppelalarm; der
+  Testalarm war inzwischen planmäßig abgelaufen. Der WebApp-Poll verwendet
+  derzeit kein eigenes Fetch-Timeout und kann bei einem Verbindungsabbruch
+  unbegrenzt ausstehend bleiben, statt den Offline-Zustand zu setzen.
+  Die lokale Reparatur in `0.1.6` ergänzt ein Sechs-Sekunden-Timeout,
+  sofortige `online`-/`offline`-Behandlung und serialisierte Polls; der
+  erste Tab-3-Retest nach Deployment war nicht aussagekräftig, weil die vor
+  dem Deployment geöffnete Seite weiterlief. Zusätzlich trugen die Skripte
+  noch den alten Cache-Schlüssel `0.1.18`. Der Schlüssel ist nun auf `0.1.7`
+  gesetzt. Der Offline-Hinweis liegt nun fest über allen Alarm-Overlays, die
+  Aktionssperre ist optisch deutlicher, und ein unabhängiger Wächter markiert
+  die Ansicht spätestens acht Sekunden nach dem letzten erfolgreichen Abruf
+  als stale. Vor dem abschließenden Retest muss Tab 3 die WebApp neu laden.
+  Ein erster Versuch mit dem Acht-Sekunden-Wächter meldete bei eingeschaltetem
+  WLAN fälschlich stale, weil der langsame Client Poll- und Wächter-Timer
+  zusammen ausführte. Version `0.1.7` unterdrückt diese Altersmeldung, solange
+  bereits ein durch den Sechs-Sekunden-Timeout begrenzter Abruf läuft.
+  Der Folgetest meldete bei aktivem Alarm weiterhin stale: Der gemeinsame
+  `Promise.all`-Abruf koppelte die aktuelle Notification-Ansicht unnötig an die
+  langsamere lokale History. Version `0.1.8` behandelt nur den autoritativen
+  Notification-Snapshot als Verbindungssignal; History aktualisiert unabhängig.
+  Der Live-Retest mit `0.1.8` ist dennoch fehlgeschlagen: Tab 3 zeigte die
+  Stale-Warnung weiterhin bei eingeschaltetem und funktionierendem WLAN. Die
+  Beobachtung deutet darauf hin, dass Poll-Intervall, Request-Timeout und/oder
+  Stale-Wächter weiterhin gegeneinander laufen. Diese Timer-Interaktion muss
+  vor einem weiteren Alarmtest instrumentiert und eindeutig diagnostiziert
+  werden; der Stale-Fix ist nicht abgenommen.
+- [x] History-Reparatur live bestätigen: allgemeine `visibleInTable`-/History-
   Regeln werden von einer spezifischen Soundregel geerbt und derselbe
   Occurrence-Verlauf enthält nach Auflösung den finalen Zustand `normal`.
 
 ### Prio 3 – Betriebsdiagnose
 
-- [ ] Diagnostics-Ansicht/API für letzte Snapshot- und Delta-Zeitpunkte,
+- [x] Diagnostics-Ansicht/API für letzte Snapshot- und Delta-Zeitpunkte,
   Node-RED-Revision und Flow-Pfad, Konfigurationsstatus, aktive
   Audio-Prozesse, letzten Audio-Exitcode sowie Historien-Schreibstatus bauen.
+  Version `0.1.11` ergänzt zusätzlich Poll-Start/-Ende, Dauer und letzten
+  Netzwerkfehler des jeweiligen WebApp-Clients.
 - [ ] Zustand und Alter kritischer Eingangsquellen wie `android_udp.gps`
   sichtbar machen.
 - [ ] Hohe Signal-K-CPU-Last, volle Swap-Nutzung, 81 Prozent
@@ -126,7 +248,7 @@
 - [ ] Git-Remote, Release-Tags und unabhängige CI-Prüfungen einrichten, bevor
   das Paket öffentlich veröffentlicht wird.
 
-## Priorisierte Historienoptimierung
+## Abgeschlossene Historienoptimierung
 
 - [x] Konfigurationsabhängigkeit erzwingen: Nur Zustände aus `Notification
   State Order and Visibility` dürfen in der lokalen Tabelle erscheinen oder
@@ -167,15 +289,17 @@
 - `Visible Notification States` und `Notification Sort Order` wurden zu einer
   gemeinsamen Zustandsliste zusammengeführt.
 
-- Historienaufzeichnung ist über `historyRules` nach Pfadpräfix und Quelle
-  konfigurierbar; erste passende Regel gewinnt. Ohne Regel werden nur
-  `alarm` und `emergency` aufgezeichnet.
+- Historienaufzeichnung wird aus den deployten Node-RED-Regeln abgeleitet.
+  `visibleInTable: true` aktiviert sie standardmäßig; `history: true` oder
+  `history: false` überschreibt dieses Verhalten ausdrücklich. Spezifische
+  Regeln erben nicht überschriebene Eigenschaften von allgemeineren Regeln.
 - Schalter `clearHistoryOnStart` für eine ausdrücklich ausgelöste Bereinigung
   der lokalen Historie ist implementiert.
 - Shortcuts validieren: Konfliktbehandlung ist implementiert; mögliche
   Konflikte mit weiteren Eingabefeldern noch prüfen.
-- Die Plugin-Konfiguration bleibt die alleinige Stelle für Klassifikation,
-  Policies und Sortierung; die App verlinkt dorthin.
+- Kategorien werden ausschließlich automatisch klassifiziert. Node-RED bleibt
+  die grafische Quelle für Anzeige-, History- und Audio-Regeln; geschützte
+  Laufzeiteinstellungen und Sortierung bleiben in der Plugin-Konfiguration.
 - Link „Plugin konfigurieren“ in der App ist ergänzt.
 - Tabellenansicht mit Auswahlrahmen, globalen Aktionen unterhalb der Tabelle
   und Einzelaktionen im Infofenster ist umgesetzt.
@@ -189,7 +313,7 @@
   anzeigt.
 - [ ] Im Config-Flow die Sound-Eigenschaften `once`, `repeat` und `loop` als
   eigene Nodes unterstützen.
-- [ ] Einen pseudo-terminalen `ACTIVATE`-Debug-Node als Regelabschluss
+- [x] Einen pseudo-terminalen `ACTIVATE`-Debug-Node als Regelabschluss
   verwenden; nur durchgängig vom Auslöser bis `ACTIVATE` verbundene Regeln
   werden beim Deploy rückwärts geprüft und aktiviert.
 
@@ -294,10 +418,10 @@
 
 ## 9. Policy-Match-Logik
 
-- [ ] Prüfen und dokumentieren, ob mehrere gesetzte Policy-Bedingungen künftig
-  zusätzlich über UND verknüpft werden sollen. Aktuell genügt ein Match von
-  `category`, `pathPrefix` oder `source`; nur eine vollständig leere Bedingung
-  ist nicht zulässig.
+- [x] Mehrere Kriterien innerhalb einer Regel (`state`, `path`, `pathPrefix`,
+  `source`, `conditions`) werden mit UND verknüpft. Alternativen werden als
+  getrennte Flow-Zweige modelliert. Kategorien sind reine Anzeigemetadaten und
+  weder Match-Kriterium noch zweite Policy-Sprache.
 
 ## 5. Weiteres Alarmhandling
 

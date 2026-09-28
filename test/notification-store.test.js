@@ -51,7 +51,7 @@ test('normalizes string and $source delta representations', () => {
     path: 'notifications.custom.engine',
     value: { id: 'engine-1', state: 'alarm', message: 'Oil temperature high' }
   }] }] })
-  assert.deepEqual(store.list()[0].source, { label: 'self.notificationhandler' })
+  assert.deepEqual(store.list()[0].source, { label: 'fallback-source' })
 })
 
 test('reads a source embedded on the notification value', () => {
@@ -117,6 +117,28 @@ test('preserves a known source when a later snapshot omits it', () => {
   })
 
   assert.deepEqual(store.list()[0].source, { label: 'engine-monitor' })
+})
+
+test('does not replace a recovered producer with the notification handler', () => {
+  const store = new NotificationStore({ classify })
+  store.replaceSnapshot({
+    'engine-1': {
+      path: 'notifications.propulsion.stbdEngine.exhaustTemperature',
+      source: { label: 'engineroomStbd.XX' },
+      value: { id: 'engine-1', state: 'nominal', message: 'Normal' }
+    }
+  })
+
+  store.applyDelta({ updates: [{
+    source: { label: 'self.notificationhandler' },
+    values: [{
+      path: 'notifications.propulsion.stbdEngine.exhaustTemperature',
+      value: { id: 'engine-1', state: 'nominal', message: 'Normal' }
+    }]
+  }] })
+
+  assert.deepEqual(store.list()[0].source, { label: 'engineroomStbd.XX' })
+  assert.equal(store.list()[0].historyKey, 'notifications.propulsion.stbdEngine.exhaustTemperature|engineroomStbd.XX')
 })
 
 test('starts a new occurrence after a configured lifecycle end marker', () => {

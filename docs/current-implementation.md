@@ -28,6 +28,7 @@
 |---|---|---|---|
 | GET | `/plugins/signalk-notification-manager/notifications` | readonly | Active reconstructed notifications and effective policy. |
 | GET | `/plugins/signalk-notification-manager/history` | readonly | Bounded persistent local audit history (500 entries by default). |
+| GET | `/plugins/signalk-notification-engine/diagnostics` | readonly | Snapshot/delta timings, Node-RED configuration, audio process/result, and local-history persistence health. |
 | POST | `/plugins/signalk-notification-manager/notifications/{id}/{action}` | readwrite | Allowed `silence`, `acknowledge`, or `clear`. |
 
 ## Deliberate limitations

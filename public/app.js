@@ -1,6 +1,8 @@
 'use strict'
 
 const pluginApi = '/plugins/signalk-notification-engine'
+const { createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = window.NotificationConnectivity
+const { compareNotificationPaths } = window.NotificationTableSort
 const notificationContainer = document.querySelector('#notifications')
 const historyContainer = document.querySelector('#history')
 const historyCount = document.querySelector('#history-count')
@@ -13,6 +15,9 @@ const healthBanner = document.querySelector('#health-banner')
 let isConnected = false
 let configurationReady = true
 let lastSuccessfulRefreshAt = null
+const pollingStartedAt = Date.now()
+let refreshInProgress = false
+const clientPollDiagnostics = { lastStartedAt: null, lastCompletedAt: null, durationMs: null, lastError: null }
 let selectedId = null
 let activeNotifications = []
 let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
@@ -42,6 +47,8 @@ document.querySelector('#show-alarm-history').addEventListener('click', showAlar
 document.querySelector('#show-rules').addEventListener('click', () => showSelectedRules())
 document.querySelector('#close-history').addEventListener('click', closeHistory)
 document.querySelector('#close-rules').addEventListener('click', closeRules)
+document.querySelector('#show-diagnostics').addEventListener('click', showDiagnostics)
+document.querySelector('#close-diagnostics').addEventListener('click', closeDiagnostics)
 document.querySelector('#delete-history').addEventListener('click', deleteLocalHistory)
 detailSheet.addEventListener('pointerdown', () => { detailSheet.style.zIndex = '12' })
 document.querySelector('#history-sheet').addEventListener('pointerdown', event => { event.currentTarget.style.zIndex = '12'; detailSheet.style.zIndex = '11' })
@@ -51,6 +58,7 @@ document.addEventListener('keydown', event => {
     if (detailSheet.getAttribute('aria-hidden') === 'false') closeDetails()
     if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false') closeHistory()
     if (document.querySelector('#rules-sheet').getAttribute('aria-hidden') === 'false') closeRules()
+    if (document.querySelector('#diagnostics-sheet').getAttribute('aria-hidden') === 'false') closeDiagnostics()
     return
   }
   if (event.target.matches('input, textarea, select')) return
@@ -105,6 +113,7 @@ function enableDragging(sheet, dragButton) {
 enableDragging(detailSheet, document.querySelector('#drag-detail'))
 enableDragging(document.querySelector('#history-sheet'), document.querySelector('#drag-history'))
 enableDragging(document.querySelector('#rules-sheet'), document.querySelector('#drag-rules'))
+enableDragging(document.querySelector('#diagnostics-sheet'), document.querySelector('#drag-diagnostics'))
 
 /** Render Signal K state only; actions are intentionally introduced later. */
 function renderNotifications(notifications) {
@@ -229,9 +238,13 @@ function updateActions(notification) {
   const actionLabels = { silence: 'Silence', acknowledge: 'Acknowledge', clear: 'Clear' }
   for (const button of document.querySelectorAll('#detail-actions [data-action]')) {
     const action = button.dataset.action
-    const allowed = Boolean(notification) && actionAllowed(notification, action)
+    const allowed = isConnected && configurationReady && Boolean(notification) && actionAllowed(notification, action)
     button.disabled = !allowed
-    button.title = allowed ? button.getAttribute('aria-label') : `${actionLabels[action]} is not permitted by Signal K`
+    button.title = allowed
+      ? button.getAttribute('aria-label')
+      : !isConnected || !configurationReady
+          ? 'Unavailable while offline or configuration is invalid'
+          : `${actionLabels[action]} is not permitted by Signal K`
     button.onclick = () => runAction(notification.id, action)
   }
 }
@@ -445,14 +458,15 @@ function sortNotifications(notifications) {
     if (tableSort.column === 'updated') return direction * compareNewest(left, right)
     const hierarchyDifference = compareHierarchy(left, right)
     if (hierarchyDifference !== 0) return hierarchyDifference
-    const difference = String(sortValue(left, tableSort.column)).localeCompare(String(sortValue(right, tableSort.column)), undefined, { numeric: true, sensitivity: 'base' })
+    const difference = tableSort.column === 'notification'
+      ? compareNotificationPaths(left.path, right.path)
+      : String(sortValue(left, tableSort.column)).localeCompare(String(sortValue(right, tableSort.column)), undefined, { numeric: true, sensitivity: 'base' })
     if (difference !== 0) return direction * difference
     return compareNewest(left, right)
   })
 }
 
 function sortValue(notification, column) {
-  if (column === 'notification') return notification.message || ''
   if (column === 'category') return formatCategory(notification.category)
   if (column === 'source') return notification.source?.label || 'Unknown source'
   return ''
@@ -613,12 +627,14 @@ async function runGlobalAction(action) {
 }
 
 async function refresh() {
+  refreshInProgress = true
+  const pollStartedMs = Date.now()
+  clientPollDiagnostics.lastStartedAt = new Date(pollStartedMs).toISOString()
   try {
-    const [notifications, history] = await Promise.all([
-      fetchJson(`${pluginApi}/notifications`),
-      fetchJson(`${pluginApi}/history`)
-    ])
+    const historyPromise = fetchJsonWithTimeout(`${pluginApi}/history`).catch(() => null)
+    const notifications = await fetchJsonWithTimeout(`${pluginApi}/notifications`)
     isConnected = true
+    clientPollDiagnostics.lastError = null
     lastSuccessfulRefreshAt = new Date()
     configurationReady = notifications.configurationStatus?.state !== 'error'
     updateHealthBanner(notifications.configurationStatus)
@@ -632,28 +648,50 @@ async function refresh() {
     shortcutHistory = typeof notifications.shortcutHistory === 'string' ? notifications.shortcutHistory : shortcutHistory
     renderNotifications(notifications.notifications)
     updateGlobalActions()
-    window.notificationHistory = history.events || []
-    if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'critical') {
-      renderCriticalHistory()
-    } else if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyPath) {
-      const selected = activeNotifications.find(item => item.id === historyFocusId)
-      renderSelectedHistory()
-    } else {
-      renderHistory([])
+    const history = await historyPromise
+    if (history) {
+      window.notificationHistory = history.events || []
+      if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'critical') {
+        renderCriticalHistory()
+      } else if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyPath) {
+        renderSelectedHistory()
+      } else {
+        renderHistory([])
+      }
     }
   } catch (error) {
+    clientPollDiagnostics.lastError = { message: error.message, at: new Date().toISOString() }
     isConnected = false
     configurationReady = false
     updateHealthBanner()
     updateActions(activeNotifications.find(item => item.id === selectedId) || null)
     updateGlobalActions()
+  } finally {
+    const completedMs = Date.now()
+    clientPollDiagnostics.lastCompletedAt = new Date(completedMs).toISOString()
+    clientPollDiagnostics.durationMs = completedMs - pollStartedMs
+    refreshInProgress = false
   }
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.json()
+/** Show operational timings without changing any Signal K notification. */
+async function showDiagnostics() {
+  const sheet = document.querySelector('#diagnostics-sheet')
+  const content = document.querySelector('#diagnostics-content')
+  sheet.setAttribute('aria-hidden', 'false')
+  sheet.style.zIndex = '14'
+  content.textContent = 'Loading…'
+  try {
+    const server = await fetchJsonWithTimeout(`${pluginApi}/diagnostics`)
+    content.textContent = JSON.stringify({ clientPoll: clientPollDiagnostics, server }, null, 2)
+  } catch (error) {
+    content.textContent = JSON.stringify({ clientPoll: clientPollDiagnostics, diagnosticsError: error.message }, null, 2)
+  }
+  sheet.focus()
+}
+
+function closeDiagnostics() {
+  document.querySelector('#diagnostics-sheet').setAttribute('aria-hidden', 'true')
 }
 
 function updateHealthBanner(configurationStatus = null) {
@@ -661,8 +699,10 @@ function updateHealthBanner(configurationStatus = null) {
     const lastUpdate = lastSuccessfulRefreshAt ? lastSuccessfulRefreshAt.toLocaleTimeString() : 'never'
     healthBanner.textContent = `No connection to Signal K · displayed data is stale · last update ${lastUpdate}`
     healthBanner.hidden = false
+    document.documentElement.classList.add('connection-stale')
     return
   }
+  document.documentElement.classList.remove('connection-stale')
   if (configurationStatus?.state === 'error') {
     healthBanner.textContent = `Notification processing disabled · invalid Node-RED configuration: ${configurationStatus.message}`
     healthBanner.hidden = false
@@ -672,6 +712,16 @@ function updateHealthBanner(configurationStatus = null) {
   healthBanner.textContent = ''
 }
 
+/** Mark cached notification data stale without changing Signal K state. */
+function markDisconnected() {
+  if (!isConnected && healthBanner.hidden === false) return
+  isConnected = false
+  configurationReady = false
+  updateHealthBanner()
+  updateActions(activeNotifications.find(item => item.id === selectedId) || null)
+  updateGlobalActions()
+}
+
 function updateGlobalActions() {
   for (const button of actionBar.querySelectorAll('[data-global-action]')) {
     button.disabled = !isConnected || !configurationReady
@@ -679,6 +729,13 @@ function updateGlobalActions() {
   }
 }
 
-refresh()
+const scheduleRefresh = createRefreshScheduler(refresh)
+window.addEventListener('offline', markDisconnected)
+window.addEventListener('online', scheduleRefresh)
+scheduleRefresh()
 updateGlobalActions()
-setInterval(refresh, 5000)
+setInterval(scheduleRefresh, 5000)
+setInterval(() => {
+  const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
+  if (isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, 8000, refreshInProgress)) markDisconnected()
+}, 1000)

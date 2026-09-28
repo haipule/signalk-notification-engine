@@ -23,8 +23,17 @@
 - Node-RED rule extraction: payload-state sources independent of node type,
   path/condition branch isolation, canonical supported states, rejection of
   unknown states, and activation at `Activate`.
-- WebApp table sorting: newest-first default, column A–Z/Z–A toggles, and
-  persisted sort selection.
+- WebApp table sorting: newest-first default, column A–Z/Z–A toggles, persisted
+  sort selection, and segment-wise Signal K path grouping for the Notification
+  column within each authoritative state hierarchy level.
+- WebApp connectivity: abort an unreachable poll at its deadline, clear the
+  deadline after success, and coalesce overlapping interval/reconnect refreshes
+  into one serialized follow-up request.
+- Diagnostics: snapshot duration/error recovery, delta counters, Node-RED
+  configuration state, audio process/result state, history persistence health,
+  and current-browser poll timing remain read-only.
+- Passive audio watchdog: present/missing backend, present/missing hardware PCM,
+  and an explicit statement that no audible end-to-end result is inferred.
 
 ## Integration tests
 
@@ -51,7 +60,14 @@ GPS source.
 - A reload reconstructs the current state without stale phantom alarms.
 - Disconnect a client for more than one polling interval: the last table may
   remain visible only when a prominent stale/offline banner is shown and all
-  notification actions are disabled. Reconnect and verify automatic recovery.
+  notification actions are disabled. Verify both an immediate browser
+  `offline` event and a network failure where the request must reach its
+  six-second deadline. Reconnect and verify automatic recovery after the
+  authoritative notification snapshot succeeds. A slow local-history request
+  must not make a current notification snapshot appear offline.
+- On a small tablet viewport, verify that the stale banner remains fixed above
+  alarm overlays and appears no later than eight seconds after the last good
+  snapshot, even when the browser emits no `offline` event.
 - Deploy an invalid embedded Node-RED configuration: audio, subscriptions,
   snapshot polling, and write actions stop; one visible latched error remains
   without poll-driven log spam. A later valid deploy resumes processing.

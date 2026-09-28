@@ -12,6 +12,10 @@ Each active notification is a compact vertical card. Cards are sorted by state
 (`emergency`, `alarm`, `warn`, then lower states) and then by most recent
 update.
 
+When the operator selects the Notification column, rows within each state are
+sorted by dot-delimited Signal K path segments. Shared path prefixes therefore
+stay together even though the column continues to display the concise message.
+
 `normal` and `nominal` notifications are also shown as calm status cards at
 the end of the list. This avoids an empty centre during normal operation while
 keeping warnings and alarms visually dominant.

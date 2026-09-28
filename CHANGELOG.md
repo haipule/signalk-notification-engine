@@ -1,5 +1,32 @@
 # Changelog
 
+- Add a silent, periodic audio watchdog that checks the configured player and
+  ALSA playback PCM without opening the device or producing a test tone, and
+  expose its limitations and current result through Diagnostics.
+
+- Add a read-only Diagnostics API and WebApp panel for client polls, server
+  snapshots and deltas, Node-RED configuration, audio processes/results, and
+  local-history persistence health.
+
+- Sort the Notification table column by dot-delimited Signal K path segments so
+  notifications from the same path hierarchy remain grouped within each state.
+
+- Preserve a recovered producer source when later Signal K notification-handler
+  deltas project the same notification as `self.notificationhandler`, and read
+  the underlying data-path source immediately when processing such a delta.
+
+- Bound Alarm Centre API polls to six seconds, react immediately to browser
+  offline events, serialize refreshes, and keep all notification actions
+  disabled until a complete notifications-and-history refresh succeeds.
+- Keep the disconnected/stale warning fixed above alarm overlays, make disabled
+  actions visually unmistakable, and mark the view stale within eight seconds
+  even when the browser does not emit an `offline` event.
+- Do not let the snapshot-age watchdog report a false stale state while a
+  timeout-bounded refresh is already in progress on a slow tablet.
+- Base connectivity and action availability on the authoritative current
+  notification snapshot; a slow local-history response no longer makes the
+  live alarm view falsely appear offline.
+
 - Compose matching notification policies property by property so specific
   sound rules inherit general visibility and history behaviour.
 - Preserve the final authoritative normal/cleared transition for occurrences

@@ -11,6 +11,8 @@ const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const { fromDataModel, mergeSnapshots } = require('./lib/notification-snapshot')
 const { normalizeSource } = require('./lib/notification-source')
 const AudioPlayer = require('./lib/audio-player')
+const Diagnostics = require('./lib/diagnostics')
+const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { rulesMarkdown } = require('./lib/flow-rules')
 const visualColorPool = require('./lib/visual-colors')
@@ -104,8 +106,17 @@ module.exports = function createPlugin(app) {
   let activeRules = []
   const conditionValues = new Map()
   const originalSources = new Map()
+  const diagnostics = new Diagnostics()
+  let lastAudioResult = null
+  const audioWatchdog = new AudioWatchdog()
+  let audioWatchdogTimer = null
   let conditionUnsubscribes = []
-  const audioPlayer = new AudioPlayer({ onError: error => app.error?.(`Unable to play notification sound: ${error.message}`) })
+  const audioPlayer = new AudioPlayer({
+    onError: error => app.error?.(`Unable to play notification sound: ${error.message}`),
+    onResult: result => {
+      lastAudioResult = { at: new Date().toISOString(), ok: result.ok, code: result.code, signal: result.signal, error: result.error?.message || null }
+    }
+  })
 
   function readSignalKValue(pathName) {
     const cached = conditionValues.get(pathName)
@@ -125,6 +136,7 @@ module.exports = function createPlugin(app) {
     soundsByState = normalizeSoundsByState(flowOptions?.soundsByState, flowOptions?.soundPaletteFile)
     audioPlayer.player = String(flowOptions?.audioPlayer || 'aplay')
     audioPlayer.device = String(flowOptions?.audioDevice || 'default')
+    runAudioWatchdog()
     policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...normalizePolicies(flowOptions?.policies)], soundsByState, readSignalKValue)
     configuredClassifier = classify
     configuredStateOrder = normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
@@ -412,6 +424,7 @@ module.exports = function createPlugin(app) {
       audioFailures.clear()
       silencedAudio.clear()
       audioPlayer.stop()
+      stopAudioWatchdog()
       stopSubscriptions()
       stopSnapshotSync()
       await stopTestNotification()
@@ -454,6 +467,25 @@ module.exports = function createPlugin(app) {
       })
       readOnly.get('/history', (_request, response) => {
         response.json({ events: store.history() })
+      })
+      readOnly.get('/diagnostics', (_request, response) => {
+        response.json(diagnostics.toJSON({
+          nodeRed: {
+            revision: nodeRedConfigChecksum,
+            configurationStatus: configurationError ? { state: 'error', ...configurationError } : { state: 'ready' },
+            runtimeDeployEventsAvailable: Boolean(nodeRedUnsubscribe)
+          },
+          audio: {
+            ready: audioReady,
+            player: audioPlayer.player,
+            device: audioPlayer.device,
+            activeProcesses: audioPlayer.activeProcessCount(),
+            pendingRetries: audioTimers.size,
+            lastResult: lastAudioResult,
+            watchdog: audioWatchdog.lastCheck
+          },
+          history: historyRepository?.status() || { available: false, eventCount: 0, lastWriteAt: null, lastError: null }
+        }))
       })
       const readWrite = router.access('readwrite')
       readWrite.delete('/history', async (request, response) => {
@@ -686,8 +718,15 @@ module.exports = function createPlugin(app) {
 
   /** Update the store without allowing a failed local read to stop future polls. */
   async function syncSnapshot() {
-    const snapshot = await readSnapshot()
-    store.replaceSnapshot(snapshot)
+    const finish = diagnostics.beginSnapshot()
+    try {
+      const snapshot = await readSnapshot()
+      store.replaceSnapshot(snapshot)
+      finish()
+    } catch (error) {
+      finish(error)
+      throw error
+    }
   }
 
   /** Subscribe through Signal K's supported subscription manager API. */
@@ -709,6 +748,7 @@ module.exports = function createPlugin(app) {
       unsubscribes,
       error => app.error?.(`Notification subscription error: ${error}`),
       delta => {
+        diagnostics.recordDelta()
         logNotificationDelta(delta)
         for (const update of delta?.updates || []) {
           for (const item of update.values || []) {
@@ -719,7 +759,10 @@ module.exports = function createPlugin(app) {
             store.setSourceForPath(item.path, source)
           }
         }
-        store.applyDelta(delta, path => originalSources.get(String(path || '').replace(/^notifications\./, '')))
+        store.applyDelta(delta, path => {
+          const dataPath = String(path || '').replace(/^notifications\./, '')
+          return originalSources.get(dataPath) || readOriginalSource(path)
+        })
       }
     )
   }
@@ -829,6 +872,17 @@ module.exports = function createPlugin(app) {
       clearInterval(snapshotTimer)
       snapshotTimer = null
     }
+  }
+
+  /** Refresh passive audio health without opening the device or playing sound. */
+  function runAudioWatchdog() {
+    audioWatchdog.check(audioPlayer.player, audioPlayer.device)
+    if (audioWatchdogTimer === null) audioWatchdogTimer = setInterval(() => audioWatchdog.check(audioPlayer.player, audioPlayer.device), 60000)
+  }
+
+  function stopAudioWatchdog() {
+    if (audioWatchdogTimer !== null) clearInterval(audioWatchdogTimer)
+    audioWatchdogTimer = null
   }
 
   /** Convert the compact Plugin Config form to the policy module's model. */

@@ -21,7 +21,7 @@
             <button data-global-action="silence" title="Silence all" aria-label="Silence all">🔇<span>all</span></button>
             <button data-global-action="acknowledge" title="Acknowledge all" aria-label="Acknowledge all">✓<span>all</span></button>
             <button id="show-alarm-history" type="button" title="Emergency and alarm history (last 24 hours)" aria-label="Emergency and alarm history (last 24 hours)">🕘<span>history</span></button>
-          </div><button id="refresh" title="Refresh" aria-label="Refresh">↻</button></div></div>
+          </div><button id="show-diagnostics" title="Diagnostics" aria-label="Open diagnostics">⚙</button><button id="refresh" title="Refresh" aria-label="Refresh">↻</button></div></div>
           <div id="notifications" class="notification-table-wrap"></div>
         </section>
         <aside id="detail-sheet" class="detail-sheet" tabindex="-1" aria-label="Selected notification details" aria-hidden="true">
@@ -50,6 +50,11 @@
         <div class="detail-header"><strong>Notification Rule</strong><div class="detail-window-actions"><button id="drag-rules" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-rules" class="close-detail" type="button" aria-label="Close notification rule">×</button></div></div>
         <pre id="detail-rules" class="detail-rules"></pre>
       </aside>
+      <aside id="diagnostics-sheet" class="detail-sheet diagnostics-sheet" tabindex="-1" aria-label="Diagnostics" aria-hidden="true">
+        <div class="detail-header"><strong>Diagnostics</strong><div class="detail-window-actions"><button id="drag-diagnostics" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-diagnostics" class="close-detail" type="button" aria-label="Close diagnostics">×</button></div></div>
+        <p class="detail-note">Read-only operational state. Diagnostics never change a Signal K notification.</p>
+        <pre id="diagnostics-content" class="detail-rules">Loading…</pre>
+      </aside>
       <aside id="history-sheet" class="detail-sheet history-sheet" tabindex="-1" aria-label="Notification history" aria-hidden="true">
         <div class="detail-header"><div class="detail-header-actions"><strong id="history-title">Notification history</strong><div class="detail-window-actions history-actions"><button id="delete-history" class="history-delete-icon" type="button" title="Delete this history" aria-label="Delete this history">🗑</button><button id="drag-history" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-history" class="close-detail" aria-label="Close history">×</button></div></div></div>
         <p id="history-key" class="detail-note"></p>
@@ -62,6 +67,8 @@
         <td class="state" aria-label="Notification state"></td><td class="message"></td><td class="category"></td><td class="source"></td><td class="status-badges"></td>
       </tr>
     </template>
-    <script src="app.js?v=0.1.17"></script>
+    <script src="connectivity.js?v=0.1.11"></script>
+    <script src="table-sort.js?v=0.1.11"></script>
+    <script src="app.js?v=0.1.11"></script>
   </body>
 </html>
