@@ -21,7 +21,7 @@
             <button data-global-action="silence" title="Silence all" aria-label="Silence all">🔇<span>all</span></button>
             <button data-global-action="acknowledge" title="Acknowledge all" aria-label="Acknowledge all">✓<span>all</span></button>
             <button id="show-alarm-history" type="button" title="Emergency and alarm history (last 24 hours)" aria-label="Emergency and alarm history (last 24 hours)">🕘<span>history</span></button>
-          </div><button id="show-diagnostics" title="Diagnostics" aria-label="Open diagnostics">⚙</button><button id="refresh" title="Refresh" aria-label="Refresh">↻</button></div></div>
+          </div><button id="show-audio-test" class="audio-test-due" type="button" title="Alarmtontest: fällig" aria-label="Alarmtontest öffnen"><span id="audio-test-days">0</span></button><button id="show-diagnostics" title="Diagnostics" aria-label="Open diagnostics">⚙</button><button id="refresh" title="Refresh" aria-label="Refresh">↻</button></div></div>
           <div id="notifications" class="notification-table-wrap"></div>
         </section>
         <aside id="detail-sheet" class="detail-sheet" tabindex="-1" aria-label="Selected notification details" aria-hidden="true">
@@ -46,6 +46,18 @@
           <p id="detail-action-note" class="detail-note"></p>
         </aside>
       </div>
+      <aside id="audio-test-sheet" class="detail-sheet audio-test-sheet" tabindex="-1" aria-label="Alarmtontest" aria-hidden="true">
+        <div class="detail-header"><strong>Alarmtontest</strong><div class="detail-window-actions"><button id="drag-audio-test" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-audio-test" class="close-detail" type="button" aria-label="Alarmtontest schließen">×</button></div></div>
+        <p class="detail-note">Wenn der Ton hörbar ist: nichts drücken. Nach technischer Wiedergabe bleibt 15 Sekunden Zeit für eine Gegenmeldung.</p>
+        <div id="audio-test-controls" class="audio-test-controls" aria-live="polite">
+            <button id="start-audio-test" type="button">Alarmton testen</button>
+            <button id="audio-test-not-heard" type="button" hidden>Ton nicht gehört</button>
+            <span id="audio-test-status">Noch kein Alarmtontest ausgeführt.</span>
+          </div>
+        <dl class="detail-list audio-test-details">
+          <div><dt>Bediener</dt><dd id="audio-test-actor">–</dd></div><div><dt>Gerät</dt><dd id="audio-test-device">–</dd></div><div><dt>Datei</dt><dd id="audio-test-file">–</dd></div><div><dt>Player</dt><dd id="audio-test-player">–</dd></div><div><dt>Abgeschlossen</dt><dd id="audio-test-completed">–</dd></div>
+        </dl>
+      </aside>
       <aside id="rules-sheet" class="detail-sheet rules-sheet" tabindex="-1" aria-label="Matching notification rule" aria-hidden="true">
         <div class="detail-header"><strong>Notification Rule</strong><div class="detail-window-actions"><button id="drag-rules" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-rules" class="close-detail" type="button" aria-label="Close notification rule">×</button></div></div>
         <pre id="detail-rules" class="detail-rules"></pre>
@@ -67,8 +79,8 @@
         <td class="state" aria-label="Notification state"></td><td class="message"></td><td class="category"></td><td class="source"></td><td class="status-badges"></td>
       </tr>
     </template>
-    <script src="connectivity.js?v=0.1.11"></script>
-    <script src="table-sort.js?v=0.1.11"></script>
-    <script src="app.js?v=0.1.11"></script>
+    <script src="connectivity.js?v=0.1.18"></script>
+    <script src="table-sort.js?v=0.1.18"></script>
+    <script src="app.js?v=0.1.18"></script>
   </body>
 </html>

@@ -1,5 +1,41 @@
 # Changelog
 
+- Document the deployed audio ownership boundary: the retained embedded
+  Node-RED `Audio Alarms` legacy tab is disabled, both legacy scripts are
+  stopped, and Notification Engine is the only active rule-based audio path.
+
+- Expand read-only audio diagnostics with active-process and last-result
+  metadata: lifecycle key, player, device, file, PID, start/end timestamps,
+  duration, exit code, and signal.
+
+- Show audible-test maintenance due state as a round `7` to `0` day counter in
+  the main action row. At zero it flashes; opening it shows a dedicated process
+  window with the explicit start action, live 15-second feedback countdown, and
+  technical details. Restore the last terminal result from persistent history
+  after a plugin restart.
+
+- Add an authenticated, bounded audible operator self-test to the WebApp. It
+  records actor, device, file, player result, and explicit counter-feedback;
+  after a technically successful playback it keeps `Ton nicht gehört` available
+  for 15 seconds and reports only `technically played - no counter-report`,
+  never that a person heard the tone. A reported or technical failure latches
+  the visual audio-system notification until a later technical success receives
+  no counter-report for the complete feedback window.
+
+- Add a persistent, visual-only
+  `notifications.system.notificationEngine.audio` alarm for technical player
+  failures. It is hard-excluded from audio and operator lifecycle actions and
+  returns to normal only after successful playback of every exact lifecycle
+  that previously failed.
+
+- Add a persistent per-notification-lifecycle audio circuit breaker. Five
+  consecutive technical playback failures stop normal retries, permit at most
+  one globally serialized probe every five minutes or after passive watchdog
+  recovery, and expose state transitions through Diagnostics and local audit
+  history without changing the authoritative Signal K notification. Startup
+  reconstruction removes persisted breakers whose lifecycle is no longer
+  active instead of leaving stale diagnostic state.
+
 - Add a silent, periodic audio watchdog that checks the configured player and
   ALSA playback PCM without opening the device or producing a test tone, and
   expose its limitations and current result through Diagnostics.

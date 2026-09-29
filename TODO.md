@@ -15,11 +15,14 @@
   WebApp-Fenster erfassen Client-Poll, Server-Snapshot, Deltas, Node-RED-Status,
   Audio-Prozesse/-Ergebnis und History-Schreibstatus. Damit ist die notwendige
   Instrumentierung für den späteren Stale-/Reconnect-Test vorhanden.
-- [ ] Tab-3-Stale-/Reconnect-Test weiterhin zurückgestellt. Tab 3 steht derzeit
-  nicht zur Verfügung. Beim späteren Test muss die WebApp zuerst vollständig
-  neu geladen werden; danach WLAN aus/an sowie Poll-, Timeout- und
-  Watchdog-Zeitpunkte über Diagnostics vergleichen. Bis dahin keine weiteren
-  Änderungen an den Stale-Timern vornehmen.
+- [x] Tab-3-Stale-/Reconnect-Test am 2026-09-28 bestanden. Nach vollständigem
+  Reload und einem kontrollierten WLAN-Ausfall erschien die feste
+  Offline-/Stale-Warnung rund zwei Sekunden nach der tatsächlichen Trennung;
+  Einzel- und Globalaktionen waren gesperrt. Der fehlgeschlagene Poll meldete
+  `Failed to fetch`. Nach dem Wiedereinschalten blieb die Ansicht stale, bis
+  ein autoritativer Snapshot erfolgreich war, und synchronisierte danach ohne
+  Doppelmeldungen. Vor dem Test wurde der unerwartet auf `0.1.6`
+  zurückgefallene Pi-Stand mit Sicherung erneut auf `0.1.12` gebracht.
 - [x] Version `0.1.12` auf dem Pi installiert: Passiver Audio-Watchdog prüft
   `aplay` und das konfigurierte ALSA-Playback-PCM beim Start und minütlich,
   ohne das Gerät zu öffnen oder einen Ton abzuspielen. Live: Watchdog `ready`,
@@ -29,19 +32,49 @@
 - [x] Abschlusszustand auf dem Pi: Signal K und `signalk-health.timer` aktiv,
   separater `nodered.service` inaktiv, Node-RED-Konfiguration `ready`, letzter
   beobachteter Snapshot 227 ms, Load Average `1.22 / 1.26 / 1.37`.
-- [ ] **Hier weiterarbeiten:** Circuit-Breaker für fehlgeschlagene
-  Audiowiedergabe festlegen und implementieren. Vor der Änderung ist die
-  sicherheitsrelevante Regel mit dem Benutzer abzustimmen und anschließend hier
-  zu dokumentieren. Offener Vorschlag: nach fünf aufeinanderfolgenden
-  Wiedergabefehlern pro Notification-Lifecycle öffnen, während der sichtbare
-  Alarm unverändert aktiv bleibt; danach höchstens ein Probeversuch alle fünf
-  Minuten. Zustand, Fehleranzahl, nächster Versuch und Übergänge müssen in
-  Diagnostics und lokaler History erscheinen. Noch nicht entschieden ist, ob
-  dieser Schwellenwert und dieses Probeintervall übernommen werden.
-- [ ] Nach dem Circuit-Breaker die eigene rekursionssichere visuelle
-  Audio-Systemnotification und anschließend den bewusst ausgelösten hörbaren
-  Bedienertest bearbeiten. Bestehende Audioquellen dürfen bis zur ausdrücklich
-  getesteten Übergabe nicht abgeschaltet werden.
+- [x] Version `0.1.14`: Die am 2026-09-28 verbindlich abgestimmte
+  Circuit-Breaker-Regel ist implementiert und auf dem Pi live geprüft. Der
+  Breaker wird pro Notification-Lifecycle nach fünf
+  aufeinanderfolgenden technischen Wiedergabefehlern geöffnet. Der sichtbare
+  Signal-K-Alarm und seine erlaubten Aktionen bleiben unverändert. Im offenen
+  Zustand ist höchstens ein Probeversuch alle fünf Minuten erlaubt; zusätzlich
+  darf ein Watchdog-Übergang von `unavailable` zu `ready` genau einen
+  vorgezogenen Probeversuch auslösen. Global darf nur ein Probeprozess zur Zeit
+  laufen. Ein erfolgreicher Player-Exit schließt den Breaker und setzt den
+  Fehlerzähler zurück; ein fehlgeschlagener Probeversuch öffnet ihn erneut für
+  fünf Minuten. Silence erzeugt weder Fehler noch Probes, Acknowledge verändert
+  den Breaker nicht eigenständig, und das autoritative Lifecycle-Ende entfernt
+  seinen Zustand. Reguläres Stoppen, Policy-Unterdrückung und Bedienaktionen
+  zählen nicht als Wiedergabefehler. Zustand, Fehleranzahl, letzter Fehler,
+  nächster Versuch, Probe-Status, unterdrückte Retries und alle echten
+  Zustandsübergänge müssen in Diagnostics und lokaler History erscheinen. Der
+  Zustand aktiver Lifecycles übersteht einen Plugin-Neustart. Im Live-Test
+  öffneten die GNSS-Warnung und ein isolierter E2E-Alarm nach genau fünf
+  technischen Fehlern mit `plughw:99,99`. Nach dem Neustart blieb nur der noch
+  aktive GNSS-Lifecycle erhalten; der beendete E2E-Lifecycle wurde als
+  `audio_circuit_closed_on_lifecycle_end` bereinigt. Ein fehlgeschlagener Probe
+  öffnete für weitere fünf Minuten. Nach bytegenauer Wiederherstellung von
+  `plughw:2,0` lief um 21:38:45 AST genau ein erfolgreicher Probe, schloss den
+  Breaker und hinterließ `openCount: 0`, keinen Prozess und keinen Retry. Der
+  vorgezogene Watchdog-Recovery-Probe ist durch Unit-Tests abgedeckt, wurde
+  wegen der nur beim Pluginstart übernommenen Gerätekonfiguration aber nicht
+  durch einen physischen Live-Geräteausfall ausgelöst.
+- [x] Version `0.1.15`: Die rekursionssichere visuelle
+  Audio-Systemnotification ist implementiert, auf dem Pi installiert und mit
+  einem isolierten Fehler-/Recovery-Lifecycle live geprüft. Verbindliche
+  Recovery-Regel:
+  Nur ein erfolgreicher Player-Exit desselben zuvor fehlgeschlagenen
+  Notification-Lifecycles darf dessen Fehlerlatche entfernen. Ein anderer Ton,
+  passiver Watchdog-Erfolg, Lifecycle-Ende oder Neustart reicht nicht. Danach
+  den bewusst ausgelösten hörbaren Bedienertest bearbeiten. Bestehende
+  Audioquellen dürfen bis zur ausdrücklich getesteten Übergabe nicht
+  abgeschaltet werden. Live war `notifications.system.notificationEngine.audio`
+  als rein visuelle, nicht quittier-, stumm- oder löschbare Alarmmeldung auf
+  Tab 3 sichtbar. Trotz allgemeiner Alarm-Soundregel blieb ihre lokale Policy
+  `audio: off`; kein rekursiver Prozess entstand. Nach Wiederherstellung der
+  fehlenden Datei schloss nur der erfolgreiche Probe desselben Occurrence den
+  Fehler um 22:02:23 AST. Als Nächstes den bewusst ausgelösten hörbaren
+  Bedienertest bearbeiten.
 
 ## Nächste Arbeitsschritte – vereinbart am 2026-09-28
 
@@ -69,14 +102,14 @@
   Audio-Prozesse, letzter Audio-Exitcode und Historien-Schreibstatus. In
   Version `0.1.11` als read-only API und WebApp-Fenster umgesetzt und live auf
   dem Pi mit bereiter Node-RED-Konfiguration validiert.
-- [ ] Tab-3-/WLAN-Tests vorläufig aussetzen. Keine weiteren Alarmtests oder
-  Änderungen an den Stale-Timern durchführen, bis die Poll-, Timeout- und
-  Watchdog-Zeitpunkte instrumentiert sind. Danach den Stale-/Reconnect-Test
-  mit Tab 3 gezielt wiederholen. Die Instrumentierung ist seit `0.1.11`
-  vorhanden; Tab 3 steht am 2026-09-28 nicht zur Verfügung, daher bleibt der
-  praktische Retest zurückgestellt und blockiert die übrige Arbeit nicht.
-- [ ] Nach der Diagnostics-Arbeit den passiven Audio-Watchdog und den noch
-  fehlenden Circuit-Breaker-/Historienstatus vervollständigen.
+- [x] Tab-3-/WLAN-Retest mit der seit `0.1.11` vorhandenen Instrumentierung
+  gezielt wiederholt. WLAN war von 21:02:17 bis 21:02:34 AST aus. Die Ansicht
+  wurde um 21:02:19 stale, sperrte alle Aktionen und protokollierte den
+  fehlgeschlagenen Poll; nach erfolgreichem Snapshot um 21:02:45.936 wurde die
+  Sperre um 21:02:46.130 aufgehoben. Die Tabelle blieb bei einer Warnung und
+  acht normalen Meldungen ohne Duplikate.
+- [x] Passiven Audio-Watchdog sowie Circuit-Breaker-Diagnostics und
+  Historienstatus vervollständigen; live mit `0.1.14` geprüft.
 
 ## Sicherheitsreview 2026-09-26
 
@@ -111,44 +144,84 @@
   Start sowie minütlich passiv; aktive Prozesse und letzter Exit stehen in
   Diagnostics. Verstärker, Lautsprecher und Hörbarkeit bleiben ausdrücklich
   außerhalb dieser passiven Prüfung.
-- [ ] Bei einem Audiofehler eine eigene visuelle Systemnotification wie
+- [x] Bei einem Audiofehler eine eigene visuelle Systemnotification wie
   `notifications.system.notificationEngine.audio` veröffentlichen. Sie darf
   selbst keine Audioaktion auslösen, muss auf allen WebApps sichtbar bleiben
   und darf erst nach nachgewiesener Audio-Erholung auf `normal` wechseln;
   Alarm-Rekursionen sind ausdrücklich auszuschließen.
-- [ ] Fehlgeschlagene Loop-Wiedergabe mit Circuit Breaker und begrenztem
+  In `0.1.15` implementiert, deployt und mit fehlender `alarm.wav` sowie
+  erfolgreicher occurrence-spezifischer Erholung live nachgewiesen.
+- [x] Fehlgeschlagene Loop-Wiedergabe mit Circuit Breaker und begrenztem
   exponentiellem Backoff versehen. Ein fehlendes Gerät darf weder fortlaufend
   neue `aplay`-Prozesse starten noch das Journal fluten; Retry-Zustand und
   nächster Versuch gehören in Diagnostics und Historie.
-  Exponentieller Retry-Backoff bis maximal 60 Sekunden ist implementiert;
-  Circuit-Breaker-Zustand, Diagnostics und Historieneintrag fehlen noch.
-- [ ] Bewussten hörbaren Selbsttest für Inbetriebnahme und Wartung anbieten und
+  Exponentieller Retry-Backoff bis maximal 60 Sekunden, persistenter
+  Circuit-Breaker-Zustand, Diagnostics und Historieneinträge sind in `0.1.14`
+  implementiert und live geprüft. Die verbindliche Semantik ist im Abschnitt
+  oben und in `docs/architecture.md` dokumentiert.
+- [x] Bewussten hörbaren Selbsttest für Inbetriebnahme und Wartung anbieten und
   dessen Bestätigung protokollieren. Dokumentieren, dass eine rein passive
   Softwareprüfung nur Gerät/Backend nachweist, nicht Endstufe, Lautsprecher,
   Lautstärke oder tatsächlich hörbaren Schall; vollständige automatische
-  Ende-zu-Ende-Prüfung erfordert Hardware-Loopback oder ein Mikrofon.
-- [ ] In der WebApp einen klar bezeichneten Button `Alarmton testen` ergänzen.
+  Ende-zu-Ende-Prüfung erfordert Hardware-Loopback oder ein Mikrofon. In
+  Version `0.1.16` implementiert; der positive Live-Nachweis steht bis zum
+  Deployment noch aus.
+- [x] In der WebApp einen klar bezeichneten Button `Alarmton testen` ergänzen.
   Der Klick startet einen fest definierten, begrenzten Testton und protokolliert
   mindestens Zeitpunkt, auslösenden Signal-K-Benutzer, Gerät, Datei,
   Player-Exitcode und technischen Erfolg. Ohne ausdrückliche Gegenmeldung gilt
   der betriebliche Test als bestanden; die UI darf dies dennoch nur als
   `Test ausgelöst / technisch abgespielt` und nicht als nachweislich
-  `vom Menschen gehört` bezeichnen.
-- [ ] Neben dem Testton einen sofort sichtbaren Button `Ton nicht gehört`
+  `vom Menschen gehört` bezeichnen. Nach erfolgreichem Player-Exit bleibt ein
+  verbindliches 15-Sekunden-Fenster für eine Gegenmeldung offen.
+- [x] Neben dem Testton einen sofort sichtbaren Button `Ton nicht gehört`
   anbieten. Dieser erzeugt die visuelle Audio-Systemnotification, markiert den
   letzten Alarmtest als fehlgeschlagen und hält den Fehler aktiv, bis ein
   späterer Test technisch erfolgreich war und der Bediener ihn nicht als
-  unhörbar meldet.
+  unhörbar meldet. Der Fehler wird erst nach dem vollständigen
+  15-Sekunden-Fenster ohne Gegenmeldung aufgehoben.
+- [x] Wartungsintervall in der Haupt-Buttonzeile kompakt anzeigen: runder
+  Zähler `7` bis `0`, bei Fälligkeit blinkend; Klick öffnet ein eigenes
+  Prozessfenster. Der letzte abgeschlossene Test wird nach Neustart aus der
+  lokalen Audit-History rekonstruiert. Entscheidung vom 2026-09-29; in
+  Version `0.1.17` auf Tab 3 mit wiederhergestelltem Ergebnis und Zähler `7`
+  live geprüft, ohne beim Öffnen einen weiteren Ton auszulösen. Der
+  anschließende positive Test protokollierte Benutzer `pi`, Gerät
+  `plughw:2,0`, `sirene1.wav`, Exitcode 0 und den Abschluss nach dem vollen
+  15-Sekunden-Fenster; der Bediener bestätigte die Hörbarkeit.
 - [x] `aplay`-Erfolg und -Fehler über Exitcode und Signal unterscheiden;
   normale Wiedergabeinformationen auf stderr nicht als „Unable to play“
   protokollieren.
-- [ ] Audio-Diagnose um Start, Ende, Exitcode, Signal und betroffenen
-  Notification-Lifecycle erweitern.
-- [ ] Zuständigkeit für den Hoekens-Ankeralarmton eindeutig festlegen und die
-  bestehende Audioquelle erst nach getesteter Übergabe abschalten; doppelte
-  Wiedergabe und konkurrierenden ALSA-Zugriff ausschließen.
+- [x] Audio-Diagnose um Start, Ende, Dauer, Datei, Gerät, PID, Exitcode,
+  Signal und betroffenen Notification-Lifecycle erweitern. In Version
+  `0.1.18` als read-only aktive Prozessdetails und letztes Ergebnis umgesetzt,
+  auf dem Pi deployt und mit der realen GNSS-Warnung live nachgewiesen:
+  eindeutiger Lifecycle, `warn.wav`, `plughw:2,0`, PID, Start/Ende, 1003 ms und
+  Exitcode 0; danach keine aktiven Prozesse oder Retries.
+- [x] Zuständigkeit für den Hoekens-Ankeralarmton eindeutig festlegen und
+  doppelte Wiedergabe bzw. konkurrierenden ALSA-Zugriff ausschließen. Der
+  eingebettete Legacy-Tab `Audio Alarms` ist live mit `disabled: true`
+  bestätigt; Anchor- und Bilge-Skript sind gestoppt. Damit ist die Notification
+  Engine der einzige aktive regelbasierte Audiopfad. Tab und Skripte bleiben
+  als deaktivierter, nicht automatisch aktivierbarer Rückfallpfad erhalten.
 - [ ] Testmatrix für Loop, Silence, Acknowledge, Normal, Clear, fehlendes
   Audiogerät und gleichzeitige Alarme praktisch auf dem Pi ausführen.
+  Nächster sicherer Ablauf:
+  - [ ] Einen runtime-sicheren Auslöser für mindestens zwei getrennte
+    simulierte Notification-Lifecycles bauen; er darf keinen Signal-K-Neustart
+    benötigen und die laufende GPS-/Ankerüberwachung nicht unterbrechen.
+  - [ ] Damit zwei gleichzeitige simulierte Alarme prüfen: unabhängige
+    Audioprozesse, deterministische Priorität, lifecycle-spezifisches Silence
+    sowie keine gegenseitige Unterbrechung oder ALSA-Überlastung.
+  - [ ] Loop, Silence, Acknowledge, Normal und Clear vollständig gegen
+    Signal-K-Zustand, Audioende, Retry-/Circuit-Breaker-Zustand und lokale
+    Historie nachweisen.
+  - [ ] Den echten Selbsttest-Fehlerzweig `Ton nicht gehört` nur mit bewusst
+    stummgeschaltetem Verstärker/Lautsprecher ausführen; danach Audio wieder
+    einschalten und mit einem zweiten technisch erfolgreichen Test plus vollem
+    15-Sekunden-Fenster die sichtbare Audio-Systemnotification auflösen.
+  - [ ] Echte Hoekens-Drag-/Re-Drop-/Aktiv-alarm-Neustarttests erst nach einer
+    ausdrücklichen Bestätigung eines sicheren Ankertestfensters ausführen.
 
 ### Prio 2 – End-to-End-Sicherheitsnachweis
 
@@ -180,7 +253,7 @@
 - [x] Fehlendes ALSA-Gerät erneut simulieren und nachweisen, dass der Alarm
   sichtbar bleibt, der Retry-Abstand exponentiell bis 60 Sekunden wächst und
   weder Prozess- noch Journal-Sturm entsteht.
-- [ ] Tab 3 bei aktivem kontrolliertem Testalarm vom Netz trennen: deutliche
+- [x] Tab 3 bei aktiver Warnmeldung vom Netz trennen: deutliche
   Offline-/Stale-Anzeige, deaktivierte Einzel- und Globalaktionen sowie saubere
   automatische Synchronisierung nach Wiederverbindung prüfen.
   Retest am 2026-09-27 fehlgeschlagen: Nach Abschalten des WLANs blieb der
@@ -212,6 +285,15 @@
   Stale-Wächter weiterhin gegeneinander laufen. Diese Timer-Interaktion muss
   vor einem weiteren Alarmtest instrumentiert und eindeutig diagnostiziert
   werden; der Stale-Fix ist nicht abgenommen.
+  Abschließender Retest am 2026-09-28 mit Version `0.1.12`: PASS. Der
+  tatsächliche WLAN-Ausfall begann um 21:02:17 AST; um 21:02:19.055 zeigte die
+  WebApp die feste Offline-/Stale-Warnung und deaktivierte Einzel- sowie
+  Globalaktionen. Der Poll endete um 21:02:19.138 nach 194 ms mit `Failed to
+  fetch`. Nach WLAN-Wiederkehr um 21:02:34 blieb die Sperre bis zum
+  erfolgreichen Snapshot-Poll um 21:02:45.936 bestehen und verschwand um
+  21:02:46.130. Danach waren eine Warnung und acht normale Meldungen ohne
+  Duplikate sichtbar; Node-RED, Audio-Watchdog und History waren gesund, ohne
+  Audioprozess oder Retry.
 - [x] History-Reparatur live bestätigen: allgemeine `visibleInTable`-/History-
   Regeln werden von einer spezifischen Soundregel geerbt und derselbe
   Occurrence-Verlauf enthält nach Auflösung den finalen Zustand `normal`.

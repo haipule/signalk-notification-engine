@@ -18,7 +18,7 @@ The current Node-RED prototype is in [node-red/prototype](node-red/prototype/REA
 
 ## Current status
 
-The project is an active development build (`0.1.4`). The plugin currently
+The project is an active development build (`0.1.19`). The plugin currently
 provides an active-notification WebApp, snapshot/delta reconstruction,
 capability-checked Signal K actions, local lifecycle/history persistence,
 classification, presentation and audio policies, and the first Node-RED flow
@@ -36,8 +36,9 @@ contain changes that have not yet been deployed to the Raspberry Pi.
   repetition, retention, and later external actions.
 - `silence`, `acknowledge`, and `clear` are separate operations and only shown
   when Signal K permits them.
-- Existing alarm producers and audio scripts remain in place until deliberately
-  migrated.
+- Existing alarm producers remain authoritative. The retained Node-RED
+  `Audio Alarms` legacy tab is disabled; its scripts remain only as a controlled
+  rollback path and must not be enabled alongside Notification Engine audio.
 
 Notification state visibility and sorting are configured together in Plugin
 Config. Listed states are visible in the listed order; `emergency` and `alarm`
@@ -54,8 +55,14 @@ configured in `lifecycle-rules.json`.
 The WebApp supports permitted per-notification actions, global silence and
 acknowledge actions, history inspection, and confirmed local-history cleanup.
 Audio supports state defaults and overrides with `once`, finite `repeat`, and
-`loop` behaviour. Existing external alarm audio is not yet owned by this
-plugin.
+`loop` behaviour. The disabled embedded Node-RED `Audio Alarms` legacy tab is
+retained for rollback, while the plugin is the only active rule-based
+notification audio path. The WebApp also provides an authenticated, bounded `Alarmton testen`
+maintenance action. Its configured test-tone file is played once; a successful
+player exit opens a 15-second `Ton nicht gehört` counter-feedback window. With
+no counter-report the result is only technically played, never proven audible.
+Full automatic amplifier/loudspeaker verification requires hardware loopback
+or a microphone.
 
 ## Documentation
 

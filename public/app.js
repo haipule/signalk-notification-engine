@@ -12,6 +12,12 @@ const actionBar = document.querySelector('#actions')
 const detailSheet = document.querySelector('#detail-sheet')
 const visualAlerts = document.querySelector('#visual-alerts')
 const healthBanner = document.querySelector('#health-banner')
+const audioTestStart = document.querySelector('#start-audio-test')
+const audioTestNotHeard = document.querySelector('#audio-test-not-heard')
+const audioTestStatus = document.querySelector('#audio-test-status')
+const audioTestSheet = document.querySelector('#audio-test-sheet')
+const audioTestDueButton = document.querySelector('#show-audio-test')
+const audioTestDays = document.querySelector('#audio-test-days')
 let isConnected = false
 let configurationReady = true
 let lastSuccessfulRefreshAt = null
@@ -34,6 +40,7 @@ let historyOccurrenceId = ''
 let historyDisplayLimit = 20
 let historyMode = 'selected'
 let activeRules = []
+let currentAudioTest = { state: 'idle', statement: 'Noch kein Alarmtontest ausgeführt.' }
 const sortStorageKey = 'notification-engine.table-sort'
 let tableSort = loadTableSort()
 
@@ -49,7 +56,11 @@ document.querySelector('#close-history').addEventListener('click', closeHistory)
 document.querySelector('#close-rules').addEventListener('click', closeRules)
 document.querySelector('#show-diagnostics').addEventListener('click', showDiagnostics)
 document.querySelector('#close-diagnostics').addEventListener('click', closeDiagnostics)
+audioTestDueButton.addEventListener('click', showAudioTest)
+document.querySelector('#close-audio-test').addEventListener('click', closeAudioTest)
 document.querySelector('#delete-history').addEventListener('click', deleteLocalHistory)
+audioTestStart.addEventListener('click', startAudioTest)
+audioTestNotHeard.addEventListener('click', reportAudioTestNotHeard)
 detailSheet.addEventListener('pointerdown', () => { detailSheet.style.zIndex = '12' })
 document.querySelector('#history-sheet').addEventListener('pointerdown', event => { event.currentTarget.style.zIndex = '12'; detailSheet.style.zIndex = '11' })
 document.querySelector('#history-more').addEventListener('click', () => { historyDisplayLimit += 20; renderSelectedHistory() })
@@ -59,6 +70,7 @@ document.addEventListener('keydown', event => {
     if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false') closeHistory()
     if (document.querySelector('#rules-sheet').getAttribute('aria-hidden') === 'false') closeRules()
     if (document.querySelector('#diagnostics-sheet').getAttribute('aria-hidden') === 'false') closeDiagnostics()
+    if (audioTestSheet.getAttribute('aria-hidden') === 'false') closeAudioTest()
     return
   }
   if (event.target.matches('input, textarea, select')) return
@@ -85,7 +97,7 @@ document.addEventListener('keydown', event => {
 })
 document.addEventListener('click', event => {
   if (!selectedId) return
-  if (event.target.closest('.notification-row, #detail-sheet, #history-sheet, #rules-sheet, #actions, #visual-alerts')) return
+  if (event.target.closest('.notification-row, #detail-sheet, #history-sheet, #rules-sheet, #audio-test-sheet, #actions, #visual-alerts, #show-audio-test')) return
   selectedId = null
   renderNotifications(activeNotifications)
 })
@@ -114,6 +126,7 @@ enableDragging(detailSheet, document.querySelector('#drag-detail'))
 enableDragging(document.querySelector('#history-sheet'), document.querySelector('#drag-history'))
 enableDragging(document.querySelector('#rules-sheet'), document.querySelector('#drag-rules'))
 enableDragging(document.querySelector('#diagnostics-sheet'), document.querySelector('#drag-diagnostics'))
+enableDragging(audioTestSheet, document.querySelector('#drag-audio-test'))
 
 /** Render Signal K state only; actions are intentionally introduced later. */
 function renderNotifications(notifications) {
@@ -642,6 +655,7 @@ async function refresh() {
     stateColors = notifications.stateColors || stateColors
     visualRules = notifications.visualRules || visualRules
     activeRules = Array.isArray(notifications.rules) ? notifications.rules : activeRules
+    renderAudioTest(notifications.audioTest)
     for (const [state, color] of Object.entries(stateColors)) document.documentElement.style.setProperty(`--state-${state}`, color)
     infoAutoCloseSeconds = Number.isInteger(notifications.infoAutoCloseSeconds) ? notifications.infoAutoCloseSeconds : 0
     shortcutInfo = typeof notifications.shortcutInfo === 'string' ? notifications.shortcutInfo : shortcutInfo
@@ -694,6 +708,16 @@ function closeDiagnostics() {
   document.querySelector('#diagnostics-sheet').setAttribute('aria-hidden', 'true')
 }
 
+function showAudioTest() {
+  audioTestSheet.setAttribute('aria-hidden', 'false')
+  audioTestSheet.style.zIndex = '15'
+  audioTestSheet.focus()
+}
+
+function closeAudioTest() {
+  audioTestSheet.setAttribute('aria-hidden', 'true')
+}
+
 function updateHealthBanner(configurationStatus = null) {
   if (!isConnected) {
     const lastUpdate = lastSuccessfulRefreshAt ? lastSuccessfulRefreshAt.toLocaleTimeString() : 'never'
@@ -727,6 +751,56 @@ function updateGlobalActions() {
     button.disabled = !isConnected || !configurationReady
     button.title = button.disabled ? 'Unavailable while offline or configuration is invalid' : button.getAttribute('aria-label')
   }
+  const running = ['playing', 'awaiting_feedback'].includes(currentAudioTest.state)
+  audioTestStart.disabled = !isConnected || !configurationReady || running
+  audioTestStart.title = audioTestStart.disabled ? 'Unavailable while offline, invalid, or another test is running' : 'Play one bounded maintenance test tone'
+  audioTestNotHeard.hidden = currentAudioTest.state !== 'awaiting_feedback'
+  audioTestNotHeard.disabled = !isConnected || !configurationReady || currentAudioTest.state !== 'awaiting_feedback'
+}
+
+function renderAudioTest(value) {
+  currentAudioTest = value || { state: 'idle', statement: 'Noch kein Alarmtontest ausgeführt.' }
+  const feedbackSeconds = currentAudioTest.state === 'awaiting_feedback'
+    ? Math.max(0, Math.ceil((Date.parse(currentAudioTest.feedbackDeadlineAt) - Date.now()) / 1000))
+    : null
+  audioTestStatus.textContent = feedbackSeconds === null
+    ? (currentAudioTest.statement || currentAudioTest.state)
+    : `Technisch abgespielt; noch ${feedbackSeconds} Sekunden für "Ton nicht gehört".`
+  const passedAt = currentAudioTest.state === 'passed_no_counter_report' ? Date.parse(currentAudioTest.passedAt || currentAudioTest.completedAt) : NaN
+  const remainingDays = Number.isFinite(passedAt) ? Math.max(0, Math.ceil((passedAt + (7 * 86400000) - Date.now()) / 86400000)) : 0
+  const running = ['playing', 'awaiting_feedback'].includes(currentAudioTest.state)
+  audioTestDays.textContent = running ? '…' : String(remainingDays)
+  audioTestDueButton.classList.toggle('is-due', !running && remainingDays === 0)
+  audioTestDueButton.classList.toggle('is-running', running)
+  audioTestDueButton.title = running ? 'Alarmtontest läuft' : remainingDays === 0 ? 'Alarmtontest: fällig' : `Alarmtontest: noch ${remainingDays} Tag${remainingDays === 1 ? '' : 'e'}`
+  document.querySelector('#audio-test-actor').textContent = currentAudioTest.actor || '–'
+  document.querySelector('#audio-test-device').textContent = currentAudioTest.device || '–'
+  document.querySelector('#audio-test-file').textContent = currentAudioTest.file || '–'
+  document.querySelector('#audio-test-player').textContent = currentAudioTest.player ? `${currentAudioTest.player.ok ? 'Exit 0' : `Exit ${currentAudioTest.player.code ?? '?'}`}${currentAudioTest.player.signal ? ` / ${currentAudioTest.player.signal}` : ''}` : '–'
+  document.querySelector('#audio-test-completed').textContent = currentAudioTest.completedAt ? new Date(currentAudioTest.completedAt).toLocaleString() : '–'
+  updateGlobalActions()
+}
+
+async function startAudioTest() {
+  showAudioTest()
+  await runAudioTestRequest('/audio-test/start')
+}
+
+async function reportAudioTestNotHeard() {
+  await runAudioTestRequest('/audio-test/not-heard')
+}
+
+async function runAudioTestRequest(route) {
+  try {
+    if (!isConnected || !configurationReady) throw new Error('Audio test is unavailable while offline or configuration is invalid.')
+    const response = await fetch(`${pluginApi}${route}`, { method: 'POST' })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(body.message || response.statusText)
+    renderAudioTest(body)
+    setTimeout(scheduleRefresh, 500)
+  } catch (error) {
+    audioTestStatus.textContent = `Audio test failed: ${error.message}`
+  }
 }
 
 const scheduleRefresh = createRefreshScheduler(refresh)
@@ -739,3 +813,4 @@ setInterval(() => {
   const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
   if (isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, 8000, refreshInProgress)) markDisconnected()
 }, 1000)
+setInterval(() => renderAudioTest(currentAudioTest), 1000)

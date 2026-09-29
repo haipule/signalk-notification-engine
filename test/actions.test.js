@@ -53,3 +53,11 @@ test('does not repeat an already acknowledged action', async () => {
 
   await assert.rejects(actions.execute(record({ status: { canAcknowledge: true, acknowledged: true } }), 'acknowledge'), /cannot be acknowledged/)
 })
+
+test('never applies operator lifecycle actions to the audio system notification', async () => {
+  const actions = new NotificationActions({ notifications: { clear() { throw new Error('must not call') } } })
+  const system = record({ path: 'notifications.system.notificationEngine.audio' })
+  assert.equal(actions.allowed(system, 'silence'), false)
+  assert.equal(actions.allowed(system, 'acknowledge'), false)
+  assert.equal(actions.allowed(system, 'clear'), false)
+})

@@ -14,6 +14,18 @@ main { display: grid; gap: 2rem; max-height: calc(100vh - 1rem); overflow: hidde
 .detail-state-hidden { display: none; }
 button { min-height: 48px; background: #1f3552; border: 1px solid #3d5776; border-radius: .45rem; color: inherit; padding: .55rem .8rem; font: inherit; }
 button:disabled { opacity: .45; } .notification-grid { display: grid; gap: .8rem; margin-top: 1rem; }
+.audio-test-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: .75rem 0; padding: .65rem; border: 1px solid #3d5776; border-radius: .45rem; background: #101d2d; }
+.audio-test-controls #start-audio-test { background: #173c68; border-color: #78a9d8; font-weight: 700; }
+.audio-test-controls #audio-test-not-heard { background: #812c22; border: 2px solid #ff9388; font-weight: 800; }
+.audio-test-controls #audio-test-status { flex: 1 1 18rem; color: #dbe8f8; }
+.audio-test-due { width: 48px; min-width: 48px; height: 48px; padding: 0; border-radius: 50%; font-size: 1.2rem; font-weight: 900; font-variant-numeric: tabular-nums; background: #1c523f; border: 2px solid #66c99a; }
+.audio-test-due.is-due { background: #812c22; border-color: #ff9388; animation: audio-test-due-pulse 1s ease-in-out infinite; }
+.audio-test-due.is-running { background: #5b4b1a; border-color: #e5c04f; animation: none; }
+@keyframes audio-test-due-pulse { 50% { opacity: .4; box-shadow: 0 0 0 .35rem #ff5c5c55; } }
+.audio-test-sheet { z-index: 15; width: min(32rem, calc(100vw - 2rem)); }
+.audio-test-sheet .audio-test-controls { margin-top: 1rem; }
+.audio-test-details { margin-top: 1rem; }
+@media (prefers-reduced-motion: reduce) { .audio-test-due.is-due { animation: none; box-shadow: 0 0 0 .25rem #ff5c5c55; } }
 .notification-table-wrap { background: #fff; color: #111; border: 1px solid #bbc2ca; border-radius: .55rem; overflow: auto; max-height: calc(100vh - 18rem); }
 table { width: 100%; border-collapse: collapse; } th, td { padding: .8rem; text-align: left; border-bottom: 1px solid #d9dde2; } th { position: sticky; top: 0; background: #263b55; color: #fff; border-bottom: 3px solid #78a9d8; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; } th .sort-header { min-height: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; } th .sort-header:focus-visible { outline: 2px solid #fff; outline-offset: 3px; } tbody tr { cursor: pointer; } tbody tr:hover { background: #f3f6f8; } .notification-row:focus-visible, .notification-row.selected { outline: 4px solid #1769aa; outline-offset: -4px; background: #dcecff; box-shadow: inset 8px 0 #0d5fa8, 0 0 0 2px #78a9d8; position: relative; z-index: 1; }
 .state-emergency, .state-alarm { border-left-color: #e95050; } .state-warn, .state-alert { border-left-color: #edaf40; }

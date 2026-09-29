@@ -25,6 +25,9 @@ Optional audio backends
 Diagnostics are a read-only observation path. Server-side snapshot and delta
 timings, Node-RED revision/configuration health, audio process results, and
 history persistence status are exposed separately from notification authority.
+Audio process diagnostics identify the affected local lifecycle key and expose
+player, device, file, PID, start/end time, duration, exit code, and signal; they
+observe playback without changing Signal K notification state.
 The WebApp adds its own local poll start/end, duration, and network error so a
 slow client can be distinguished from a slow Signal K snapshot.
 
@@ -33,6 +36,97 @@ player executable and ALSA playback PCM exist once per minute, but never opens
 the device or emits sound. It therefore cannot prove the amplifier, speaker,
 volume, or audible signal; that remains the responsibility of an explicit
 operator-initiated test.
+
+### Agreed audio circuit-breaker boundary
+
+The following safety rule was agreed on 2026-09-28 and implemented in 0.1.14.
+Circuit-breaker state is local audio-policy state and never
+changes, clears, hides, or replaces the authoritative Signal K notification.
+
+Each notification lifecycle has an independent breaker. Five consecutive
+technical player failures open it. A process start failure, non-zero player
+exit, or unexpected terminating signal counts as a failure. A lifecycle ending
+authoritatively, an operator silence, a policy decision not to play, and an
+intentional process stop do not count as failures. A successful player exit
+closes the breaker and resets its counter.
+
+While open, normal retries are suppressed and at most one half-open probe is
+allowed every five minutes. A passive-watchdog transition from `unavailable`
+to `ready` may permit one earlier probe, but watchdog health alone never closes
+the breaker because it does not prove playback. Only one probe process may run
+globally at a time, so simultaneous failing notifications cannot create a
+recovery storm. A failed probe reopens the breaker for another five minutes.
+
+Silenced lifecycles neither retry nor probe and retain their breaker state.
+Acknowledge does not independently change that state; the resolved audio policy
+continues to decide whether playback is required. An authoritative lifecycle
+end removes its breaker. Breaker state for still-active lifecycles must survive
+a plugin restart so restart cannot reset every failed alarm to a burst of five
+new attempts.
+
+Diagnostics expose the breaker state, lifecycle identity, failure count, last
+failure, next probe, probe-in-progress flag, suppressed retry count, and latest
+transition. Local history records real transitions such as open, probe,
+probe-failed, recovered, and lifecycle-end close; it does not record every
+suppressed timer tick. These records are local audit events, not Signal K
+notification transitions.
+
+### Visual audio-system notification
+
+Technical player failures also latch the plugin-owned Signal K notification
+`notifications.system.notificationEngine.audio`. It is always visible, uses
+only the `visual` alarm method, advertises neither silence nor acknowledge
+support, and is emitted as an external notification so Signal K does not offer
+Clear. The audio controller rejects this path before resolving Node-RED policy;
+therefore even a broad alarm sound rule cannot make the audio-error report
+play sound or recurse.
+
+The recovery boundary was agreed on 2026-09-28: only a successful player exit
+for the exact notification occurrence that previously failed removes that
+occurrence's latch. Passive watchdog health, another notification's successful
+sound, lifecycle end, restart, and a general test tone are not evidence for
+that failed occurrence. With multiple failed occurrences, the system
+notification returns to `normal` only after every occurrence has recovered by
+this rule. Unresolved occurrence latches are persisted atomically across plugin
+restarts independently of circuit-breaker lifecycle cleanup.
+
+### Audible operator self-test
+
+The WebApp exposes a deliberately initiated, single-play maintenance tone. It
+uses a separate playback key and therefore neither stops nor replaces audio for
+an active notification lifecycle. The server records the Signal K request
+identity available to the plugin, device, file, timestamps, exit code, signal,
+technical outcome, and operator counter-feedback in local audit history.
+
+After a successful player exit, `Ton nicht gehört` remains available for exactly
+15 seconds. A counter-report latches the visual audio-system notification. With
+no counter-report, the test passes operationally only after the full window and
+is described as technically played without counter-report; it never claims
+that a person heard the sound. A prior self-test latch clears only after this
+later technical success and complete quiet feedback window. Technical success
+still proves neither amplifier nor loudspeaker output. Automatic end-to-end
+proof requires a hardware loopback or microphone.
+
+The maintenance UI boundary was agreed on 2026-09-29. A compact round button
+in the main action row shows the whole days remaining from `7` to `0` since the
+last operationally passed audible test; `0` flashes as a due indication. The
+button opens a separate process window but does not itself emit sound, avoiding
+an accidental audible test. The window contains the explicit start action,
+live playback/feedback state, the 15-second counter-report window, and the last
+technical details. The last terminal test is reconstructed from persistent
+local audit history after restart.
+
+### Legacy audio-flow boundary
+
+The embedded Node-RED tab `Audio Alarms` is retained as a recoverable legacy
+reference but is deployed with `disabled: true`. Its Bilge/Anchor exec nodes
+and `/home/pi/.signalk/{bilgealarm,anchoralarm}/audio-control.sh` therefore do
+not participate in live notification playback. Both scripts were confirmed
+stopped on 2026-09-29. The Notification Engine is the only active rule-based
+notification audio path in the current deployment. The disabled tab and
+scripts must not be deleted until a controlled rollback test has been agreed;
+re-enabling the tab would reintroduce competing ALSA ownership and is a
+separate migration decision.
 
 The plugin normalizes producer identity at the Signal K boundary. Deltas and
 data-model/API snapshots may represent the same source as `label`, `$source`,

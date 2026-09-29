@@ -217,6 +217,19 @@ test('notifies audio consumers even when history recording is disabled', () => {
   assert.equal(store.history().length, 0)
 })
 
+test('records local audit state without replaying notification processing', () => {
+  const changes = []
+  const events = []
+  const store = new NotificationStore({ classify, onChange: event => changes.push(event), onEvent: event => events.push(event) })
+  const record = { id: 'one', occurrenceId: 'occurrence-one', path: 'notifications.test', state: 'alarm' }
+
+  store.recordLocalAuditEvent('audio_circuit_opened', record, { circuit: { failureCount: 5 } })
+
+  assert.equal(changes.length, 0)
+  assert.equal(events[0].type, 'audio_circuit_opened')
+  assert.equal(store.history()[0].circuit.failureCount, 5)
+})
+
 test('retains the final hidden normal state once an occurrence entered history', () => {
   const store = new NotificationStore({
     classify,
