@@ -26,9 +26,9 @@
         </section>
         <aside id="detail-sheet" class="detail-sheet" tabindex="-1" aria-label="Selected notification details" aria-hidden="true">
           <div class="detail-header"><p id="detail-state" class="state detail-state-hidden" aria-hidden="true"></p><div class="detail-header-actions"><div id="detail-actions" class="detail-actions" aria-label="Selected notification actions">
-            <button data-action="silence" title="Silence" aria-label="Silence">🔇</button>
-            <button data-action="acknowledge" title="Acknowledge" aria-label="Acknowledge">✓</button>
-            <button data-action="clear" title="Clear" aria-label="Clear">⏹</button>
+            <button data-action="silence" title="Silence" aria-label="Silence"><span aria-hidden="true">🔇</span><span class="action-label">Silence</span></button>
+            <button data-action="acknowledge" title="Acknowledge" aria-label="Acknowledge"><span aria-hidden="true">✓</span><span class="action-label">Acknowledge</span></button>
+            <button data-action="clear" title="Clear" aria-label="Clear"><span aria-hidden="true">⏹</span><span class="action-label">Clear</span></button>
             <button id="show-history" type="button" title="History" aria-label="History">🕘</button>
             <button id="show-rules" type="button" title="Show matching rule" aria-label="Show matching rule">📄</button>
           </div><div class="detail-window-actions"><button id="drag-detail" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-detail" class="close-detail" aria-label="Close notification details">×</button></div></div></div>
@@ -68,7 +68,7 @@
         <pre id="diagnostics-content" class="detail-rules">Loading…</pre>
       </aside>
       <aside id="history-sheet" class="detail-sheet history-sheet" tabindex="-1" aria-label="Notification history" aria-hidden="true">
-        <div class="detail-header"><div class="detail-header-actions"><strong id="history-title">Notification history</strong><div class="detail-window-actions history-actions"><button id="delete-history" class="history-delete-icon" type="button" title="Delete this history" aria-label="Delete this history">🗑</button><button id="drag-history" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-history" class="close-detail" aria-label="Close history">×</button></div></div></div>
+        <div class="detail-header"><div class="detail-header-actions"><strong id="history-title">Notification history</strong><div class="detail-window-actions history-actions"><button id="delete-history" class="history-delete-icon" type="button" title="Delete this history" aria-label="Delete this history"><span aria-hidden="true">🗑</span><span>Delete</span></button><button id="drag-history" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move"></button><button id="close-history" class="close-detail" aria-label="Close history">×</button></div></div></div>
         <p id="history-key" class="detail-note"></p>
         <p id="history-count" class="detail-note"></p>
         <ol id="history" class="history"></ol><button id="history-more" type="button">Show more</button>
@@ -79,8 +79,8 @@
         <td class="state" aria-label="Notification state"></td><td class="message"></td><td class="category"></td><td class="source"></td><td class="status-badges"></td>
       </tr>
     </template>
-    <script src="connectivity.js?v=0.1.18"></script>
-    <script src="table-sort.js?v=0.1.18"></script>
-    <script src="app.js?v=0.1.18"></script>
+    <script src="connectivity.js?v=0.1.23"></script>
+    <script src="table-sort.js?v=0.1.23"></script>
+    <script src="app.js?v=0.1.23"></script>
   </body>
 </html>

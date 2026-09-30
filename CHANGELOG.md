@@ -1,5 +1,11 @@
 # Changelog
 
+- Label the selected-notification action buttons as well as showing their
+  pictograms, require explicit confirmation before requesting an authoritative
+  Signal K Clear, and hide the selected-history delete action after success.
+- Document the current Raspberry Pi package, backup, health-timer, deployment,
+  verification, and recoverable rollback sequence.
+
 - Fix the audible self-test failure latch: `Ton nicht gehört` now uses a
   distinct internal failure origin, so the recursion guard for the published
   audio-system notification no longer suppresses the visual warning.

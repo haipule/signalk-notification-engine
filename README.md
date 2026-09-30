@@ -18,7 +18,7 @@ The current Node-RED prototype is in [node-red/prototype](node-red/prototype/REA
 
 ## Current status
 
-The project is an active development build (`0.1.19`). The plugin currently
+The project is an active development build (`0.1.23`). The plugin currently
 provides an active-notification WebApp, snapshot/delta reconstruction,
 capability-checked Signal K actions, local lifecycle/history persistence,
 classification, presentation and audio policies, and the first Node-RED flow

@@ -157,7 +157,8 @@ plugin. Its “Recent activity” area remains a compact history preview while
 the fuller per-notification history interaction is being refined.
 
 The active view uses a scrollable table. Individual `silence`, `acknowledge`,
-and `clear` actions are shown as icons in the selected-notification info
-window; global `silence all` and `acknowledge all` actions remain below the
-table. The info window is intentionally not draggable. History entries are
+and `clear` actions are shown with icons and visible labels in the
+selected-notification info window. Clear requires an explicit confirmation
+before the WebApp asks Signal K to change its authoritative state. Global
+`silence all` and `acknowledge all` actions remain below the table. History entries are
 grouped by day, with the date shown once per day.

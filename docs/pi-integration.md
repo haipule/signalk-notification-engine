@@ -1,40 +1,114 @@
-# Raspberry Pi integration status
+# Raspberry Pi deployment and rollback
 
-## Installed test build
+## Current installation boundary
 
-The initial build is installed on the boat Raspberry Pi as local npm package
-`signalk-notification-manager@0.1.0` and is enabled with an empty policy list.
+The boat Raspberry Pi is reached as `pi@192.168.100.10` (normally through the
+SSH alias `raspi`). Notification Engine is installed at:
 
-- WebApp: `http://192.168.100.10:3000/signalk-notification-manager/`
-- API: `/plugins/signalk-notification-manager/notifications`
-- Persistent local history:
-  `/home/pi/.signalk/plugin-config-data/signalk-notification-manager/notification-history.json`
+```text
+/home/pi/.signalk/node_modules/signalk-notification-engine
+```
 
-The manager successfully received and classified the existing anchor alarm and
-the GNSS heading warning. `normal` and `nominal` values remain available in the
-Signal K data model but are intentionally absent from the active alarm view.
+Its WebApp and primary API are:
 
-## Health service during deployment
+```text
+http://192.168.100.10:3000/signalk-notification-engine/
+/plugins/signalk-notification-engine/notifications
+```
 
-`signalk-health.timer` calls a health script once per minute. That script
-restarts Signal K when `http://localhost:3000/signalk` is unavailable. Signal K
-can take roughly half a minute to become HTTP-ready after a restart, so the
-timer can otherwise interrupt a plugin deployment.
+Persistent configuration and local audit data live below Signal K's
+`plugin-config-data` directory. A package rollback must not overwrite that
+data. Signal K and the notification producer remain authoritative throughout a
+deployment.
 
-Deployment procedure for this Pi:
+The graphical rules come only from the Node-RED instance embedded in Signal K.
+Its live flow file is `/home/pi/.signalk/red/flows_openplotter.json`. The
+separate `nodered.service` and `/home/pi/.node-red` are outside this project and
+must not be used or restarted.
 
-1. Stop `signalk-health.timer` temporarily.
-2. Install the local package and restart `signalk.service`.
-3. Wait until `http://127.0.0.1:3000/signalk` responds successfully.
-4. Restart `signalk-health.timer` and verify its next scheduled run.
+## Preflight
 
-At the end of the initial integration test, Signal K was active, port 3000
-responded with HTTP 200, and the health timer was active again.
+Before packaging, run locally:
+
+```sh
+npm run check
+npm test
+npm pack --dry-run
+```
+
+Before replacing the installed package, inspect the active notification and
+audio state. Do not restart during an active safety-critical alarm or an audio
+process. Confirm that Diagnostics reports a ready Node-RED configuration and no
+active playback, retry, or half-open probe that the restart would interrupt.
+Real anchor, bilge, and GPS fault injection requires its own explicitly agreed
+safe operating window; routine deployment does not authorize it.
+
+## Recoverable deployment sequence
+
+1. Build the exact local package with `npm pack` and record its version and
+   checksum.
+2. Copy the tarball to a temporary location on the Pi.
+3. Stop `signalk-health.timer` temporarily. Its one-minute check can otherwise
+   restart Signal K again while the server is still initializing.
+4. Create a timestamped copy of the complete installed plugin directory under
+   `/home/pi/.signalk/plugin-backups/`. Record the backup path and a hash of the
+   installed `package.json` before replacement.
+5. Extract the tarball into a fresh staging directory and verify the staged
+   package name and version. Replace only the installed plugin package files;
+   do not alter `plugin-config-data` or either Node-RED directory.
+6. Restart `signalk.service` once. Keep the health timer stopped while Signal K
+   initializes; this installation can take longer than one minute to become
+   HTTP-ready.
+7. After port 3000 is listening, make one bounded request to `/signalk`, then
+   verify the Notification Engine diagnostics/configuration endpoints.
+8. Start `signalk-health.timer` again and confirm both the service and timer are
+   active.
+
+Deployment is complete only after all of these checks pass:
+
+- installed `package.json` reports the intended version;
+- source package and installed files have the expected hashes;
+- `signalk.service` and `signalk-health.timer` are active;
+- `/signalk` and the Notification Engine WebApp/API respond;
+- Diagnostics reports Node-RED configuration ready and audio ready, with no
+  unexpected process, retry, circuit-breaker, or failure state;
+- the embedded Node-RED runtime/deploy interface is compatible and the
+  deployed-rules view matches the intended live flow;
+- `nodered.service` remains inactive.
+
+## Recoverable rollback
+
+If startup or the live health/configuration checks fail:
+
+1. Stop `signalk-health.timer` so it cannot race the recovery.
+2. Move the failed installed plugin directory to a timestamped quarantine
+   location; do not erase it.
+3. Copy the recorded backup directory back to
+   `/home/pi/.signalk/node_modules/signalk-notification-engine`.
+4. Confirm the restored package version and ownership, restart
+   `signalk.service` once, and repeat the bounded readiness and diagnostics
+   checks.
+5. Start and verify `signalk-health.timer` only after Signal K is healthy.
+
+Keep the failed package, backup path, hashes, diagnostics result, and relevant
+Signal K journal window until the cause is understood. A rollback restores
+plugin code; it must not silently replace Node-RED rules or local audit data.
 
 ## Service-monitoring chain
 
 The separate **Services to Signal K** plugin remains responsible for service
-checks and creation of service-failure notifications. Its notifications are
-then handled by this manager. On the Pi, warnings are enabled for
-`signalk-health.timer`, `opencpn.service`, `influxdb.service`, and
-`NetworkManager.service`; Grafana monitoring currently has notifications off.
+checks and creation of service-failure notifications. Notification Engine then
+observes and presents those notifications. This monitoring relationship does
+not transfer ownership of service state to Notification Engine.
+
+## Latest verified deployment
+
+Version `0.1.23` was deployed and verified on 2026-09-30. The previous
+`0.1.22` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.22-20260930T234547Z`.
+After the single controlled restart, the WebApp and `/signalk` returned HTTP
+200, Node-RED configuration and its runtime-deploy interface were ready, audio
+reported no active processes, retries, open breakers, or unresolved failures,
+and the source/live hashes of the changed package and WebApp files matched.
+`signalk.service` and `signalk-health.timer` were active again, while the
+external `nodered.service` remained inactive.

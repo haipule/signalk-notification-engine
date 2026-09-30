@@ -39,6 +39,7 @@ let historyPath = ''
 let historyOccurrenceId = ''
 let historyDisplayLimit = 20
 let historyMode = 'selected'
+const deletedHistoryOccurrenceIds = new Set()
 let activeRules = []
 let currentAudioTest = { state: 'idle', statement: 'Noch kein Alarmtontest ausgeführt.' }
 const sortStorageKey = 'notification-engine.table-sort'
@@ -351,8 +352,11 @@ async function deleteLocalHistory() {
   try {
     const response = await fetch(`${pluginApi}/history?occurrenceId=${encodeURIComponent(occurrenceId)}`, { method: 'DELETE' })
     if (!response.ok) throw new Error(`Could not delete history (${response.status})`)
+    deletedHistoryOccurrenceIds.add(occurrenceId)
     renderHistory([])
     await refresh()
+    document.querySelector('#delete-history').hidden = true
+    historyCount.textContent = 'Local history deleted. The Signal K notification remains unchanged.'
   } catch (error) {
     historyCount.textContent = error.message
   }
@@ -389,7 +393,7 @@ function showSelectedHistory(selected = activeNotifications.find(item => item.id
   historyOccurrenceId = selected.occurrenceId || ''
   historyDisplayLimit = 20
   document.querySelector('#history-title').textContent = 'Notification history'
-  document.querySelector('#delete-history').hidden = !historyOccurrenceId
+  document.querySelector('#delete-history').hidden = !historyOccurrenceId || deletedHistoryOccurrenceIds.has(historyOccurrenceId)
   renderSelectedHistory()
   document.querySelector('#history-key').textContent = `First seen: ${formatDateTime(selected.firstSeenAt || historyForNotification(selected)[0]?.notification?.firstSeenAt)}`
   document.querySelector('#history-sheet').setAttribute('aria-hidden', 'false')
@@ -609,6 +613,7 @@ function actionAllowed(notification, action) {
 }
 
 async function runAction(id, action, refreshAfter = true) {
+  if (action === 'clear' && !window.confirm('Request Clear from Signal K? This changes the authoritative notification state to normal.')) return
   try {
     if (!isConnected || !configurationReady) throw new Error('Actions are disabled while the Alarm Centre is offline or configuration is invalid.')
     const response = await fetch(`${pluginApi}/notifications/${encodeURIComponent(id)}/${action}`, { method: 'POST' })

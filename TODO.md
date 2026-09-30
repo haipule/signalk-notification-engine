@@ -525,12 +525,13 @@
 
 ## 6. UI-Aktionen und Piktogramme
 
-- [ ] Im History-Fenster den Lösch-Button nach erfolgreichem Löschen der
+- [x] Im History-Fenster den Lösch-Button nach erfolgreichem Löschen der
   Historie ausblenden.
-- [ ] Buttons im Infofenster und für „Delete this history“ deutlich auffälliger
+- [x] Buttons im Infofenster und für „Delete this history“ deutlich auffälliger
   gestalten.
-- [ ] Passende, verständliche Piktogramme für `Silence`, `Acknowledge`,
-  `Clear` und „Delete this history“ auswählen und auf Touch-Bedienung prüfen.
+- [ ] Passende, verständliche Piktogramme und sichtbare Beschriftungen für
+  `Silence`, `Acknowledge`, `Clear` und „Delete this history“ sind umgesetzt;
+  die abschließende Touch-Bedienungsprüfung auf Tab 3 steht noch aus.
 
 ## 7. Audio und Historienexport
 

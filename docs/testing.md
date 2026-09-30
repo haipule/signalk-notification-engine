@@ -105,6 +105,11 @@ GPS source.
 - Lifecycle-rule tests cover a producer that ends an alarm with a normal
   `Off` notification and then raises again with the same technical ID.
 - Unsupported operations cannot be triggered.
+- Selected-notification actions show both pictograms and text labels on the
+  tablet. Clear opens an explicit confirmation before any request is sent.
+- After confirmed deletion of one local occurrence, its delete action stays
+  hidden while that history window remains open; the active Signal K
+  notification remains present and unchanged.
 - A reload reconstructs the current state without stale phantom alarms.
 - Disconnect a client for more than one polling interval: the last table may
   remain visible only when a prominent stale/offline banner is shown and all
