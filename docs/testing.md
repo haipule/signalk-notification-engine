@@ -57,6 +57,13 @@
   claiming audibility only after the complete window. Verify that a later pass
   clears only the stable self-test failure occurrence and does not stop normal
   notification audio.
+  Verify that the private self-test failure origin is accepted by the
+  audio-system latch while the published audio-system path remains rejected as
+  recursive input.
+- Runtime test notifications: fixed plugin-owned namespace, two independent
+  slots, bounded expiry, duplicate/invalid input rejection, state transition,
+  exact-id cleanup, and startup removal of marked stale tests without touching
+  foreign or unmarked notifications.
 
 ## Integration tests
 
@@ -75,6 +82,12 @@ the breaker, no retry storm occurs, only one five-minute probe is admitted, and
 restoring the device causes at most one watchdog-triggered early probe. Repeat
 with two simultaneous simulated lifecycles and across a plugin restart before
 claiming the feature complete.
+
+Use the authenticated `runtime-tests/{slot}` maintenance routes for that live
+matrix. Never substitute a real anchor, bilge, GPS, or other producer path.
+For a lifecycle-transition matrix, end a slot with `normal` and then `DELETE`;
+use direct DELETE only for the explicit active-Clear case. Expiry is a fallback,
+not the normal cleanup procedure.
 
 The controlled live test matrix and captured evidence are maintained in
 [End-to-end safety validation](e2e-safety-matrix.md). Do not execute cases

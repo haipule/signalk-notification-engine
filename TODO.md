@@ -207,19 +207,32 @@
 - [ ] Testmatrix für Loop, Silence, Acknowledge, Normal, Clear, fehlendes
   Audiogerät und gleichzeitige Alarme praktisch auf dem Pi ausführen.
   Nächster sicherer Ablauf:
-  - [ ] Einen runtime-sicheren Auslöser für mindestens zwei getrennte
+  - [x] Einen runtime-sicheren Auslöser für mindestens zwei getrennte
     simulierte Notification-Lifecycles bauen; er darf keinen Signal-K-Neustart
     benötigen und die laufende GPS-/Ankerüberwachung nicht unterbrechen.
-  - [ ] Damit zwei gleichzeitige simulierte Alarme prüfen: unabhängige
+  - [x] Damit zwei gleichzeitige simulierte Alarme prüfen: unabhängige
     Audioprozesse, deterministische Priorität, lifecycle-spezifisches Silence
     sowie keine gegenseitige Unterbrechung oder ALSA-Überlastung.
-  - [ ] Loop, Silence, Acknowledge, Normal und Clear vollständig gegen
+  - [x] Loop, Silence, Acknowledge, Normal und Clear vollständig gegen
     Signal-K-Zustand, Audioende, Retry-/Circuit-Breaker-Zustand und lokale
     Historie nachweisen.
-  - [ ] Den echten Selbsttest-Fehlerzweig `Ton nicht gehört` nur mit bewusst
+    Live mit `0.1.21` am 2026-09-29: zwei getrennte Alarm-Slots erzeugten
+    gleichzeitig zwei `aplay`-Prozesse (PIDs 2425857/2425859), beide Exit 0.
+    Slot A akzeptierte Silence, Slot B unabhängig Acknowledge; die Historie
+    enthält getrennte `action_requested`-Ereignisse. Beide wechselten auf
+    `normal`, beide DELETEs lieferten 204. Danach: null Prozesse, Retries,
+    offene Breaker, Audio-Systemfehler oder verbliebene Runtime-Slots.
+  - [x] Den echten Selbsttest-Fehlerzweig `Ton nicht gehört` nur mit bewusst
     stummgeschaltetem Verstärker/Lautsprecher ausführen; danach Audio wieder
     einschalten und mit einem zweiten technisch erfolgreichen Test plus vollem
     15-Sekunden-Fenster die sichtbare Audio-Systemnotification auflösen.
+    Live mit `0.1.22` am 2026-09-30: bei stromlosem Lautsprecher technisch
+    erfolgreicher Player-Exit 0, authentifizierte Gegenmeldung durch `pi` und
+    genau eine persistierte visuelle Audio-Systemnotification. Dabei wurde eine
+    zu breite Rekursionssperre entdeckt und repariert. Nach Wiedereinschalten
+    hörte der Operator den zweiten Ton; nach dem vollständigen Fenster war der
+    Test `passed_no_counter_report`, die Warnung `normal` und es blieben null
+    Fehler-Latches, Prozesse, Retries oder offene Breaker.
   - [ ] Echte Hoekens-Drag-/Re-Drop-/Aktiv-alarm-Neustarttests erst nach einer
     ausdrücklichen Bestätigung eines sicheren Ankertestfensters ausführen.
 
@@ -253,6 +266,10 @@
 - [x] Fehlendes ALSA-Gerät erneut simulieren und nachweisen, dass der Alarm
   sichtbar bleibt, der Retry-Abstand exponentiell bis 60 Sekunden wächst und
   weder Prozess- noch Journal-Sturm entsteht.
+- [x] Eine aktive, clear-fähige Runtime-Testnotification ohne Signal-K-Neustart
+  direkt löschen. Live mit `0.1.22`: Slot `clear-check` wurde als `alarm`
+  angelegt, DELETE lieferte 204, danach waren Slot-Registry, Audioprozesse,
+  Retries, offene Breaker und Audio-Systemfehler leer.
 - [x] Tab 3 bei aktiver Warnmeldung vom Netz trennen: deutliche
   Offline-/Stale-Anzeige, deaktivierte Einzel- und Globalaktionen sowie saubere
   automatische Synchronisierung nach Wiederverbindung prüfen.
@@ -477,6 +494,27 @@
   Speichern der Plugin-Konfiguration neu einlesen; Handhabung dokumentieren.
 
 ## 4. Handoff
+
+- [x] Sicheren Laufzeit-Testauslöser für mindestens zwei voneinander isolierte
+  simulierte Notification-Lebenszyklen implementieren. Er verwendet nur den
+  festen Namespace `notifications.system.notificationEngine.runtimeTest.*`,
+  läuft nach spätestens 600 Sekunden ab und kann keine fremde ID ändern oder
+  löschen.
+- [x] Auf dem Pi zwei gleichzeitige Slots live durch Alarmton, unabhängiges
+  Silence, Acknowledge, `normal` und Clear führen; ALSA-Prozesszahl und Historie
+  als Nachweis festhalten.
+  Nachweis siehe `docs/e2e-safety-matrix.md`; dabei wurde außerdem der nach
+  `normal` erwartbare Signal-K-Fall `Alarm not found` als ausschließlich für
+  die eigene registrierte ID idempotente Bereinigung repariert und in
+  `0.1.21` erneut live geprüft.
+- [x] Den echten Gegenpfad `Ton nicht gehört` nur bei absichtlich physisch
+  stummgeschaltetem Ausgang auslösen, anschließend Audio wiederherstellen und
+  den erfolgreichen Recovery-Test dokumentieren.
+  Erfolgreich mit `0.1.22` nach physischem Aus-/Einschalten des Lautsprechers;
+  vollständiger Nachweis in `docs/e2e-safety-matrix.md`.
+- [ ] Reale Hoekens-, Bilge- und GPS-Tests bleiben bis zu einem ausdrücklich
+  bestätigten sicheren Betriebsfenster blockiert; die simulierten Runtime-Slots
+  sind kein Ersatz für diesen späteren Produzenten-Test.
 
 - Dokumentation der neuen Einstellungen vervollständigen.
 - Aktuellen Stand auf dem Raspberry Pi installieren und testen.

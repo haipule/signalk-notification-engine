@@ -31,6 +31,14 @@ observe playback without changing Signal K notification state.
 The WebApp adds its own local poll start/end, duration, and network error so a
 slow client can be distinguished from a slow Signal K snapshot.
 
+Runtime integration tests use a separate bounded maintenance adapter around
+the Signal K Notification API. It can raise only fixed
+`notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores
+the returned ids privately. Update and clear operations resolve through that
+registry, so caller-supplied notification ids and foreign producer paths never
+reach the Signal K lifecycle methods. Tests auto-expire; marked leftovers from
+an unclean prior runtime are removed at startup.
+
 The audio watchdog is deliberately passive. It verifies that the configured
 player executable and ALSA playback PCM exist once per minute, but never opens
 the device or emits sound. It therefore cannot prove the amplifier, speaker,
@@ -106,6 +114,11 @@ that a person heard the sound. A prior self-test latch clears only after this
 later technical success and complete quiet feedback window. Technical success
 still proves neither amplifier nor loudspeaker output. Automatic end-to-end
 proof requires a hardware loopback or microphone.
+
+The self-test uses a private failure-origin path distinct from the published
+audio-system notification. This preserves the recursion guard on
+`notifications.system.notificationEngine.audio` while allowing an explicit
+operator `not heard` report to latch that visual warning.
 
 The maintenance UI boundary was agreed on 2026-09-29. A compact round button
 in the main action row shows the whole days remaining from `7` to `0` since the

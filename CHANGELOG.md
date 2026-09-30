@@ -1,5 +1,16 @@
 # Changelog
 
+- Fix the audible self-test failure latch: `Ton nicht gehört` now uses a
+  distinct internal failure origin, so the recursion guard for the published
+  audio-system notification no longer suppresses the visual warning.
+
+- Add authenticated, bounded runtime test slots for safe simultaneous audio
+  and lifecycle validation without restarting Signal K or using real anchor,
+  bilge, or GPS alarms. Slots are restricted to a fixed plugin namespace,
+  auto-expire, and cannot update or clear foreign notification ids.
+  Treat Signal K's expected `not found` response after a transition to
+  `normal` as successful idempotent slot cleanup.
+
 - Document the deployed audio ownership boundary: the retained embedded
   Node-RED `Audio Alarms` legacy tab is disabled, both legacy scripts are
   stopped, and Notification Engine is the only active rule-based audio path.

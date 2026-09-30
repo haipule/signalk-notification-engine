@@ -31,9 +31,20 @@
 | GET | `/plugins/signalk-notification-engine/diagnostics` | readonly | Snapshot/delta timings, Node-RED configuration, audio process/result, and local-history persistence health. |
 | POST | `/plugins/signalk-notification-engine/audio-test/start` | readwrite | Start one bounded audible maintenance tone and open the 15-second feedback window after technical success. |
 | POST | `/plugins/signalk-notification-engine/audio-test/not-heard` | readwrite | Record explicit inaudible feedback while that feedback window is open. |
+| GET | `/plugins/signalk-notification-engine/runtime-tests` | readwrite | List only test notifications owned by the current plugin runtime. |
+| POST | `/plugins/signalk-notification-engine/runtime-tests/{slot}` | readwrite | Raise a bounded simulated notification in a fixed plugin-owned path. |
+| PATCH | `/plugins/signalk-notification-engine/runtime-tests/{slot}` | readwrite | Change the state/message of that owned simulated notification. |
+| DELETE | `/plugins/signalk-notification-engine/runtime-tests/{slot}` | readwrite | Clear that owned simulated notification. |
 | POST | `/plugins/signalk-notification-manager/notifications/{id}/{action}` | readwrite | Allowed `silence`, `acknowledge`, or `clear`. |
 
 ## Deliberate limitations
+
+- Runtime test slots are maintenance interfaces, not a second alarm source.
+  Slots accept only short safe names, use the fixed
+  `notifications.system.notificationEngine.runtimeTest.*` namespace, expire
+  after 10 to 600 seconds, and retain their Signal K ids only in memory. The
+  plugin can update or clear only ids it raised itself; startup removes stale
+  entries carrying both the fixed path and plugin marker after an unclean stop.
 
 - History is a local audit trail, not the Signal K source of truth. It is kept
   in the plugin data directory and survives restarts.

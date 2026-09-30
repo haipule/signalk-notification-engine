@@ -15,10 +15,11 @@ const { AudioCircuitBreaker } = require('./lib/audio-circuit-breaker')
 const AudioCircuitRepository = require('./lib/audio-circuit-repository')
 const { AudioSystemNotification, AUDIO_SYSTEM_PATH } = require('./lib/audio-system-notification')
 const AudioSystemRepository = require('./lib/audio-system-repository')
-const { AudioSelfTest } = require('./lib/audio-self-test')
+const { AudioSelfTest, AUDIO_SELF_TEST_ORIGIN_PATH } = require('./lib/audio-self-test')
 const requestActor = require('./lib/request-actor')
 const Diagnostics = require('./lib/diagnostics')
 const { AudioWatchdog } = require('./lib/audio-watchdog')
+const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { rulesMarkdown } = require('./lib/flow-rules')
 const visualColorPool = require('./lib/visual-colors')
@@ -121,6 +122,7 @@ module.exports = function createPlugin(app) {
   }
 
   const actions = new NotificationActions(app)
+  const runtimeTests = new RuntimeTestNotifications(app)
   let policyResolver = new PolicyResolver([], {}, readSignalKValue)
   let unsubscribes = []
   let lifecycle = 0
@@ -146,7 +148,10 @@ module.exports = function createPlugin(app) {
   const audioSelfTestRecord = {
     id: 'notification-engine-audio-self-test',
     occurrenceId: 'notification-engine-audio-self-test',
-    path: AUDIO_SYSTEM_PATH,
+    // This is an internal failure-origin identity, not a published Signal K
+    // notification. It must differ from AUDIO_SYSTEM_PATH so the recursion
+    // guard does not suppress a genuine operator "not heard" report.
+    path: AUDIO_SELF_TEST_ORIGIN_PATH,
     source: { label: 'Notification Engine' },
     state: 'alarm',
     message: 'Notification Engine audible operator test',
@@ -477,6 +482,7 @@ module.exports = function createPlugin(app) {
       stopSubscriptions()
       stopSnapshotSync()
       await stopTestNotification()
+      await runtimeTests.clearAll()
       nodeRedUnsubscribe?.()
       nodeRedUnsubscribe = null
       nodeRedConfigChecksum = null
@@ -557,6 +563,34 @@ module.exports = function createPlugin(app) {
         }))
       })
       const readWrite = router.access('readwrite')
+      readWrite.get('/runtime-tests', (_request, response) => {
+        response.json({ tests: runtimeTests.list() })
+      })
+      readWrite.post('/runtime-tests/:slot', (request, response) => {
+        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
+        if (!audioReady) return response.status(503).json({ state: 'REJECTED', message: 'Notification processing is not ready' })
+        try {
+          response.status(201).json(runtimeTests.raise(request.params.slot, request.body || {}))
+        } catch (error) {
+          response.status(409).json({ state: 'REJECTED', message: error.message })
+        }
+      })
+      readWrite.patch('/runtime-tests/:slot', (request, response) => {
+        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
+        try {
+          response.json(runtimeTests.update(request.params.slot, request.body || {}))
+        } catch (error) {
+          response.status(409).json({ state: 'REJECTED', message: error.message })
+        }
+      })
+      readWrite.delete('/runtime-tests/:slot', async (request, response) => {
+        try {
+          const cleared = await runtimeTests.clear(request.params.slot)
+          response.status(cleared ? 204 : 404).end()
+        } catch (error) {
+          response.status(409).json({ state: 'REJECTED', message: error.message })
+        }
+      })
       readWrite.post('/audio-test/start', (request, response) => {
         if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
         if (!audioReady) return response.status(503).json({ state: 'REJECTED', message: 'Audio is not ready' })
@@ -643,6 +677,7 @@ module.exports = function createPlugin(app) {
     audioCircuitBreaker.restore(circuitSnapshot)
     audioSystemNotification.restore(audioSystemSnapshot)
     if (currentLifecycle !== lifecycle) return
+    await runtimeTests.clearStale()
     if (clearHistoryOnStart) {
       await historyRepository.clear()
       store.replaceHistory([])
