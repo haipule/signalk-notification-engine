@@ -434,10 +434,11 @@
 - Prüfen, ob wechselnde Notification-IDs die Lebenszyklus-Zuordnung
   erschweren.
 
-### Upstream-Issue für Hoekens Anchor Alarm
+### Upstream-Fix für Hoekens Anchor Alarm
 
-- [ ] Issue vorbereiten/einreichen: Ein ACK darf nicht über mehrere
-  Ankermanöver hinweg erhalten bleiben.
+- [x] Pull Request #44 eingereicht und am 2026-09-29 von `hoeken` gemergt:
+  https://github.com/hoeken/hoekens-anchor-alarm/pull/44. Ein ACK darf nicht
+  über mehrere Ankermanöver hinweg erhalten bleiben.
   Hoekens verwendet für `notifications.navigation.anchor` dieselbe
   Notification-ID und sendet beim Raise bei aktivem
   `enableNormalNotifications` nur `state: normal`; beim nächsten Drop wird
@@ -446,20 +447,32 @@
   Ankeralarm erscheint dann bereits quittiert, obwohl ein neues Manöver
   begonnen hat. Das ist sicherheitsrelevant, weil ein neuer Drag-Alarm dadurch
   weniger auffällig sein kann.
-- Erwartete Upstream-Lösung: Beim Raise die Notification entfernen (`null`)
-  oder beim neuen Drop einen neuen Notification-Lifecycle/eine neue ID
-  erzeugen und den ACK-Status zurücksetzen. Ein reiner Wechsel auf `normal`
-  reicht nicht.
+- Umgesetzte Upstream-Lösung: Beim Raise wird die Notification entfernt
+  (`null`) und der ACK-Status dadurch zurückgesetzt. Ein anschließendes
+  Watching-`normal` gehört zu einem frischen Notification-Lifecycle. Ein
+  reiner Wechsel auf `normal` hätte nicht gereicht.
 - Als Nachweis für das Issue dokumentieren: gleiche ID
   `e8cf94af-698a-4091-ad22-c8b17b5840d1` bei `alarm`, ACK und anschließendem
   `normal` nach Radiusänderung.
-- Zwischenlösung: Vor jedem neuen Drop den vorherigen Anker vollständig
-  raisen und prüfen, dass der Pfad nicht mehr aktiv ist. Falls die ID bestehen
-  bleibt, `enableNormalNotifications` vor dem Raise vorübergehend deaktivieren,
-  damit Hoekens `null` sendet; danach wieder aktivieren und erst dann neu
-  droppen. Bis zur Upstream-Korrektur jeden neuen Alarm manuell auf
+- [ ] Den auf dem Pi installierten Hoekens-Stand erst auf einen Release oder
+  anderweitig eindeutig identifizierten Build aktualisieren, der Merge-Commit
+  `75c05cc0d34718c1bd3fbf4cfbeb969103d278af` enthält. Der Merge allein ändert
+  die installierte Plugin-Version nicht. Danach in einem ausdrücklich
+  bestätigten sicheren Ankertestfenster Raise -> `null`, anschließend frisches
+  Watching-`normal`, neuen Drop und `acknowledged: false` live nachweisen.
+- Bis zu diesem Live-Nachweis gilt die bisherige Zwischenlösung: Vor jedem
+  neuen Drop den vorherigen Anker vollständig raisen und prüfen, dass der Pfad
+  nicht mehr aktiv ist. Falls die ID bestehen bleibt,
+  `enableNormalNotifications` vor dem Raise vorübergehend deaktivieren, damit
+  Hoekens `null` sendet; danach wieder aktivieren und erst dann neu droppen.
+  Bis zum Live-Nachweis jeden neuen Alarm manuell auf
   `acknowledged: false` prüfen und den Sound über den Notification Manager
   testen.
+- Die Hoekens-Regel in `lifecycle-rules.json` (`normal`/`Off`) bis zum
+  erfolgreichen Upgrade- und Regressionstest als Abwärtskompatibilität
+  behalten. Erst danach prüfen, ob sie aus Default-Konfiguration und
+  Dokumentation entfernt werden kann; ein vorzeitiges Entfernen würde ältere
+  installierte Hoekens-Versionen wieder falsch korrelieren.
 - [x] Lifecycle-Sonderfälle in `lifecycle-rules.json` auslagern und beim
   Speichern der Plugin-Konfiguration neu einlesen; Handhabung dokumentieren.
 
