@@ -18,7 +18,7 @@ The current Node-RED prototype is in [node-red/prototype](node-red/prototype/REA
 
 ## Current status
 
-The project is an active development build (`0.1.25`). The plugin currently
+The project is an active development build (`0.1.26`). The plugin currently
 provides an active-notification WebApp, snapshot/delta reconstruction,
 capability-checked Signal K actions, local lifecycle/history persistence,
 classification, presentation and audio policies, and the first Node-RED flow
@@ -54,8 +54,9 @@ configured in `lifecycle-rules.json`.
 
 The WebApp supports permitted per-notification actions, global silence and
 acknowledge actions, history inspection, and confirmed local-history cleanup.
-Audio supports state defaults and overrides with `once`, finite `repeat`, and
-`loop` behaviour. The disabled embedded Node-RED `Audio Alarms` legacy tab is
+Audio uses one playback count: `0` loops, `1` plays once, and `2` through `99`
+play exactly that many times. Existing `once`/`repeat`/`loop` flow fields are
+accepted through a migration adapter. The disabled embedded Node-RED `Audio Alarms` legacy tab is
 retained for rollback, while the plugin is the only active rule-based
 notification audio path. The WebApp also provides an authenticated, bounded `Alarmton testen`
 maintenance action. Its configured test-tone file is played once; a successful

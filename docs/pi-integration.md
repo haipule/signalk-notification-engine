@@ -103,6 +103,25 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.26` was deployed and verified on 2026-09-30. Version `0.1.25` is
+retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.25-20261001T011500Z.tgz`.
+The user-deployed embedded flow is independently retained at
+`/home/pi/.signalk/red/notification-engine-backups/sound-count-user-deploy-20261001T011500Z.json`
+with SHA-256
+`6d20b48025dce1e91d97c475dcaa04fbec46771ed6ca232324e717a6c17f33a2`.
+The plugin loaded all 10 rules from revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`;
+the seven active sound rules retained canonical `count: 0` loops. Effective
+live policies exposed only canonical counts, including `count: 1` for the
+existing GNSS warning. The one startup playback completed successfully and
+did not replay while deltas advanced. Final state was zero audio processes,
+retries, open breakers, and unresolved failures; Signal K and its health timer
+were active with zero service restarts, while external `nodered.service`
+remained inactive. Source/live hashes for all changed runtime files matched.
+
+### Previous 0.1.25 finite-playback verification
+
 Version `0.1.25` was deployed and verified on 2026-09-30. Version `0.1.24` is
 retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.24-20261001T005132Z`.

@@ -412,8 +412,13 @@
 - [x] In der WebApp einen `Rules`-Button im Infofenster ergänzen, der für die
   ausgewählte Notification die zugehörige Regel in einem separaten Fenster
   anzeigt.
-- [ ] Im Config-Flow die Sound-Eigenschaften `once`, `repeat` und `loop` als
-  eigene Nodes unterstützen.
+- [x] Version `0.1.26`: Soundsteuerung kontrolliert von
+  `sound.mode`/`sound.repeatCount` auf `payload.sound.count` umgestellt.
+  Verbindliche Semantik: `0` = Loop, `1` = einmal, `2` bis `99` = exakte
+  Anzahl. Der vom Benutzer deployte 192-Node-Flow lieferte sieben gültige
+  aktive Soundregeln mit `count: 0`; die serverseitige Regelansicht und die
+  effektiven Policies verwenden ausschließlich `count`. Alte Felder bleiben
+  vorübergehend über einen konfliktprüfenden Migrationsadapter lesbar.
 - [x] Version `0.1.25`: Unveränderte aktive Notifications werden nach einer
   abgeschlossenen `once`- oder endlichen `repeat`-Wiedergabe nicht bei jeder
   erneuten Snapshot-, Delta- oder Bedingungsauswertung abgespielt. Die

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.26 - 2026-09-30
+
+- Replace the internal sound mode/repeat-count pair with one canonical
+  playback `count`: `0` loops, `1` plays once, and `2` through `99` play the
+  exact finite count.
+- Continue reading the existing Node-RED and Plugin Config
+  `mode`/`repeatCount` fields during migration, and reject conflicting mixed
+  definitions instead of guessing.
+
 ## 0.1.25 - 2026-09-30
 
 - Retain a completed `once` or finite `repeat` sound signature for the active

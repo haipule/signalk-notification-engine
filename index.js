@@ -23,6 +23,7 @@ const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
+const { normalizeSoundConfig } = require('./lib/sound-config')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
@@ -262,8 +263,7 @@ module.exports = function createPlugin(app) {
               sound: { type: 'object', title: 'Specific Sound', additionalProperties: false, properties: {
                 active: { type: 'boolean', title: 'Active', default: true },
                 file: { type: 'string', title: 'Sound file', default: '' },
-                mode: { type: 'string', title: 'Playback', enum: ['once', 'repeat', 'loop'], enumNames: ['Once', 'Repeat', 'Loop'], default: 'once' },
-                repeatCount: { type: 'integer', title: 'Repeat count (repeat only)', minimum: 1, maximum: 100, default: 1 }
+                count: { type: 'integer', title: 'Playback count (0 = loop)', minimum: 0, maximum: 99, default: 1 }
               } },
               visible: { type: 'boolean', title: 'Show in Alarm Centre', default: true }
             }
@@ -311,14 +311,13 @@ module.exports = function createPlugin(app) {
           type: 'object', title: 'Standard Sound by State',
           description: 'Sound file and playback. Only visible states are active. Specific presentation policies can override this.',
           default: Object.fromEntries(['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal', 'info', 'notification'].map(state => [state, {
-            active: true, file: path.join(__dirname, 'sounds', `${state === 'warn' ? 'warn' : state}.wav`), mode: 'once', repeatCount: 1
+            active: true, file: path.join(__dirname, 'sounds', `${state === 'warn' ? 'warn' : state}.wav`), count: 1
           }])), additionalProperties: false,
           properties: Object.fromEntries(['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal', 'info', 'notification'].map(state => [state, {
             type: 'object', title: state, additionalProperties: false, properties: {
               active: { type: 'boolean', title: 'Active', default: true },
               file: { type: 'string', title: 'Sound file', default: path.join(__dirname, 'sounds', `${state === 'warn' ? 'warn' : state}.wav`) },
-              mode: { type: 'string', title: 'Playback', enum: ['once', 'repeat', 'loop'], enumNames: ['Once', 'Repeat', 'Loop'], default: 'once' },
-              repeatCount: { type: 'integer', minimum: 1, maximum: 100, title: 'Repeat count (repeat only)', default: 1 }
+              count: { type: 'integer', minimum: 0, maximum: 99, title: 'Playback count (0 = loop)', default: 1 }
             }
           }]))
         }
@@ -408,7 +407,7 @@ module.exports = function createPlugin(app) {
 
     uiSchema: {
       soundsByState: Object.fromEntries(['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal', 'info', 'notification'].map(state => [state, {
-        mode: { 'ui:widget': 'radio', 'ui:options': { inline: true } }
+        count: { 'ui:widget': 'updown' }
       }]))
     },
 
@@ -1058,8 +1057,8 @@ module.exports = function createPlugin(app) {
       ? configuredPolicies.map(policy => ({
           ...policy,
           sound: typeof policy.sound === 'string'
-            ? { active: true, file: policy.sound, mode: 'once', repeatCount: 1 }
-            : policy.sound,
+            ? { active: true, file: policy.sound, count: 1 }
+            : normalizeSoundConfig(policy.sound),
           match: {
             pathPrefix: policy.pathPrefix || undefined,
             source: policy.source || undefined
@@ -1103,15 +1102,14 @@ module.exports = function createPlugin(app) {
 
   function normalizeSoundsByState(sounds, fileName) {
     const palette = loadPalette(fileName, Object.fromEntries(['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal', 'info', 'notification'].map(state => [state, path.join(__dirname, 'sounds', `${state}.wav`)])))
-    const defaults = Object.fromEntries(Object.entries(palette).map(([state, sound]) => [state, { active: true, file: sound || null, mode: 'once', repeatCount: 1 }]))
+    const defaults = Object.fromEntries(Object.entries(palette).map(([state, sound]) => [state, { active: true, file: sound || null, count: 1 }]))
     for (const state of Object.keys(defaults)) {
       const configured = sounds?.[state]
       if (typeof configured === 'string' && configured.trim()) defaults[state].file = configured.trim()
       if (configured && typeof configured === 'object') {
         if (typeof configured.active === 'boolean') defaults[state].active = configured.active
         if (typeof configured.file === 'string' && configured.file.trim()) defaults[state].file = configured.file.trim()
-        if (['once', 'repeat', 'loop'].includes(configured.mode)) defaults[state].mode = configured.mode
-        if (Number.isInteger(configured.repeatCount)) defaults[state].repeatCount = Math.max(1, Math.min(100, configured.repeatCount))
+        defaults[state].count = normalizeSoundConfig(configured).count
       }
     }
     return defaults
@@ -1122,9 +1120,8 @@ module.exports = function createPlugin(app) {
     const config = soundConfig || {}
     const file = config.file
     if (!file) return
-    const mode = ['once', 'repeat', 'loop'].includes(config.mode) ? config.mode : 'once'
-    const repeatCount = Math.max(1, Number(config.repeatCount) || 1)
-    const signature = `${file}|${mode}|${repeatCount}`
+    const count = Number.isInteger(config.count) && config.count >= 0 && config.count <= 99 ? config.count : 1
+    const signature = `${file}|${count}`
     if (audioPlaybackRegistry.current(key) === signature) return
     stopNotificationAudio(key)
     audioCircuitBreaker.adopt(notification)
@@ -1144,7 +1141,7 @@ module.exports = function createPlugin(app) {
         if (result?.ok) {
           audioSystemNotification.recordSuccess(notification)
           audioCircuitBreaker.recordSuccess(notification)
-          if (mode === 'loop' || played < repeatCount) play()
+          if (count === 0 || played < count) play()
           else {
             // Keep the completed finite signature until this occurrence ends
             // or its sound configuration changes. Snapshot/condition refreshes

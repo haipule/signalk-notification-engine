@@ -22,8 +22,9 @@
   player diagnostics on stderr are not failures when the process exits zero.
   Diagnostics retain start/end time, duration, file, device, process ID, exit
   code, signal, and notification lifecycle key for active and last playback.
-- Audio lifecycle: retain the completed signature for `once` and finite
-  `repeat` so an unchanged snapshot or condition update cannot replay it;
+- Audio lifecycle: translate legacy playback fields into count, enforce the
+  `0` through `99` range, reject conflicting mixed definitions, and retain the
+  completed signature for every finite count so an unchanged snapshot or condition update cannot replay it;
   permit playback again only for a changed signature or ended lifecycle.
 - Node-RED rule extraction: payload-state sources independent of node type,
   path/condition branch isolation, canonical supported states, rejection of

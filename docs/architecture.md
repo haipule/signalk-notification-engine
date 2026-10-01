@@ -46,11 +46,13 @@ volume, or audible signal; that remains the responsibility of an explicit
 operator-initiated test.
 
 Finite audio is deduplicated by local notification occurrence plus the exact
-sound file, mode, and repeat count. A successful `once` or finite `repeat`
+sound file and playback count. Count `0` is an unbounded loop, `1` is one play,
+and `2` through `99` are exact finite counts. A successful finite playback
 keeps that signature until the occurrence ends, is silenced, or receives a
 different sound configuration. Routine snapshot and condition refreshes must
-not replay it. This registry is local playback state and never changes the
-authoritative Signal K notification.
+not replay it. A migration adapter still reads the former
+`mode`/`repeatCount` representation. This registry is local playback state and
+never changes the authoritative Signal K notification.
 
 ### Agreed audio circuit-breaker boundary
 

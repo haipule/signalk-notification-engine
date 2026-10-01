@@ -51,9 +51,11 @@
 - Policies are currently configured through the protected Signal K Plugin
   Config screen. The WebApp is not a policy editor; a future UI may provide a
   link to that configuration screen.
-- Audio uses the configured player and device. State sounds support `once`,
-  finite `repeat`, and `loop`; each notification lifecycle has an independent
-  playback process, and `silence` stops only that lifecycle's audio.
+- Audio uses the configured player and device. State sounds use playback count
+  `0` for loop, `1` for once, and `2` through `99` for an exact finite count;
+  each notification lifecycle has an independent playback process, and
+  `silence` stops only that lifecycle's audio. Legacy `mode`/`repeatCount`
+  input remains readable during the migration.
 - The legacy embedded Node-RED `Audio Alarms` tab is retained but disabled, and
   its Anchor/Bilge audio scripts are stopped. The Notification Engine is the
   only active rule-based notification audio path. Re-enabling the legacy tab

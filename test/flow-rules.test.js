@@ -51,7 +51,7 @@ test('preserves an explicit inactive sound branch through policy normalization',
     state: 'warn',
     match: { state: 'warn', path: undefined },
     audio: 'on',
-    sound: { active: false, mode: 'once', repeatCount: 1 }
+    sound: { active: false, count: 1 }
   }])
 })
 
@@ -75,6 +75,27 @@ test('path-specific sound overrides a general state sound', () => {
       actions: { soundFile: 'beep.wav', sound: { mode: 'repeat' } }
     }
   ])
+})
+
+test('extracts canonical sound counts without mixing independent branches', () => {
+  const flow = [
+    { id: 'warn', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['finite'], ['loop']] },
+    { id: 'finite', type: 'change', rules: [{ t: 'set', p: 'payload.soundFile', pt: 'msg', to: 'finite.wav', tot: 'str' }, { t: 'set', p: 'payload.sound.count', pt: 'msg', to: '3', tot: 'num' }], wires: [['activate']] },
+    { id: 'loop', type: 'change', rules: [{ t: 'set', p: 'payload.match.path', pt: 'msg', to: 'notifications.loop', tot: 'str' }, { t: 'set', p: 'payload.soundFile', pt: 'msg', to: 'loop.wav', tot: 'str' }, { t: 'set', p: 'payload.sound.count', pt: 'msg', to: '0', tot: 'num' }], wires: [['activate']] },
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  const rules = validateRules(extractActiveRules(flow))
+  assert.deepEqual(normalizeFlowRules(rules).map(rule => rule.sound), [
+    { active: true, file: 'loop.wav', count: 0 },
+    { active: true, file: 'finite.wav', count: 3 }
+  ])
+})
+
+test('rejects invalid and conflicting canonical sound counts', () => {
+  const base = { id: 'warn-1', match: { state: 'warn' }, actions: { soundFile: 'warn.wav', sound: { count: 100 } } }
+  assert.throws(() => validateRules([base]), /integer from 0 to 99/)
+  assert.throws(() => validateRules([{ ...base, actions: { ...base.actions, sound: { count: 0, mode: 'once' } } }]), /conflicts/)
 })
 
 test('uses payload.state from an inject node without depending on its type', () => {

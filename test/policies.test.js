@@ -42,7 +42,7 @@ test('an inactive matching sound branch suppresses the inherited state sound', (
 
   const result = resolver.resolve({ state: 'warn', path: 'notifications.navigation.anchor' })
   assert.equal(result.sound, 'warn.wav')
-  assert.deepEqual(result.soundConfig, { active: false, file: 'warn.wav', mode: 'loop', repeatCount: 1 })
+  assert.deepEqual(result.soundConfig, { active: false, file: 'warn.wav', count: 1 })
 })
 
 test('allows an explicit policy to hide a known notification from the active view', () => {

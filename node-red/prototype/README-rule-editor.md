@@ -22,3 +22,9 @@ Node-Farbgruppen für die spätere Editor-Oberfläche:
 - Notification: gelb
 - Sound: pink
 - Validate/Deploy: grau oder violett
+
+Die aktuelle Sound-Semantik verwendet `payload.sound.count`: `0` bedeutet
+Loop, `1` einmalige Wiedergabe und `2` bis `99` die exakte Anzahl. Der Server
+liest während der Migration weiterhin die alten Felder `payload.sound.mode`
+und `payload.sound.repeatCount`; neue oder umgebaute Flows sollen nur noch
+`payload.sound.count` erzeugen.
