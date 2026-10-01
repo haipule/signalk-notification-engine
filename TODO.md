@@ -414,6 +414,11 @@
   anzeigt.
 - [ ] Im Config-Flow die Sound-Eigenschaften `once`, `repeat` und `loop` als
   eigene Nodes unterstützen.
+- [ ] Unveränderte aktive Notifications bei einem gültigen Runtime-Deploy nicht
+  unnötig erneut abspielen. Beim isolierten `sound.active: false`-Test mit
+  `0.1.24` spielte der bereits aktive reale GNSS-Warn-Occurrence sowohl beim
+  Test-Deploy als auch bei der bytegleichen Wiederherstellung einmal neu; der
+  Testslot selbst blieb korrekt stumm.
 - [x] Einen pseudo-terminalen `ACTIVATE`-Debug-Node als Regelabschluss
   verwenden; nur durchgängig vom Auslöser bis `ACTIVATE` verbundene Regeln
   werden beim Deploy rückwärts geprüft und aktiviert.
@@ -541,9 +546,15 @@
 
 ## 7. Audio und Historienexport
 
-- [ ] Soundstatus je Zustand mit `Active` steuerbar machen; leerer oder
-  fehlender Soundpfad darf den Alarm nicht beeinflussen und soll als
-  Audiofehler im Server-Log sowie zusätzlich in der lokalen Historie erscheinen.
+- [x] Soundstatus mit `Active` steuerbar machen. `0.1.24` erhält ein verbundenes
+  `payload.sound.active: false` bis in die Policy und verhindert den Rückfall
+  auf den geerbten Zustandssound; isolierter Runtime-Slot live bestanden.
+- [x] Eine konfigurierte, aber nicht vorhandene Sounddatei beeinflusst den
+  autoritativen Alarm nicht und erzeugt begrenzte Audiofehler-, Circuit-
+  Breaker-, Systemnotification- und Historiennachweise; live seit `0.1.15`.
+- [ ] Semantik für einen ausdrücklich leeren Soundpfad festlegen: entweder als
+  `Active: false` behandeln oder als Konfigurationsfehler in Server-Log und
+  lokaler Historie melden. Kein stiller, unbeabsichtigter Fallback.
 - [ ] Eine Möglichkeit schaffen, die lokale Historie zu speichern bzw. zu
   exportieren.
 

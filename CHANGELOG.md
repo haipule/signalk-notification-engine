@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.24 - 2026-09-30
+
+- Preserve `payload.sound.active: false` from an activated Node-RED rule branch
+  through policy normalization, so a specific inactive sound rule suppresses
+  inherited state audio instead of silently re-enabling it.
+- Validate the sound activation flag and regression-test extraction,
+  normalization, and inherited-state suppression.
+
 ## 0.1.23 - 2026-09-30
 
 - Label the selected-notification action buttons as well as showing their

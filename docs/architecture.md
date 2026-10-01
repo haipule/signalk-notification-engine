@@ -154,7 +154,10 @@ connected node. A chain ending at the `Activate` debug node becomes one policy;
 Matching policies are composed property by property from general to specific.
 A path-specific sound rule can therefore inherit visibility and history from a
 general state rule, while a longer fully satisfied condition chain overrides
-only the properties it explicitly defines.
+only the properties it explicitly defines. Sound activation is also a branch
+property: `payload.sound.active: false` remains attached to that branch and
+suppresses an inherited state sound without hiding or changing the Signal K
+notification.
 
 Runtime Node-RED validation has a fail-closed boundary. If a deployed
 configuration cannot be validated or restored, the plugin latches the error,

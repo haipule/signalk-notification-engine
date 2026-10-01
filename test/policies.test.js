@@ -35,6 +35,16 @@ test('resolves state sound by default and allows a specific override', () => {
   assert.equal(new PolicyResolver([{ match: { source: 'engine' }, audio: 'off' }], { alarm: 'alarm.wav' }).resolve({ path: 'notifications.engine', source: { label: 'engine' }, state: 'alarm' }).sound, null)
 })
 
+test('an inactive matching sound branch suppresses the inherited state sound', () => {
+  const resolver = new PolicyResolver([
+    { name: 'quiet anchor warning', match: { state: 'warn', path: 'notifications.navigation.anchor' }, audio: 'on', sound: { active: false } }
+  ], { warn: { active: true, file: 'warn.wav', mode: 'loop', repeatCount: 1 } })
+
+  const result = resolver.resolve({ state: 'warn', path: 'notifications.navigation.anchor' })
+  assert.equal(result.sound, 'warn.wav')
+  assert.deepEqual(result.soundConfig, { active: false, file: 'warn.wav', mode: 'loop', repeatCount: 1 })
+})
+
 test('allows an explicit policy to hide a known notification from the active view', () => {
   const resolver = new PolicyResolver([
     { name: 'Quiet diagnostic', match: { source: 'diagnostic-plugin' }, visible: false }

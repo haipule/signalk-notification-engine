@@ -103,6 +103,17 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.24` was deployed and verified on 2026-09-30. Version `0.1.23` is
+retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.23-20261001T003716Z`.
+The isolated `sound.active: false` Runtime-Slot test passed, the temporary
+Node-RED test branch was removed through a valid runtime deploy, and the
+original 192-node flow returned byte-for-byte with configuration ready. Final
+state was zero test slots, audio processes, retries, open breakers, and
+unresolved audio failures; Signal K and its health timer were active.
+
+### Previous 0.1.23 UI verification
+
 Version `0.1.23` was deployed and verified on 2026-09-30. The previous
 `0.1.22` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.22-20260930T234547Z`.

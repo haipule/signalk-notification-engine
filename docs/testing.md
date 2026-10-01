@@ -24,7 +24,9 @@
   code, signal, and notification lifecycle key for active and last playback.
 - Node-RED rule extraction: payload-state sources independent of node type,
   path/condition branch isolation, canonical supported states, rejection of
-  unknown states, and activation at `Activate`.
+  unknown states, activation at `Activate`, and preservation of an explicit
+  `payload.sound.active: false` through policy normalization. The inactive
+  branch must suppress, rather than fall back to, an inherited state sound.
 - WebApp table sorting: newest-first default, column A–Z/Z–A toggles, persisted
   sort selection, and segment-wise Signal K path grouping for the Notification
   column within each authoritative state hierarchy level.

@@ -2,7 +2,7 @@
 
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const { extractActiveRules, rulesMarkdown, validateRules } = require('../lib/flow-rules')
+const { extractActiveRules, normalizeFlowRules, rulesMarkdown, validateRules } = require('../lib/flow-rules')
 
 test('extracts only the connected rule ending at Activate', () => {
   const flow = [
@@ -34,6 +34,24 @@ test('extracts sound and loop settings from connected function nodes', () => {
     id: 'warn-1',
     match: { state: 'warn' },
     actions: { soundFile: '/home/pi/.signalk/sounds/1bells.wav', soundMode: 'loop' }
+  }])
+})
+
+test('preserves an explicit inactive sound branch through policy normalization', () => {
+  const flow = [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['inactive']] },
+    { id: 'inactive', type: 'change', rules: [{ t: 'set', p: 'payload.sound.active', pt: 'msg', to: 'false', tot: 'bool' }], wires: [['activate']] },
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  const extracted = extractActiveRules(flow)
+  assert.deepEqual(extracted, [{ id: 'warn-1', match: { state: 'warn' }, actions: { sound: { active: false } } }])
+  assert.deepEqual(normalizeFlowRules(extracted), [{
+    name: 'warn-1',
+    state: 'warn',
+    match: { state: 'warn', path: undefined },
+    audio: 'on',
+    sound: { active: false, mode: 'once', repeatCount: 1 }
   }])
 })
 

@@ -21,7 +21,7 @@ const Diagnostics = require('./lib/diagnostics')
 const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
-const { rulesMarkdown } = require('./lib/flow-rules')
+const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
@@ -1065,40 +1065,6 @@ module.exports = function createPlugin(app) {
           }
         }))
       : []
-  }
-
-  function normalizeFlowRules(rules) {
-    const ordered = Array.isArray(rules) ? [...rules].sort((left, right) => ruleSpecificity(right) - ruleSpecificity(left)) : []
-    return ordered.map(rule => {
-      const hasSound = Boolean(rule.actions?.sound || rule.actions?.soundFile)
-      const ignored = rule.actions?.ignore === true
-      const hasExplicitVisibility = typeof rule.actions?.visibleInTable === 'boolean'
-      const history = typeof rule.actions?.history === 'boolean'
-        ? rule.actions.history
-        : rule.actions?.visibleInTable === true ? true : undefined
-      return {
-      name: rule.id,
-      state: rule.match?.state,
-        match: { state: rule.match?.state, path: rule.match?.path, ...(rule.match?.conditions ? { conditions: rule.match.conditions } : {}) },
-      ...(ignored || hasSound ? { audio: ignored ? 'off' : 'on' } : {}),
-      ...(hasSound && !ignored ? { sound: { active: true, file: rule.actions.sound?.file || rule.actions.soundFile, mode: rule.actions.sound?.mode || rule.actions.soundMode || 'once', repeatCount: rule.actions.sound?.repeatCount || rule.actions.repeatCount || 1 } } : {}),
-        ...(ignored || hasExplicitVisibility ? { visible: !ignored && rule.actions?.visibleInTable !== false } : {}),
-        ...(typeof history === 'boolean' ? { history } : {})
-      }
-    })
-  }
-
-  function ruleSpecificity(rule) {
-    const match = rule?.match || {}
-    const conditionCount = Array.isArray(match.conditions) ? match.conditions.length : 0
-    const base = match.path && !match.path.includes('*')
-      ? 400
-      : match.path
-        ? 300
-        : 100
-    // Within one state/path scope, every additional satisfied condition makes
-    // the policy more specific and therefore overrides the shorter chain.
-    return base + conditionCount
   }
 
   function normalizeStateOrder(order, legacySortOrder, legacyVisibleStates) {
