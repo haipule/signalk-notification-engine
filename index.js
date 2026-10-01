@@ -11,6 +11,7 @@ const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const { fromDataModel, mergeSnapshots } = require('./lib/notification-snapshot')
 const { normalizeSource } = require('./lib/notification-source')
 const AudioPlayer = require('./lib/audio-player')
+const AudioPlaybackRegistry = require('./lib/audio-playback-registry')
 const { AudioCircuitBreaker } = require('./lib/audio-circuit-breaker')
 const AudioCircuitRepository = require('./lib/audio-circuit-repository')
 const { AudioSystemNotification, AUDIO_SYSTEM_PATH } = require('./lib/audio-system-notification')
@@ -66,7 +67,7 @@ module.exports = function createPlugin(app) {
   let testTonePath = path.join(__dirname, 'sounds', 'test.wav')
   const audioTimers = new Map()
   const audioAttempts = new Map()
-  const audioSignatures = new Map()
+  const audioPlaybackRegistry = new AudioPlaybackRegistry()
   const silencedAudio = new Map()
   const store = new NotificationStore({
     classify: notification => configuredClassifier(notification),
@@ -474,7 +475,7 @@ module.exports = function createPlugin(app) {
       for (const timer of audioTimers.values()) clearInterval(timer)
       audioTimers.clear()
       audioAttempts.clear()
-      audioSignatures.clear()
+      audioPlaybackRegistry.clear()
       silencedAudio.clear()
       audioPlayer.stop()
       audioSelfTest.stop()
@@ -996,7 +997,7 @@ module.exports = function createPlugin(app) {
     for (const timer of audioTimers.values()) clearTimeout(timer)
     audioTimers.clear()
     audioAttempts.clear()
-    audioSignatures.clear()
+    audioPlaybackRegistry.clear()
     audioPlayer.stop()
     stopSubscriptions()
     stopSnapshotSync()
@@ -1124,13 +1125,13 @@ module.exports = function createPlugin(app) {
     const mode = ['once', 'repeat', 'loop'].includes(config.mode) ? config.mode : 'once'
     const repeatCount = Math.max(1, Number(config.repeatCount) || 1)
     const signature = `${file}|${mode}|${repeatCount}`
-    if (audioSignatures.get(key) === signature) return
+    if (audioPlaybackRegistry.current(key) === signature) return
     stopNotificationAudio(key)
     audioCircuitBreaker.adopt(notification)
-    audioSignatures.set(key, signature)
+    audioPlaybackRegistry.begin(key, signature)
     let played = 0
     const play = () => {
-      if (audioSignatures.get(key) !== signature) return
+      if (!audioPlaybackRegistry.isCurrent(key, signature)) return
       const permission = audioCircuitBreaker.beginAttempt(notification)
       if (!permission.allowed) {
         const delay = Math.max(0, Number(permission.retryAt || Date.now()) - Date.now())
@@ -1139,13 +1140,16 @@ module.exports = function createPlugin(app) {
       }
       played += 1
       audioPlayer.play(path.resolve(__dirname, file), key, result => {
-        if (audioSignatures.get(key) !== signature) return
+        if (!audioPlaybackRegistry.isCurrent(key, signature)) return
         if (result?.ok) {
           audioSystemNotification.recordSuccess(notification)
           audioCircuitBreaker.recordSuccess(notification)
           if (mode === 'loop' || played < repeatCount) play()
           else {
-            audioSignatures.delete(key)
+            // Keep the completed finite signature until this occurrence ends
+            // or its sound configuration changes. Snapshot/condition refreshes
+            // must not replay an unchanged once/repeat sound.
+            audioPlaybackRegistry.complete(key, signature)
             audioAttempts.delete(key)
           }
           return
@@ -1183,7 +1187,7 @@ module.exports = function createPlugin(app) {
     if (timer) clearTimeout(timer)
     audioTimers.delete(key)
     audioAttempts.delete(key)
-    audioSignatures.delete(key)
+    audioPlaybackRegistry.end(key)
     audioPlayer.stopKey(key)
   }
 

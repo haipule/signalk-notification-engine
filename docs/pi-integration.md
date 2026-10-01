@@ -103,14 +103,26 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.25` was deployed and verified on 2026-09-30. Version `0.1.24` is
+retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.24-20261001T005132Z`.
+Startup reconstruction played the existing real GNSS warning once. Its
+completed result remained PID 2537577 while Diagnostics advanced through
+multiple snapshots and from 10 to 43 received deltas, proving that unchanged
+finite playback was not restarted. Final state was zero active audio
+processes, retries, open breakers, or unresolved audio failures. Source/live
+hashes for `package.json`, `index.js`, and `lib/audio-playback-registry.js`
+matched; Node-RED configuration and runtime deploy events were ready, and
+Signal K plus `signalk-health.timer` were active with zero service restarts.
+
+### Previous 0.1.24 inactive-sound verification
+
 Version `0.1.24` was deployed and verified on 2026-09-30. Version `0.1.23` is
 retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.23-20261001T003716Z`.
 The isolated `sound.active: false` Runtime-Slot test passed, the temporary
 Node-RED test branch was removed through a valid runtime deploy, and the
-original 192-node flow returned byte-for-byte with configuration ready. Final
-state was zero test slots, audio processes, retries, open breakers, and
-unresolved audio failures; Signal K and its health timer were active.
+original 192-node flow returned byte-for-byte with configuration ready.
 
 ### Previous 0.1.23 UI verification
 

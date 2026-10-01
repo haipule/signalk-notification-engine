@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.25 - 2026-09-30
+
+- Retain a completed `once` or finite `repeat` sound signature for the active
+  notification occurrence. Snapshot and condition refreshes no longer replay
+  an unchanged finite sound; lifecycle end, Silence, or a changed sound
+  configuration still permits the appropriate later playback.
+
 ## 0.1.24 - 2026-09-30
 
 - Preserve `payload.sound.active: false` from an activated Node-RED rule branch

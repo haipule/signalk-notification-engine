@@ -45,6 +45,13 @@ the device or emits sound. It therefore cannot prove the amplifier, speaker,
 volume, or audible signal; that remains the responsibility of an explicit
 operator-initiated test.
 
+Finite audio is deduplicated by local notification occurrence plus the exact
+sound file, mode, and repeat count. A successful `once` or finite `repeat`
+keeps that signature until the occurrence ends, is silenced, or receives a
+different sound configuration. Routine snapshot and condition refreshes must
+not replay it. This registry is local playback state and never changes the
+authoritative Signal K notification.
+
 ### Agreed audio circuit-breaker boundary
 
 The following safety rule was agreed on 2026-09-28 and implemented in 0.1.14.

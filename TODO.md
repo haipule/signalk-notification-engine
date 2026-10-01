@@ -414,11 +414,13 @@
   anzeigt.
 - [ ] Im Config-Flow die Sound-Eigenschaften `once`, `repeat` und `loop` als
   eigene Nodes unterstützen.
-- [ ] Unveränderte aktive Notifications bei einem gültigen Runtime-Deploy nicht
-  unnötig erneut abspielen. Beim isolierten `sound.active: false`-Test mit
-  `0.1.24` spielte der bereits aktive reale GNSS-Warn-Occurrence sowohl beim
-  Test-Deploy als auch bei der bytegleichen Wiederherstellung einmal neu; der
-  Testslot selbst blieb korrekt stumm.
+- [x] Version `0.1.25`: Unveränderte aktive Notifications werden nach einer
+  abgeschlossenen `once`- oder endlichen `repeat`-Wiedergabe nicht bei jeder
+  erneuten Snapshot-, Delta- oder Bedingungsauswertung abgespielt. Die
+  abgeschlossene Sound-Signatur bleibt bis zum Lifecycle-Ende, `Silence` oder
+  einer geänderten Soundkonfiguration erhalten. Live blieb der Startton des
+  realen GNSS-Warn-Occurrence trotz 43 Deltas und mehrerer Snapshots exakt bei
+  PID 2537577; danach liefen weder ein Audioprozess noch ein Retry.
 - [x] Einen pseudo-terminalen `ACTIVATE`-Debug-Node als Regelabschluss
   verwenden; nur durchgängig vom Auslöser bis `ACTIVATE` verbundene Regeln
   werden beim Deploy rückwärts geprüft und aktiviert.
