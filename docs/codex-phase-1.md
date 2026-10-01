@@ -1,6 +1,9 @@
+Dieses Dokument ist der historische Phase-1-Auftrag. Der daraus entstandene
+aktuelle Projekt- und Paketname ist `signalk-notification-engine`.
+
 Du arbeitest im lokalen Git-Repository:
 
-`~/projects/signalk-notification-manager`
+`~/projects/notification-engine`
 
 ## Projektziel
 
@@ -140,7 +143,7 @@ Der Notification Manager soll jedoch langfristig die zentrale Instanz für Notif
 Zielstruktur ungefähr:
 
 ```text
-signalk-notification-manager/
+signalk-notification-engine/
 ├── AGENTS.md
 ├── README.md
 ├── package.json

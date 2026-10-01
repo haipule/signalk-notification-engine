@@ -336,14 +336,16 @@
 
 ### Prio 5 – Dokumentation und Release-Basis
 
-- [ ] Namen, Routen und Datenpfade von `signalk-notification-manager` auf
+- [x] Namen, Routen und Datenpfade von `signalk-notification-manager` auf
   `signalk-notification-engine` vereinheitlichen und die dokumentierte Version
-  aktualisieren.
-- [ ] Ausschließlich die eingebettete Signal-K-Node-RED-Instanz und deren
-  gültigen Flow-Pfad dokumentieren; die separate `/home/pi/.node-red`-Instanz
-  aus den Arbeitsanweisungen entfernen.
-- [ ] Changelog konsolidieren sowie Paketarchive und `work/` bewusst ignorieren
-  oder als Entwicklungsabhängigkeiten dokumentieren.
+  aktualisieren. Historische Phase-1-Bezeichnungen sind ausdrücklich als
+  solche gekennzeichnet.
+- [x] Ausschließlich die eingebettete Signal-K-Node-RED-Instanz und deren
+  gültigen Flow-Pfad dokumentieren; die separate Instanz bleibt nur als
+  ausdrücklich verbotene Abgrenzung in den Sicherheitsregeln erwähnt.
+- [x] Changelog konsolidieren sowie generierte Paketarchive und `work/` über
+  `.gitignore` aus der Versionsverwaltung ausschließen. Das zuvor getrackte
+  Paket `0.1.3` bleibt lokal erhalten, wird aber aus Git entfernt.
 - [ ] Git-Remote, Release-Tags und unabhängige CI-Prüfungen einrichten, bevor
   das Paket öffentlich veröffentlicht wird.
 
@@ -431,7 +433,7 @@
 
 ## 3. End-to-end validation
 
-- [ ] Source-Verlust bei bestehenden Signal-K-Notifications reproduzieren und
+- [x] Source-Verlust bei bestehenden Signal-K-Notifications reproduzieren und
   beheben. Beispiel: `notifications.propulsion.stbdEngine.exhaustTemperature`
   mit Notification-ID `2ff367b5-4465-456b-9402-3ca7d8948aed` wird im Signal-K-
   Datenmodell mit `$source: self.notificationhandler` geliefert, erscheint im
@@ -440,6 +442,8 @@
   beim Zusammenführen von `app.notifications.list()` nicht verloren gehen.
   Akzeptanzkriterium: Das Centre zeigt für diesen Pfad dauerhaft
   `self.notificationhandler` und die Historie verwendet dieselbe Quelle.
+  In `0.1.9` repariert, mit Snapshot-/Delta-Regressionstests abgesichert und
+  live mit den wiederhergestellten Engine-Monitor-Quellen bestätigt.
 
 - Live-Aktualisierung praktisch testen; die Ansicht sollte Zustandswechsel
   innerhalb des 5-Sekunden-Intervalls übernehmen.

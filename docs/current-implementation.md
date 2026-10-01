@@ -8,7 +8,7 @@
   model subtree when the managed list is temporarily empty. It also receives
   subsequent `notifications.*` deltas through Signal K's supported
   subscription manager.
-- The WebApp is served from `/signalk-notification-manager/` and reads active
+- The WebApp is served from `/signalk-notification-engine/` and reads active
   notifications and a bounded local audit history from plugin routes.
 - `silence`, `acknowledge`, and `clear` are requested only via the Signal K
   Notification API after server-side capability checks.
@@ -26,8 +26,8 @@
 
 | Method | Route | Access | Purpose |
 |---|---|---|---|
-| GET | `/plugins/signalk-notification-manager/notifications` | readonly | Active reconstructed notifications and effective policy. |
-| GET | `/plugins/signalk-notification-manager/history` | readonly | Bounded persistent local audit history (500 entries by default). |
+| GET | `/plugins/signalk-notification-engine/notifications` | readonly | Active reconstructed notifications and effective policy. |
+| GET | `/plugins/signalk-notification-engine/history` | readonly | Bounded persistent local audit history (500 entries by default). |
 | GET | `/plugins/signalk-notification-engine/diagnostics` | readonly | Snapshot/delta timings, Node-RED configuration, audio process/result, and local-history persistence health. |
 | POST | `/plugins/signalk-notification-engine/audio-test/start` | readwrite | Start one bounded audible maintenance tone and open the 15-second feedback window after technical success. |
 | POST | `/plugins/signalk-notification-engine/audio-test/not-heard` | readwrite | Record explicit inaudible feedback while that feedback window is open. |
@@ -35,7 +35,7 @@
 | POST | `/plugins/signalk-notification-engine/runtime-tests/{slot}` | readwrite | Raise a bounded simulated notification in a fixed plugin-owned path. |
 | PATCH | `/plugins/signalk-notification-engine/runtime-tests/{slot}` | readwrite | Change the state/message of that owned simulated notification. |
 | DELETE | `/plugins/signalk-notification-engine/runtime-tests/{slot}` | readwrite | Clear that owned simulated notification. |
-| POST | `/plugins/signalk-notification-manager/notifications/{id}/{action}` | readwrite | Allowed `silence`, `acknowledge`, or `clear`. |
+| POST | `/plugins/signalk-notification-engine/notifications/{id}/{action}` | readwrite | Allowed `silence`, `acknowledge`, or `clear`. |
 
 ## Deliberate limitations
 

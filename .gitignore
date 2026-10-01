@@ -1,0 +1,4 @@
+# Locally generated npm packages and exploratory worktrees are not source.
+signalk-notification-engine-*.tgz
+work/
+
