@@ -112,3 +112,10 @@ reported no active processes, retries, open breakers, or unresolved failures,
 and the source/live hashes of the changed package and WebApp files matched.
 `signalk.service` and `signalk-health.timer` were active again, while the
 external `nodered.service` remained inactive.
+
+The same deployed WebApp was then inspected live in Chrome on Tab 3 at
+`192.168.100.18`. It loaded the `0.1.23` cache keys with no health banner. The
+visible Silence, Acknowledge, and Clear controls measured 76 × 60 CSS pixels;
+the labelled local-history Delete control measured 101 × 54 CSS pixels. The
+detail and history windows were visually checked without invoking a
+notification action or deleting an audit entry.

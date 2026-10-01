@@ -529,9 +529,11 @@
   Historie ausblenden.
 - [x] Buttons im Infofenster und für „Delete this history“ deutlich auffälliger
   gestalten.
-- [ ] Passende, verständliche Piktogramme und sichtbare Beschriftungen für
-  `Silence`, `Acknowledge`, `Clear` und „Delete this history“ sind umgesetzt;
-  die abschließende Touch-Bedienungsprüfung auf Tab 3 steht noch aus.
+- [x] Passende, verständliche Piktogramme und sichtbare Beschriftungen für
+  `Silence`, `Acknowledge`, `Clear` und „Delete this history“ umsetzen und auf
+  Tab 3 prüfen. Live mit `0.1.23` geprüft: Einzelaktionen jeweils 76 × 60 CSS-
+  Pixel, History-Löschung 101 × 54 CSS-Pixel, ohne Überdeckung oder ausgelöste
+  Notification-/Löschaktion.
 
 ## 7. Audio und Historienexport
 
