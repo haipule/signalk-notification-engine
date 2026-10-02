@@ -419,6 +419,26 @@
   aktive Soundregeln mit `count: 0`; die serverseitige Regelansicht und die
   effektiven Policies verwenden ausschließlich `count`. Alte Felder bleiben
   vorübergehend über einen konfliktprüfenden Migrationsadapter lesbar.
+- [x] Version `0.1.28`: Optionales `payload.sound.pauseSeconds` als ganze Zahl
+  von `0` bis `5` umgesetzt. Die Pause liegt ausschließlich zwischen zwei
+  vollständig beendeten Wiedergaben; fehlend oder `0` bedeutet keine
+  zusätzliche Pause. Andere Werte und Datentypen machen den Node-RED-Deploy
+  ungültig. Der isolierte Live-Test mit `count: 3` und `pauseSeconds: 2`
+  startete exakt die PIDs 2663871, 2663875 und 2663891. Zwischen dem Ende eines
+  Players und dem nächsten Start lagen 2.067 beziehungsweise 2.003 Sekunden;
+  danach waren Prozesse, Retries, Breaker und Audio-Systemfehler leer.
+- [x] Endliche Basisfälle live geprüft: `count: 1` erzeugte genau einen
+  erfolgreichen Playerprozess und keinen späteren Replay; der erste
+  `count: 3`-Versuch unter `0.1.26` deckte auf, dass nur ein Prozess startete.
+  Die nicht-reentrante Wiederholungsplanung in `0.1.27`/`0.1.28` ist durch den
+  anschließenden exakten Drei-Prozess-Test nachgewiesen.
+- [ ] Unerwünschten Replay einer bereits aktiven endlichen Notification nach
+  Wiederaufnahme aus einem ungültigen Node-RED-Deploy verhindern. Der
+  `pauseSeconds: 6`-Test wurde korrekt mit Konfigurationsfehler und
+  `audio.ready: false` abgelehnt; der gültige Recovery-Deploy wurde ohne
+  Signal-K-Neustart wieder `ready`, spielte dabei aber die unveränderte reale
+  GNSS-Warnung einmal erneut ab (PID 2664202). Signal-K-Zustand und fremde
+  Notification blieben unangetastet.
 - [x] Version `0.1.25`: Unveränderte aktive Notifications werden nach einer
   abgeschlossenen `once`- oder endlichen `repeat`-Wiedergabe nicht bei jeder
   erneuten Snapshot-, Delta- oder Bedingungsauswertung abgespielt. Die

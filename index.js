@@ -12,6 +12,7 @@ const { fromDataModel, mergeSnapshots } = require('./lib/notification-snapshot')
 const { normalizeSource } = require('./lib/notification-source')
 const AudioPlayer = require('./lib/audio-player')
 const AudioPlaybackRegistry = require('./lib/audio-playback-registry')
+const AudioRepeatPlan = require('./lib/audio-repeat-plan')
 const { AudioCircuitBreaker } = require('./lib/audio-circuit-breaker')
 const AudioCircuitRepository = require('./lib/audio-circuit-repository')
 const { AudioSystemNotification, AUDIO_SYSTEM_PATH } = require('./lib/audio-system-notification')
@@ -23,7 +24,7 @@ const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
-const { normalizeSoundConfig } = require('./lib/sound-config')
+const { normalizeSoundConfig, resolveSoundPauseSeconds } = require('./lib/sound-config')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
@@ -1121,12 +1122,13 @@ module.exports = function createPlugin(app) {
     const file = config.file
     if (!file) return
     const count = Number.isInteger(config.count) && config.count >= 0 && config.count <= 99 ? config.count : 1
-    const signature = `${file}|${count}`
+    const pauseSeconds = resolveSoundPauseSeconds(config)
+    const signature = `${file}|${count}|${pauseSeconds}`
     if (audioPlaybackRegistry.current(key) === signature) return
     stopNotificationAudio(key)
     audioCircuitBreaker.adopt(notification)
     audioPlaybackRegistry.begin(key, signature)
-    let played = 0
+    const repeatPlan = new AudioRepeatPlan(count, pauseSeconds)
     const play = () => {
       if (!audioPlaybackRegistry.isCurrent(key, signature)) return
       const permission = audioCircuitBreaker.beginAttempt(notification)
@@ -1135,13 +1137,20 @@ module.exports = function createPlugin(app) {
         scheduleAudioAttempt(key, delay)
         return
       }
-      played += 1
+      repeatPlan.startAttempt()
       audioPlayer.play(path.resolve(__dirname, file), key, result => {
         if (!audioPlaybackRegistry.isCurrent(key, signature)) return
         if (result?.ok) {
           audioSystemNotification.recordSuccess(notification)
           audioCircuitBreaker.recordSuccess(notification)
-          if (count === 0 || played < count) play()
+          const nextDelayMs = repeatPlan.nextDelayMs()
+          if (nextDelayMs !== null) {
+            // Do not start a new ALSA process re-entrantly from the previous
+            // ChildProcess close event. Let Node finish releasing the process
+            // and its device handles before the next exact-count attempt.
+            if (nextDelayMs > 0) scheduleAudioAttempt(key, nextDelayMs)
+            else setImmediate(play)
+          }
           else {
             // Keep the completed finite signature until this occurrence ends
             // or its sound configuration changes. Snapshot/condition refreshes

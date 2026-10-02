@@ -3,12 +3,22 @@
 const assert = require('node:assert/strict')
 const test = require('node:test')
 
-const { normalizeSoundConfig, resolveSoundCount } = require('../lib/sound-config')
+const { normalizeSoundConfig, resolveSoundCount, resolveSoundPauseSeconds } = require('../lib/sound-config')
 
 test('uses count as the canonical playback model', () => {
   assert.deepEqual(normalizeSoundConfig({ active: true, file: 'alarm.wav', count: 0 }), { active: true, file: 'alarm.wav', count: 0 })
   assert.deepEqual(normalizeSoundConfig({ file: 'warn.wav', count: 1 }), { file: 'warn.wav', count: 1 })
   assert.deepEqual(normalizeSoundConfig({ file: 'alert.wav', count: 99 }), { file: 'alert.wav', count: 99 })
+})
+
+test('accepts only an explicit integer pause from zero through five seconds', () => {
+  assert.equal(resolveSoundPauseSeconds({}), 0)
+  assert.equal(resolveSoundPauseSeconds({ pauseSeconds: 0 }), 0)
+  assert.equal(resolveSoundPauseSeconds({ pauseSeconds: 5 }), 5)
+  assert.deepEqual(normalizeSoundConfig({ file: 'speech.wav', count: 3, pauseSeconds: 2 }), { file: 'speech.wav', count: 3, pauseSeconds: 2 })
+  for (const pauseSeconds of [-1, 1.5, 6, '3', null]) {
+    assert.throws(() => resolveSoundPauseSeconds({ pauseSeconds }), /integer from 0 to 5/)
+  }
 })
 
 test('translates legacy once repeat and loop values', () => {

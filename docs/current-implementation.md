@@ -53,6 +53,8 @@
   link to that configuration screen.
 - Audio uses the configured player and device. State sounds use playback count
   `0` for loop, `1` for once, and `2` through `99` for an exact finite count;
+  optional `pauseSeconds` adds a validated `0` through `5` second delay only
+  between complete plays, while a missing value remains zero;
   each notification lifecycle has an independent playback process, and
   `silence` stops only that lifecycle's audio. Legacy `mode`/`repeatCount`
   input remains readable during the migration.

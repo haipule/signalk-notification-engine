@@ -55,8 +55,12 @@ configured in `lifecycle-rules.json`.
 The WebApp supports permitted per-notification actions, global silence and
 acknowledge actions, history inspection, and confirmed local-history cleanup.
 Audio uses one playback count: `0` loops, `1` plays once, and `2` through `99`
-play exactly that many times. Existing `once`/`repeat`/`loop` flow fields are
-accepted through a migration adapter. The disabled embedded Node-RED `Audio Alarms` legacy tab is
+play exactly that many times. Optional `payload.sound.pauseSeconds` accepts
+only whole seconds from `0` through `5` and delays playback only between
+complete plays; a missing value behaves like `0`. Values outside that range
+and values of another type reject the deployed rule. Existing
+`once`/`repeat`/`loop` flow fields are accepted through a migration adapter.
+The disabled embedded Node-RED `Audio Alarms` legacy tab is
 retained for rollback, while the plugin is the only active rule-based
 notification audio path. The WebApp also provides an authenticated, bounded `Alarmton testen`
 maintenance action. Its configured test-tone file is played once; a successful

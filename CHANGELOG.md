@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.28 - 2026-10-01
+
+- Add optional `payload.sound.pauseSeconds` for a zero-to-five-second delay
+  between complete finite or looping sound plays. Missing or zero keeps the
+  existing no-delay behaviour.
+- Reject a deployed rule when `pauseSeconds` is not an integer from zero
+  through five instead of coercing or clamping it.
+
+## 0.1.27 - 2026-10-01
+
+- Start the next finite or looping audio process only after the previous
+  child-process close event has fully unwound. Exact playback counts no longer
+  depend on a re-entrant player start.
+- Track and unit-test finite playback progress independently from the
+  completed-signature registry.
+
 ## 0.1.26 - 2026-09-30
 
 - Replace the internal sound mode/repeat-count pair with one canonical

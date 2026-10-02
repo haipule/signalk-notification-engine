@@ -28,3 +28,9 @@ Loop, `1` einmalige Wiedergabe und `2` bis `99` die exakte Anzahl. Der Server
 liest während der Migration weiterhin die alten Felder `payload.sound.mode`
 und `payload.sound.repeatCount`; neue oder umgebaute Flows sollen nur noch
 `payload.sound.count` erzeugen.
+
+Optional setzt `payload.sound.pauseSeconds` eine Pause ausschließlich zwischen
+vollständig beendeten Wiedergaben. Erlaubt sind ganze Zahlen von `0` bis `5`;
+das fehlende Feld und `0` bedeuten keine zusätzliche Pause. Jeder andere Wert
+macht die deployte Regel ungültig, damit der Server sie nicht stillschweigend
+korrigiert oder begrenzt.

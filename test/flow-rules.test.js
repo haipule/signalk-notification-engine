@@ -80,7 +80,7 @@ test('path-specific sound overrides a general state sound', () => {
 test('extracts canonical sound counts without mixing independent branches', () => {
   const flow = [
     { id: 'warn', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['finite'], ['loop']] },
-    { id: 'finite', type: 'change', rules: [{ t: 'set', p: 'payload.soundFile', pt: 'msg', to: 'finite.wav', tot: 'str' }, { t: 'set', p: 'payload.sound.count', pt: 'msg', to: '3', tot: 'num' }], wires: [['activate']] },
+    { id: 'finite', type: 'change', rules: [{ t: 'set', p: 'payload.soundFile', pt: 'msg', to: 'finite.wav', tot: 'str' }, { t: 'set', p: 'payload.sound.count', pt: 'msg', to: '3', tot: 'num' }, { t: 'set', p: 'payload.sound.pauseSeconds', pt: 'msg', to: '2', tot: 'num' }], wires: [['activate']] },
     { id: 'loop', type: 'change', rules: [{ t: 'set', p: 'payload.match.path', pt: 'msg', to: 'notifications.loop', tot: 'str' }, { t: 'set', p: 'payload.soundFile', pt: 'msg', to: 'loop.wav', tot: 'str' }, { t: 'set', p: 'payload.sound.count', pt: 'msg', to: '0', tot: 'num' }], wires: [['activate']] },
     { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] }
   ]
@@ -88,7 +88,7 @@ test('extracts canonical sound counts without mixing independent branches', () =
   const rules = validateRules(extractActiveRules(flow))
   assert.deepEqual(normalizeFlowRules(rules).map(rule => rule.sound), [
     { active: true, file: 'loop.wav', count: 0 },
-    { active: true, file: 'finite.wav', count: 3 }
+    { active: true, file: 'finite.wav', count: 3, pauseSeconds: 2 }
   ])
 })
 
@@ -96,6 +96,17 @@ test('rejects invalid and conflicting canonical sound counts', () => {
   const base = { id: 'warn-1', match: { state: 'warn' }, actions: { soundFile: 'warn.wav', sound: { count: 100 } } }
   assert.throws(() => validateRules([base]), /integer from 0 to 99/)
   assert.throws(() => validateRules([{ ...base, actions: { ...base.actions, sound: { count: 0, mode: 'once' } } }]), /conflicts/)
+  assert.throws(() => validateRules([{ ...base, actions: { ...base.actions, sound: { count: 3, pauseSeconds: 6 } } }]), /integer from 0 to 5/)
+})
+
+test('rejects an invalid pauseSeconds literal from a function node', () => {
+  const flow = [
+    { id: 'warn', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['sound']] },
+    { id: 'sound', type: 'function', func: 'msg.payload.soundFile = "speech.wav"; msg.payload.sound.count = 3; msg.payload.sound.pauseSeconds = "3"; return msg;', wires: [['activate']] },
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  assert.throws(() => validateRules(extractActiveRules(flow)), /integer from 0 to 5/)
 })
 
 test('uses payload.state from an inject node without depending on its type', () => {

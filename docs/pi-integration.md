@@ -103,6 +103,31 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.28` was deployed and verified on 2026-10-01. Version `0.1.27` is
+retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.27-20261002T005405Z.tgz`
+and as the recoverable live directory ending in
+`signalk-notification-engine-0.1.27-live-20261002T005405Z`. The user-edited
+192-node flow containing the disconnected builder example for
+`payload.sound.pauseSeconds: 3` is retained at
+`/home/pi/.signalk/red/notification-engine-backups/pause-seconds-user-flow-20261002T005405Z.json`
+with SHA-256
+`8f00ebf0d1c78858d3f52b425fc39110f6d04725848fac67f8292e740cbe65b5`.
+
+The isolated `count: 3`, `pauseSeconds: 2` live test started and successfully
+completed exactly three players. The measured end-to-next-start gaps were
+approximately two seconds. An invalid `pauseSeconds: 6` deploy correctly
+disabled processing and reported its validation error; the saved valid flow
+recovered through a second runtime deploy without restarting Signal K. That
+recovery replayed the unchanged active GNSS warning once and remains an open
+defect. Final state was configuration/audio ready with no test rules, runtime
+slots, processes, retries, open breakers, or unresolved failures. Signal K and
+the health timer were active with zero service restarts; external
+`nodered.service` remained inactive. Source/live hashes for the changed plugin
+files matched.
+
+### Previous 0.1.26 sound-count deployment
+
 Version `0.1.26` was deployed and verified on 2026-09-30. Version `0.1.25` is
 retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.25-20261001T011500Z.tgz`.
