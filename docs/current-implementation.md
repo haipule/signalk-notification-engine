@@ -69,6 +69,10 @@
 - The Plugin Config also controls the combined state visibility/sort order, info-window auto-close
   timeout, and the `i`/`h` keyboard shortcuts. A zero timeout keeps the info
   window open until it is closed manually.
+- The WebApp polls every five seconds, permits a bounded twelve-second
+  notification response, and marks the view stale after fifteen seconds
+  without success. Native browser offline events still lock actions
+  immediately; connectivity presentation never changes Signal K state.
 - History records now include `firstSeenAt` and a `historyKey` composed from
   path and source, so changing technical notification IDs can still be
   correlated in later history views.

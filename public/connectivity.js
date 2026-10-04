@@ -5,6 +5,9 @@
   if (typeof module === 'object' && module.exports) module.exports = api
   else root.NotificationConnectivity = api
 })(typeof globalThis === 'object' ? globalThis : this, () => {
+  const DEFAULT_FETCH_TIMEOUT_MS = 12000
+  const DEFAULT_STALE_AFTER_MS = 15000
+
   /**
    * Fetch and decode one JSON response with a bounded deadline.
    *
@@ -18,7 +21,7 @@
    */
   async function fetchJsonWithTimeout(url, options = {}) {
     const fetchFn = options.fetchFn || fetch
-    const timeoutMs = options.timeoutMs || 6000
+    const timeoutMs = options.timeoutMs || DEFAULT_FETCH_TIMEOUT_MS
     const AbortControllerClass = options.AbortControllerClass || AbortController
     const setTimer = options.setTimer || setTimeout
     const clearTimer = options.clearTimer || clearTimeout
@@ -79,11 +82,11 @@
    * @param {boolean} refreshInProgress Whether a bounded refresh is running.
    * @returns {boolean} Whether the displayed snapshot must be treated as stale.
    */
-  function isRefreshStale(lastSuccessMs, nowMs, startedMs, staleAfterMs = 8000, refreshInProgress = false) {
+  function isRefreshStale(lastSuccessMs, nowMs, startedMs, staleAfterMs = DEFAULT_STALE_AFTER_MS, refreshInProgress = false) {
     if (refreshInProgress) return false
     const reference = Number.isFinite(lastSuccessMs) ? lastSuccessMs : startedMs
     return nowMs - reference >= staleAfterMs
   }
 
-  return { createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale }
+  return { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale }
 })

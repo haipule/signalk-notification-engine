@@ -2,7 +2,12 @@
 
 const assert = require('node:assert/strict')
 const test = require('node:test')
-const { createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = require('../public/connectivity')
+const { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = require('../public/connectivity')
+
+test('uses Pi-tolerant connectivity deadlines', () => {
+  assert.equal(DEFAULT_FETCH_TIMEOUT_MS, 12000)
+  assert.equal(DEFAULT_STALE_AFTER_MS, 15000)
+})
 
 test('aborts an unreachable poll at the configured deadline', async () => {
   let aborted = false
@@ -54,9 +59,9 @@ test('serializes overlapping polls and runs one pending refresh', async () => {
 })
 
 test('marks a never-loaded or old snapshot stale after the deadline', () => {
-  assert.equal(isRefreshStale(null, 7999, 0), false)
-  assert.equal(isRefreshStale(null, 8000, 0), true)
-  assert.equal(isRefreshStale(5000, 12999, 0), false)
-  assert.equal(isRefreshStale(5000, 13000, 0), true)
-  assert.equal(isRefreshStale(5000, 20000, 0, 8000, true), false)
+  assert.equal(isRefreshStale(null, 14999, 0), false)
+  assert.equal(isRefreshStale(null, 15000, 0), true)
+  assert.equal(isRefreshStale(5000, 19999, 0), false)
+  assert.equal(isRefreshStale(5000, 20000, 0), true)
+  assert.equal(isRefreshStale(5000, 25000, 0, 15000, true), false)
 })

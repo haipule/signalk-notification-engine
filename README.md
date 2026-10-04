@@ -69,6 +69,12 @@ no counter-report the result is only technically played, never proven audible.
 Full automatic amplifier/loudspeaker verification requires hardware loopback
 or a microphone.
 
+The Alarm Centre polls every five seconds. A notification request may take up
+to twelve seconds and the displayed snapshot becomes stale after fifteen
+seconds without a successful refresh. A browser-reported offline event still
+disables actions immediately; these presentation limits never alter Signal K
+notification state or server-side audio.
+
 ## Documentation
 
 - [Phase-1 brief](docs/codex-phase-1.md)

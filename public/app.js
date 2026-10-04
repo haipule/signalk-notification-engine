@@ -1,7 +1,7 @@
 'use strict'
 
 const pluginApi = '/plugins/signalk-notification-engine'
-const { createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = window.NotificationConnectivity
+const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = window.NotificationConnectivity
 const { compareNotificationPaths } = window.NotificationTableSort
 const notificationContainer = document.querySelector('#notifications')
 const historyContainer = document.querySelector('#history')
@@ -816,6 +816,6 @@ updateGlobalActions()
 setInterval(scheduleRefresh, 5000)
 setInterval(() => {
   const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
-  if (isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, 8000, refreshInProgress)) markDisconnected()
+  if (isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS, refreshInProgress)) markDisconnected()
 }, 1000)
 setInterval(() => renderAudioTest(currentAudioTest), 1000)

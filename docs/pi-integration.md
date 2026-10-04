@@ -103,11 +103,11 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
-Version `0.1.28` was deployed and verified on 2026-10-01. Version `0.1.27` is
-retained at
-`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.27-20261002T005405Z.tgz`
+Version `0.1.29` was deployed and verified through 2026-10-04. Version `0.1.28`
+is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.28-20261002T011444Z.tgz`
 and as the recoverable live directory ending in
-`signalk-notification-engine-0.1.27-live-20261002T005405Z`. The user-edited
+`signalk-notification-engine-0.1.28-live-20261002T011444Z`. The user-edited
 192-node flow containing the disconnected builder example for
 `payload.sound.pauseSeconds: 3` is retained at
 `/home/pi/.signalk/red/notification-engine-backups/pause-seconds-user-flow-20261002T005405Z.json`
@@ -120,11 +120,19 @@ approximately two seconds. An invalid `pauseSeconds: 6` deploy correctly
 disabled processing and reported its validation error; the saved valid flow
 recovered through a second runtime deploy without restarting Signal K. That
 recovery replayed the unchanged active GNSS warning once and remains an open
-defect. Final state was configuration/audio ready with no test rules, runtime
-slots, processes, retries, open breakers, or unresolved failures. Signal K and
-the health timer were active with zero service restarts; external
-`nodered.service` remained inactive. Source/live hashes for the changed plugin
-files matched.
+defect.
+
+The `0.1.29` WebApp uses a twelve-second request deadline and a fifteen-second
+stale threshold after live samples showed a healthy response could take 8.551
+seconds. Tab 3 loaded the new threshold and remained connected over multiple
+poll cycles. A separate exact-path runtime test proved that Silence during a
+five-second pause after the first of three requested plays cancels both pending
+plays without changing the authoritative `warn` state. The original flow was
+restored byte-for-byte. Final state was configuration/audio ready with no test
+rules, runtime slots, processes, retries, open breakers, or unresolved
+failures. Signal K and the health timer were active with zero service restarts;
+external `nodered.service` remained inactive. Source/live hashes for the
+changed plugin files matched.
 
 ### Previous 0.1.26 sound-count deployment
 

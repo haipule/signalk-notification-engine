@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.29 - 2026-10-04
+
+- Increase the Alarm Centre notification request deadline from six to twelve
+  seconds and the stale threshold from eight to fifteen seconds. This avoids
+  false offline indications when a healthy Pi snapshot occasionally takes
+  longer than six seconds, while browser offline events still disable actions
+  immediately.
+
 ## 0.1.28 - 2026-10-01
 
 - Add optional `payload.sound.pauseSeconds` for a zero-to-five-second delay

@@ -427,6 +427,12 @@
   startete exakt die PIDs 2663871, 2663875 und 2663891. Zwischen dem Ende eines
   Players und dem nächsten Start lagen 2.067 beziehungsweise 2.003 Sekunden;
   danach waren Prozesse, Retries, Breaker und Audio-Systemfehler leer.
+- [x] `Silence` während einer Wiederholungspause live geprüft. Ein isolierter
+  Runtime-Slot mit `count: 3` und `pauseSeconds: 5` spielte genau einmal
+  (PID 3016128) und wurde 2.58 Sekunden nach Player-Ende stummgeschaltet.
+  Beide noch geplanten Wiedergaben entfielen; Signal K blieb autoritativ auf
+  `warn` und meldete ausschließlich `silenced: true`. Der Testslot wurde über
+  `normal` und DELETE beendet und der Benutzer-Flow bytegenau wiederhergestellt.
 - [x] Endliche Basisfälle live geprüft: `count: 1` erzeugte genau einen
   erfolgreichen Playerprozess und keinen späteren Replay; der erste
   `count: 3`-Versuch unter `0.1.26` deckte auf, dass nur ein Prozess startete.
@@ -449,6 +455,12 @@
 - [x] Einen pseudo-terminalen `ACTIVATE`-Debug-Node als Regelabschluss
   verwenden; nur durchgängig vom Auslöser bis `ACTIVATE` verbundene Regeln
   werden beim Deploy rückwärts geprüft und aktiviert.
+- [x] Version `0.1.29`: Falsche kurzzeitige `Not connected`-Anzeige bei
+  langsamen, aber erfolgreichen Pi-Antworten entschärft. Polling bleibt bei
+  fünf Sekunden; Request-Deadline und Stale-Grenze betragen nun zwölf
+  beziehungsweise fünfzehn Sekunden. Tab 3 lud die neue Grenze und blieb über
+  mehrere echte Poll-Zyklen ohne Verbindungsbanner; native Browser-Offline-
+  Ereignisse sperren Aktionen weiterhin sofort.
 
 ## 2. Presentation behaviour
 
