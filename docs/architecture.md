@@ -46,13 +46,19 @@ volume, or audible signal; that remains the responsibility of an explicit
 operator-initiated test.
 
 Finite audio is deduplicated by local notification occurrence plus the exact
-sound file, playback count, and inter-play pause. Count `0` is an unbounded
+resolved absolute sound file, playback count, and inter-play pause. Resolving
+the file before comparison prevents equivalent relative and absolute path
+spellings across configuration recovery from creating a false change. Count `0` is an unbounded
 loop, `1` is one play, and `2` through `99` are exact finite counts. Optional
 `pauseSeconds` is an integer from `0` through `5` and delays only the next play
 after a complete successful play; a missing value means no added delay. A successful finite playback
 keeps that signature until the occurrence ends, is silenced, or receives a
 different sound configuration. Routine snapshot and condition refreshes must
-not replay it. A migration adapter still reads the former
+not replay it. A fail-closed Node-RED configuration suspension cancels active
+players, loops, and pending repeats but retains completed finite signatures;
+recovery therefore resumes interrupted repeating audio without replaying an
+unchanged completed finite sound. A genuinely changed sound signature remains
+eligible for playback. A migration adapter still reads the former
 `mode`/`repeatCount` representation. This registry is local playback state and
 never changes the authoritative Signal K notification.
 

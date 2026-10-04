@@ -438,13 +438,14 @@
   `count: 3`-Versuch unter `0.1.26` deckte auf, dass nur ein Prozess startete.
   Die nicht-reentrante Wiederholungsplanung in `0.1.27`/`0.1.28` ist durch den
   anschließenden exakten Drei-Prozess-Test nachgewiesen.
-- [ ] Unerwünschten Replay einer bereits aktiven endlichen Notification nach
-  Wiederaufnahme aus einem ungültigen Node-RED-Deploy verhindern. Der
-  `pauseSeconds: 6`-Test wurde korrekt mit Konfigurationsfehler und
-  `audio.ready: false` abgelehnt; der gültige Recovery-Deploy wurde ohne
-  Signal-K-Neustart wieder `ready`, spielte dabei aber die unveränderte reale
-  GNSS-Warnung einmal erneut ab (PID 2664202). Signal-K-Zustand und fremde
-  Notification blieben unangetastet.
+- [x] Version `0.1.32`: Unerwünschten Replay einer bereits aktiven endlichen
+  Notification nach Wiederaufnahme aus einem ungültigen Node-RED-Deploy
+  verhindert. Ursache war derselbe Ton mit absolutem Pfad vor der Störung und
+  relativem Pfad nach Recovery; die Signatur verwendet nun immer den für den
+  Player aufgelösten absoluten Pfad. Im isolierten Live-Test blieb der letzte
+  Player nach gültig -> ungültig (`pauseSeconds: 6`) -> gültig unverändert PID
+  3020272. Auch die bestehende GNSS-Warnung spielte nicht erneut. Der Flow ist
+  bytegenau wiederhergestellt; Testslots, Prozesse und Retries sind leer.
 - [x] Version `0.1.25`: Unveränderte aktive Notifications werden nach einer
   abgeschlossenen `once`- oder endlichen `repeat`-Wiedergabe nicht bei jeder
   erneuten Snapshot-, Delta- oder Bedingungsauswertung abgespielt. Die

@@ -24,7 +24,7 @@ const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
-const { normalizeSoundConfig, resolveSoundPauseSeconds } = require('./lib/sound-config')
+const { createSoundSignature, normalizeSoundConfig, resolveSoundPauseSeconds } = require('./lib/sound-config')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
@@ -548,6 +548,7 @@ module.exports = function createPlugin(app) {
             activeProcesses: audioPlayer.activeProcessCount(),
             activeProcessDetails: audioPlayer.activeProcessDetails(),
             pendingRetries: audioTimers.size,
+            playbackRegistry: audioPlaybackRegistry.toJSON(),
             lastResult: audioPlayer.lastResult ? { ...audioPlayer.lastResult, error: audioPlayer.lastResult.error?.message || null } : null,
             watchdog: audioWatchdog.lastCheck,
             circuitBreaker: {
@@ -997,7 +998,10 @@ module.exports = function createPlugin(app) {
     for (const timer of audioTimers.values()) clearTimeout(timer)
     audioTimers.clear()
     audioAttempts.clear()
-    audioPlaybackRegistry.clear()
+    // Recovery is not a new notification occurrence. Retain only signatures
+    // that already completed so an unchanged finite sound is not replayed;
+    // interrupted loops and repeats must be eligible to resume after recovery.
+    audioPlaybackRegistry.retainCompleted()
     audioPlayer.stop()
     stopSubscriptions()
     stopSnapshotSync()
@@ -1123,7 +1127,8 @@ module.exports = function createPlugin(app) {
     if (!file) return
     const count = Number.isInteger(config.count) && config.count >= 0 && config.count <= 99 ? config.count : 1
     const pauseSeconds = resolveSoundPauseSeconds(config)
-    const signature = `${file}|${count}|${pauseSeconds}`
+    const resolvedFile = path.resolve(__dirname, file)
+    const signature = createSoundSignature(file, count, pauseSeconds, __dirname)
     if (audioPlaybackRegistry.current(key) === signature) return
     stopNotificationAudio(key)
     audioCircuitBreaker.adopt(notification)
@@ -1138,7 +1143,7 @@ module.exports = function createPlugin(app) {
         return
       }
       repeatPlan.startAttempt()
-      audioPlayer.play(path.resolve(__dirname, file), key, result => {
+      audioPlayer.play(resolvedFile, key, result => {
         if (!audioPlaybackRegistry.isCurrent(key, signature)) return
         if (result?.ok) {
           audioSystemNotification.recordSuccess(notification)

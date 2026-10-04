@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict')
 const test = require('node:test')
 
-const { normalizeSoundConfig, resolveSoundCount, resolveSoundPauseSeconds } = require('../lib/sound-config')
+const { createSoundSignature, normalizeSoundConfig, resolveSoundCount, resolveSoundPauseSeconds } = require('../lib/sound-config')
 
 test('uses count as the canonical playback model', () => {
   assert.deepEqual(normalizeSoundConfig({ active: true, file: 'alarm.wav', count: 0 }), { active: true, file: 'alarm.wav', count: 0 })
@@ -19,6 +19,15 @@ test('accepts only an explicit integer pause from zero through five seconds', ()
   for (const pauseSeconds of [-1, 1.5, 6, '3', null]) {
     assert.throws(() => resolveSoundPauseSeconds({ pauseSeconds }), /integer from 0 to 5/)
   }
+})
+
+test('uses one playback signature for relative and absolute spellings of a file', () => {
+  const base = '/opt/signalk/plugin'
+  const relative = createSoundSignature('sounds/warn.wav', 1, 0, base)
+  const absolute = createSoundSignature('/opt/signalk/plugin/sounds/warn.wav', 1, 0, base)
+
+  assert.equal(relative, absolute)
+  assert.notEqual(relative, createSoundSignature('sounds/warn.wav', 1, 2, base))
 })
 
 test('translates legacy once repeat and loop values', () => {

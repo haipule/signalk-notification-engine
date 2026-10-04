@@ -103,11 +103,11 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
-Version `0.1.29` was deployed and verified through 2026-10-04. Version `0.1.28`
+Version `0.1.32` was deployed and verified on 2026-10-04. Version `0.1.31`
 is retained at
-`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.28-20261002T011444Z.tgz`
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.31-20261004T233830Z.tgz`
 and as the recoverable live directory ending in
-`signalk-notification-engine-0.1.28-live-20261002T011444Z`. The user-edited
+`signalk-notification-engine-0.1.31-live-20261004T233830Z`. The user-edited
 192-node flow containing the disconnected builder example for
 `payload.sound.pauseSeconds: 3` is retained at
 `/home/pi/.signalk/red/notification-engine-backups/pause-seconds-user-flow-20261002T005405Z.json`
@@ -117,12 +117,14 @@ with SHA-256
 The isolated `count: 3`, `pauseSeconds: 2` live test started and successfully
 completed exactly three players. The measured end-to-next-start gaps were
 approximately two seconds. An invalid `pauseSeconds: 6` deploy correctly
-disabled processing and reported its validation error; the saved valid flow
-recovered through a second runtime deploy without restarting Signal K. That
-recovery replayed the unchanged active GNSS warning once and remains an open
-defect.
+disabled processing and reported its validation error. The earlier recovery
+replay was traced to equivalent absolute and relative spellings of one sound
+file. Version `0.1.32` canonicalizes the playback signature to the player's
+resolved absolute path. In the final live regression, the Runtime Slot played
+once as PID 3020272, invalid configuration failed closed, and valid recovery
+left that PID and the existing GNSS completion unchanged with no replay.
 
-The `0.1.29` WebApp uses a twelve-second request deadline and a fifteen-second
+The WebApp uses a twelve-second request deadline and a fifteen-second
 stale threshold after live samples showed a healthy response could take 8.551
 seconds. Tab 3 loaded the new threshold and remained connected over multiple
 poll cycles. A separate exact-path runtime test proved that Silence during a

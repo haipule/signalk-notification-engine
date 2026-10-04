@@ -37,9 +37,12 @@
 - WebApp connectivity: abort an unreachable poll at its deadline, clear the
   deadline after success, and coalesce overlapping interval/reconnect refreshes
   into one serialized follow-up request.
+- Playback recovery registry: a fail-closed configuration suspension retains
+  completed finite signatures, discards interrupted loops and pending repeats,
+  and still permits an actually changed sound signature.
 - Diagnostics: snapshot duration/error recovery, delta counters, Node-RED
-  configuration state, audio process/result state, history persistence health,
-  and current-browser poll timing remain read-only.
+  configuration state, audio process/result and playback-registry state,
+  history persistence health, and current-browser poll timing remain read-only.
 - Passive audio watchdog: present/missing backend, present/missing hardware PCM,
   and an explicit statement that no audible end-to-end result is inferred.
 - Audio circuit breaker: independent counters per notification lifecycle,
@@ -121,7 +124,7 @@ GPS source.
   remain visible only when a prominent stale/offline banner is shown and all
   notification actions are disabled. Verify both an immediate browser
   `offline` event and a network failure where the request must reach its
-  six-second deadline. Reconnect and verify automatic recovery after the
+  twelve-second deadline. Reconnect and verify automatic recovery after the
   authoritative notification snapshot succeeds. A slow local-history request
   must not make a current notification snapshot appear offline.
 - On a small tablet viewport, verify that the stale banner remains fixed above

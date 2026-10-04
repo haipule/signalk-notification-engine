@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.32 - 2026-10-04
+
+- Canonicalize playback signatures to the absolute file path used by the
+  player. Relative and absolute spellings of the same sound no longer cause a
+  replay after configuration recovery.
+
+## 0.1.31 - 2026-10-04
+
+- Expose the playback-signature registry in read-only Diagnostics so recovery
+  can be verified without inferring internal state from an audible result.
+
+## 0.1.30 - 2026-10-04
+
+- Preserve completed finite playback signatures across a fail-closed Node-RED
+  configuration suspension. Recovery no longer replays an unchanged active
+  notification, while interrupted loops/repeats and genuinely changed sound
+  configurations remain eligible to start under the recovered valid rules.
+
 ## 0.1.29 - 2026-10-04
 
 - Increase the Alarm Centre notification request deadline from six to twelve
