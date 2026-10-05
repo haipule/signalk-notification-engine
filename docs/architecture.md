@@ -57,6 +57,14 @@ audio, HTTP routes, or notification processing. Runtime application remains in
 the plugin lifecycle boundary so invalid Node-RED configuration still fails
 closed before processing starts.
 
+HTTP registration is isolated in a transport adapter. It owns only Signal K's
+readonly/readwrite route selection, request parameter extraction, and HTTP
+status/response formatting. The plugin runtime injects transport-neutral
+operations; notification state, Signal K actions, audio suppression rollback,
+configuration readiness, and persistence remain with their existing domain
+owners. The literal global-action route is registered before the parameterized
+single-notification route so Express cannot interpret `action-all` as an id.
+
 Runtime integration tests use a separate bounded maintenance adapter around
 the Signal K Notification API. It can raise only fixed
 `notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores

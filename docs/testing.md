@@ -89,6 +89,12 @@
 
 ## Integration tests
 
+HTTP adapter tests verify readonly/readwrite access separation, the complete
+route inventory, literal global-action precedence, and fail-closed 503
+responses when notification processing is unavailable. Domain behaviour stays
+covered by the notification, action, runtime-test, audio, and history tests;
+route tests use injected fakes and do not acquire Signal K authority.
+
 Use a fake Signal K application object to simulate `app.notifications` and
 notification deltas. Cover an API-managed alarm and a classic producer delta,
 where clear must be unavailable.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.38 - 2026-10-05
+
+- Extract Signal K readonly and readwrite HTTP route registration into a
+  separately tested transport adapter while retaining the existing domain,
+  permission, action, audio, and persistence authority boundaries.
+
 ## 0.1.37 - 2026-10-05
 
 - Extract presentation, sound, palette, shortcut, and history-rule

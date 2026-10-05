@@ -28,6 +28,7 @@ const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
 const { createSoundSignature, resolveSoundPauseSeconds } = require('./lib/sound-config')
 const { ConfigurationService, normalizeClearPath, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
+const registerHttpRoutes = require('./lib/http-routes')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
@@ -549,168 +550,103 @@ module.exports = function createPlugin(app) {
     },
 
     registerWithRouter(router) {
-      const readOnly = router.access('readonly')
-      readOnly.get('/notifications', async (_request, response) => {
-        // Refresh on request as well as on the deploy event. The embedded
-        // runtime can miss a deploy notification, while the Alarm Centre
-        // polls this endpoint regularly; re-reading here makes a deployed
-        // Node-RED configuration converge without requiring a Signal K restart.
+      registerHttpRoutes(router, createHttpApi())
+    }
+  }
+
+  /** Bind transport-neutral domain operations to the isolated HTTP adapter. */
+  function createHttpApi() {
+    const configurationStatus = () => configurationError ? { state: 'error', ...configurationError } : { state: 'ready' }
+    return {
+      async notifications() {
+        // Polling is also the compatibility fallback when this Signal K build
+        // does not emit an embedded Node-RED runtime-deploy event.
         await refreshNodeRedConfiguration()
         if (!configurationError) await syncSnapshot()
-        response.json({ notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, configurationStatus: configurationError ? { state: 'error', ...configurationError } : { state: 'ready' }, stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, audioTest: audioSelfTest.toJSON(), updatedAt: new Date().toISOString() })
-      })
-      readOnly.get('/rules', (_request, response) => {
+        return { notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, configurationStatus: configurationStatus(), stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, audioTest: audioSelfTest.toJSON(), updatedAt: new Date().toISOString() }
+      },
+      rules() {
         const file = path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'deployed-rules', 'deployed-rules.md')
-        if (!fs.existsSync(file)) return response.status(404).type('text/plain').send('No deployed rules documentation available.')
-        response.type('text/plain').send(fs.readFileSync(file, 'utf8'))
-      })
-      readOnly.get('/history', (_request, response) => {
-        response.json({ events: store.history() })
-      })
-      readOnly.get('/translations', (_request, response) => {
+        return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null
+      },
+      history: () => store.history(),
+      translations: () => ({ locales: translationCatalog.list(), fallbackLocale: 'en', errors: translationCatalog.errors }),
+      translation(locale) {
+        return { ...translationCatalog.get(normalizeLocale(locale)), errors: translationCatalog.errors }
+      },
+      diagnostics() {
         const locales = translationCatalog.list()
-        response.json({ locales, fallbackLocale: 'en', errors: translationCatalog.errors })
-      })
-      readOnly.get('/translations/:locale', (request, response) => {
-        const requestedLocale = normalizeLocale(request.params.locale)
-        const catalog = translationCatalog.get(requestedLocale)
-        response.json({ ...catalog, errors: translationCatalog.errors })
-      })
-      readOnly.get('/diagnostics', (_request, response) => {
-        const locales = translationCatalog.list()
-        response.json(diagnostics.toJSON({
-          nodeRed: {
-            revision: nodeRedConfigChecksum,
-            configurationStatus: configurationError ? { state: 'error', ...configurationError } : { state: 'ready' },
-            runtimeDeployEventsAvailable: Boolean(nodeRedUnsubscribe)
-          },
+        return diagnostics.toJSON({
+          nodeRed: { revision: nodeRedConfigChecksum, configurationStatus: configurationStatus(), runtimeDeployEventsAvailable: Boolean(nodeRedUnsubscribe) },
           criticalInputs: inspectInputSources(criticalInputs, readSignalKLeaf),
           audio: {
-            ready: audioReady,
-            player: audioPlayer.player,
-            device: audioPlayer.device,
-            activeProcesses: audioPlayer.activeProcessCount(),
-            activeProcessDetails: audioPlayer.activeProcessDetails(),
-            pendingRetries: audioTimers.size,
-            playbackRegistry: audioPlaybackRegistry.toJSON(),
+            ready: audioReady, player: audioPlayer.player, device: audioPlayer.device,
+            activeProcesses: audioPlayer.activeProcessCount(), activeProcessDetails: audioPlayer.activeProcessDetails(),
+            pendingRetries: audioTimers.size, playbackRegistry: audioPlaybackRegistry.toJSON(),
             lastResult: audioPlayer.lastResult ? { ...audioPlayer.lastResult, error: audioPlayer.lastResult.error?.message || null } : null,
             watchdog: audioWatchdog.lastCheck,
-            circuitBreaker: {
-              ...audioCircuitBreaker.toJSON(),
-              persistence: audioCircuitRepository?.status() || { available: false, lastWriteAt: null, lastError: null }
-            },
-            systemNotification: {
-              ...audioSystemNotification.toJSON(),
-              persistence: audioSystemRepository?.status() || { available: false, lastWriteAt: null, lastError: null }
-            },
+            circuitBreaker: { ...audioCircuitBreaker.toJSON(), persistence: audioCircuitRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
+            systemNotification: { ...audioSystemNotification.toJSON(), persistence: audioSystemRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
             selfTest: audioSelfTest.toJSON()
           },
           history: historyRepository?.status() || { available: false, eventCount: 0, lastWriteAt: null, lastError: null },
           localization: { locales, fallbackLocale: 'en', errors: translationCatalog.errors }
-        }))
-      })
-      const readWrite = router.access('readwrite')
-      readWrite.get('/runtime-tests', (_request, response) => {
-        response.json({ tests: runtimeTests.list() })
-      })
-      readWrite.post('/runtime-tests/:slot', (request, response) => {
-        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
-        if (!audioReady) return response.status(503).json({ state: 'REJECTED', message: 'Notification processing is not ready' })
-        try {
-          response.status(201).json(runtimeTests.raise(request.params.slot, request.body || {}))
-        } catch (error) {
-          response.status(409).json({ state: 'REJECTED', message: error.message })
-        }
-      })
-      readWrite.patch('/runtime-tests/:slot', (request, response) => {
-        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
-        try {
-          response.json(runtimeTests.update(request.params.slot, request.body || {}))
-        } catch (error) {
-          response.status(409).json({ state: 'REJECTED', message: error.message })
-        }
-      })
-      readWrite.delete('/runtime-tests/:slot', async (request, response) => {
-        try {
-          const cleared = await runtimeTests.clear(request.params.slot)
-          response.status(cleared ? 204 : 404).end()
-        } catch (error) {
-          response.status(409).json({ state: 'REJECTED', message: error.message })
-        }
-      })
-      readWrite.post('/audio-test/start', (request, response) => {
-        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
-        if (!audioReady) return response.status(503).json({ state: 'REJECTED', message: 'Audio is not ready' })
-        try {
-          response.status(202).json(audioSelfTest.start({ actor: requestActor(request), device: audioPlayer.device, file: testTonePath }))
-        } catch (error) {
-          response.status(409).json({ state: 'REJECTED', message: error.message })
-        }
-      })
-      readWrite.post('/audio-test/not-heard', (request, response) => {
-        try {
-          response.status(202).json(audioSelfTest.reportNotHeard(requestActor(request)))
-        } catch (error) {
-          response.status(409).json({ state: 'REJECTED', message: error.message })
-        }
-      })
-      readWrite.delete('/history', async (request, response) => {
-        const pathPrefix = normalizeClearPath(request.query.path)
-        const occurrenceId = String(request.query.occurrenceId || '')
-        if (!historyRepository) return response.status(503).json({ state: 'REJECTED', message: 'History is not available' })
-        if (occurrenceId) {
-          await historyRepository.prune(event => event.notification?.occurrenceId === occurrenceId)
-        } else if (pathPrefix) {
-          await historyRepository.prune(event => String(event.notification?.path || '').toLowerCase().startsWith(pathPrefix))
-        } else {
-          await historyRepository.clear()
-        }
+        })
+      },
+      configurationError: () => configurationError,
+      processingUnavailable: () => configurationError
+        ? `Notification processing is disabled: ${configurationError.message}`
+        : !audioReady ? 'Notification processing is not ready' : null,
+      audioUnavailable: () => configurationError
+        ? `Notification processing is disabled: ${configurationError.message}`
+        : !audioReady ? 'Audio is not ready' : null,
+      runtimeTests,
+      audioTest: {
+        start: request => audioSelfTest.start({ actor: requestActor(request), device: audioPlayer.device, file: testTonePath }),
+        notHeard: request => audioSelfTest.reportNotHeard(requestActor(request))
+      },
+      async clearHistory(query) {
+        if (!historyRepository) return false
+        const pathPrefix = normalizeClearPath(query.path)
+        const occurrenceId = String(query.occurrenceId || '')
+        if (occurrenceId) await historyRepository.prune(event => event.notification?.occurrenceId === occurrenceId)
+        else if (pathPrefix) await historyRepository.prune(event => String(event.notification?.path || '').toLowerCase().startsWith(pathPrefix))
+        else await historyRepository.clear()
         store.replaceHistory(historyRepository.events)
-        response.status(204).end()
-      })
-      readWrite.post('/notifications/action-all/:action', async (request, response) => {
-        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
-        let silencedRecords = []
+        return true
+      },
+      async actionAll(action) {
+        const records = plugin.getNotifications()
+        const silencedRecords = action === 'silence' ? records.filter(record => actions.allowed(record, 'silence')) : []
+        for (const record of silencedRecords) {
+          silencedAudio.set(record.occurrenceId, record.state)
+          stopNotificationAudio(record.occurrenceId)
+        }
         try {
-          const records = plugin.getNotifications()
-          if (request.params.action === 'silence') {
-            silencedRecords = records.filter(record => actions.allowed(record, 'silence'))
-            for (const record of silencedRecords) {
-              silencedAudio.set(record.occurrenceId, record.state)
-              stopNotificationAudio(record.occurrenceId)
-            }
-          }
-          const affected = await actions.executeAll(records, request.params.action)
-          for (const record of affected) {
-            store.recordOperatorAction(request.params.action, record)
-          }
-          response.status(202).json({ state: 'ACCEPTED', count: affected.length })
+          const affected = await actions.executeAll(records, action)
+          for (const record of affected) store.recordOperatorAction(action, record)
+          return affected.length
         } catch (error) {
           for (const record of silencedRecords) silencedAudio.delete(record.occurrenceId)
-          response.status(409).json({ state: 'REJECTED', message: error.message })
+          throw error
         }
-      })
-      // Keep the literal action-all route above this parameterized route.
-      // Otherwise Express treats "action-all" as a notification id and the
-      // global action never reaches executeAll().
-      readWrite.post('/notifications/:id/:action', async (request, response) => {
-        if (configurationError) return response.status(503).json({ state: 'REJECTED', message: `Notification processing is disabled: ${configurationError.message}` })
-        let silencedRecord = null
+      },
+      async action(id, action) {
+        const record = store.get(id)
+        let silenced = false
+        if (action === 'silence') {
+          silenced = true
+          silencedAudio.set(record.occurrenceId, record.state)
+          stopNotificationAudio(record.occurrenceId)
+        }
         try {
-          const record = store.get(request.params.id)
-          if (request.params.action === 'silence') {
-            silencedRecord = record
-            silencedAudio.set(record.occurrenceId, record.state)
-            stopNotificationAudio(record.occurrenceId)
-          }
-          await actions.execute(record, request.params.action)
-          store.recordOperatorAction(request.params.action, record)
-          response.status(202).json({ state: 'ACCEPTED' })
+          await actions.execute(record, action)
+          store.recordOperatorAction(action, record)
         } catch (error) {
-          if (silencedRecord) silencedAudio.delete(silencedRecord.occurrenceId)
-          response.status(409).json({ state: 'REJECTED', message: error.message })
+          if (silenced) silencedAudio.delete(record.occurrenceId)
+          throw error
         }
-      })
+      }
     }
   }
 

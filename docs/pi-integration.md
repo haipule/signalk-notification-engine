@@ -103,6 +103,25 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.38` was deployed and verified on 2026-10-05. The complete prior
+`0.1.37` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.37-live-20261005T215335Z`
+and at the sibling `0.1.37-replaced` path with the same timestamp. The package
+SHA-256 is
+`155bddbe8c274f9f609d0ac465899c35893ea1a89c47eb0dda5a45f7bf489372`.
+The second component-boundary refactor moved readonly/readwrite route
+registration and HTTP response formatting into the HTTP adapter without
+changing domain ownership. `/signalk`, the WebApp, notifications, rules,
+history, translations, and diagnostics returned HTTP 200. Node-RED
+configuration and runtime deploy events were ready with revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`;
+Android GPS input diagnostics were fresh; audio was ready with zero processes,
+retries, open breakers, or unresolved failures; and history persistence was
+healthy. Signal K and `signalk-health.timer` were active with zero service
+restarts, external `nodered.service` remained inactive, the deployment journal
+contained no Notification Engine error line, and source/live hashes for
+`package.json`, `index.js`, and `lib/http-routes.js` matched.
+
 Version `0.1.37` was deployed and verified on 2026-10-05. The complete prior
 `0.1.36` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.36-live-20261005T214120Z`
