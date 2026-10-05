@@ -18,7 +18,7 @@ The current Node-RED prototype is in [node-red/prototype](node-red/prototype/REA
 
 ## Current status
 
-The project is an active development build (`0.1.32`). The plugin currently
+The project is an active development build (`0.1.34`). The plugin currently
 provides an active-notification WebApp, snapshot/delta reconstruction,
 capability-checked Signal K actions, local lifecycle/history persistence,
 classification, presentation and audio policies, and the first Node-RED flow
@@ -62,9 +62,9 @@ and values of another type reject the deployed rule. Existing
 `once`/`repeat`/`loop` flow fields are accepted through a migration adapter.
 The disabled embedded Node-RED `Audio Alarms` legacy tab is
 retained for rollback, while the plugin is the only active rule-based
-notification audio path. The WebApp also provides an authenticated, bounded `Alarmton testen`
+notification audio path. The WebApp also provides an authenticated, bounded `Test alarm sound`
 maintenance action. Its configured test-tone file is played once; a successful
-player exit opens a 15-second `Ton nicht gehört` counter-feedback window. With
+player exit opens a 15-second `Sound not heard` counter-feedback window. With
 no counter-report the result is only technically played, never proven audible.
 Full automatic amplifier/loudspeaker verification requires hardware loopback
 or a microphone.
@@ -83,7 +83,7 @@ Headphones output used by Notification Engine. The equivalent symbolic form
 is `plughw:CARD=Headphones,DEV=0`, which is easier to understand when card
 indices change. After changing the device, first check Diagnostics for passive
 backend/PCM availability and then run the authenticated bounded
-`Alarmton testen` action. Only the operator's audible confirmation verifies
+`Test alarm sound` action. Only the operator's audible confirmation verifies
 the amplifier, volume, cabling, and loudspeaker; exit code zero alone does not.
 
 The Alarm Centre polls every five seconds. A notification request may take up
@@ -91,6 +91,33 @@ to twelve seconds and the displayed snapshot becomes stale after fifteen
 seconds without a successful refresh. A browser-reported offline event still
 disables actions immediately; these presentation limits never alter Signal K
 notification state or server-side audio.
+
+## WebApp language files
+
+The Alarm Centre ships complete English and German catalogs and selects an
+initial locale from the browser. The compact language button stores an
+explicit choice only in that browser. English is always the fallback.
+
+Administrators may add one declarative JSON file per locale under the
+`translations` directory returned by Signal K's plugin data path. This
+persistent location is outside the installed npm package and survives package
+replacement. A file such as `nl.json` has this structure:
+
+```json
+{
+  "schemaVersion": 1,
+  "locale": "nl",
+  "name": "Nederlands",
+  "messages": {
+    "app.title": "Alarmcentrum"
+  }
+}
+```
+
+Missing entries inherit the built-in English text. Invalid files, HTML values,
+oversized files and malformed placeholders are rejected as localization
+diagnostics only; they never disable notification processing. Producer-supplied
+messages, Signal K paths, IDs, sources and raw Diagnostics remain verbatim.
 
 ## Documentation
 

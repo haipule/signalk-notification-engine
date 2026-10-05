@@ -1,6 +1,6 @@
 # Notification Engine – Node-RED prototype
 
-Importiere `flows.json` in Node-RED. Der Flow zeigt:
+Import `flows.json` into the embedded Node-RED instance. The flow shows:
 
 ```text
 Notification Input → Policy/Filter → Visual
@@ -8,12 +8,12 @@ Notification Input → Policy/Filter → Visual
                                 └→ History
 ```
 
-`Demo alarm` erzeugt eine Beispiel-Notification. `Notification input`
-normalisiert sie. Der Filter verteilt `alarm` und `emergency` parallel auf
-Visual-, Sound- und History-Adapter, die zunächst Debug-Nodes sind.
+`Demo alarm` creates an example notification. `Notification input` normalizes
+it. The filter routes `alarm` and `emergency` in parallel to visual, sound, and
+history adapters, which are initially debug nodes.
 
-`Notification Engine config` enthält den versionierten Konfigurationsblock für
-die Notification Engine. Der Adapter extrahiert diesen Block beim Start und
-nach jedem Deploy; die App interpretiert nicht die Node-RED-Flow-Datei.
+`Notification Engine config` contains the versioned configuration block for
+the Notification Engine. The adapter extracts this block at startup and after
+every deployment; the app does not interpret the Node-RED flow file.
 
-Für diesen Prototyp werden keine zusätzlichen Nodes benötigt.
+This prototype requires no additional nodes.

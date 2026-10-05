@@ -22,6 +22,7 @@ const requestActor = require('./lib/request-actor')
 const Diagnostics = require('./lib/diagnostics')
 const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
+const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catalog')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
 const { createSoundSignature, normalizeSoundConfig, resolveSoundPauseSeconds } = require('./lib/sound-config')
@@ -44,6 +45,10 @@ const SNAPSHOT_INTERVAL_MS = 5000
  * @returns {object} Signal K plugin descriptor.
  */
 module.exports = function createPlugin(app) {
+  const translationCatalog = new TranslationCatalog({
+    builtInDirectory: path.join(__dirname, 'public', 'translations'),
+    customDirectory: path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'translations')
+  })
   let historyRepository = null
   let audioCircuitRepository = null
   let audioSystemRepository = null
@@ -534,7 +539,17 @@ module.exports = function createPlugin(app) {
       readOnly.get('/history', (_request, response) => {
         response.json({ events: store.history() })
       })
+      readOnly.get('/translations', (_request, response) => {
+        const locales = translationCatalog.list()
+        response.json({ locales, fallbackLocale: 'en', errors: translationCatalog.errors })
+      })
+      readOnly.get('/translations/:locale', (request, response) => {
+        const requestedLocale = normalizeLocale(request.params.locale)
+        const catalog = translationCatalog.get(requestedLocale)
+        response.json({ ...catalog, errors: translationCatalog.errors })
+      })
       readOnly.get('/diagnostics', (_request, response) => {
+        const locales = translationCatalog.list()
         response.json(diagnostics.toJSON({
           nodeRed: {
             revision: nodeRedConfigChecksum,
@@ -561,7 +576,8 @@ module.exports = function createPlugin(app) {
             },
             selfTest: audioSelfTest.toJSON()
           },
-          history: historyRepository?.status() || { available: false, eventCount: 0, lastWriteAt: null, lastError: null }
+          history: historyRepository?.status() || { available: false, eventCount: 0, lastWriteAt: null, lastError: null },
+          localization: { locales, fallbackLocale: 'en', errors: translationCatalog.errors }
         }))
       })
       const readWrite = router.access('readwrite')

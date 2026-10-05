@@ -1,36 +1,34 @@
 # Visual rule editor prototype
 
-Importiere `flows-rule-editor.json` in die interne Node-RED-Instanz.
+Import `flows-rule-editor.json` into the embedded Node-RED instance.
 
-Der Flow ist als kopierbares Muster aufgebaut: Ein Notification-Node wird per
-Wire mit den gewünschten Eigenschaften verbunden. Nicht verbundene Nodes sind
-zulässig und haben keine Wirkung. Der Assembler sammelt die Eigenschaften pro
-`ruleId`; `Rule prüfen` validiert die erzeugten Regeln vor dem Deploy.
+The flow is designed as a reusable pattern: connect a Notification node by
+wire to the required property nodes. Unconnected nodes are permitted and have
+no effect. The assembler collects properties by `ruleId`; `Validate rule`
+checks the generated rules before deployment.
 
-Die Reihenfolge der Notifications wird nicht konfiguriert. Sie folgt der
-Signal-K-Hierarchie und damit der vom Signal-K-Datenmodell vorgegebenen
-Priorität.
+Notification order is not configurable here. It follows the Signal K
+hierarchy and therefore the priority defined by the Signal K data model.
 
-Alarm und Emergency werden immer historisiert. Für zusätzliche Zustände wird
-der `History`-Node verbunden. Ein Testalarm bleibt als Konfigurationsoption
-erhalten und ist standardmäßig deaktiviert.
+Alarm and emergency states are always recorded in history. Connect the
+`History` node for additional states. A test alarm remains available as a
+configuration option and is disabled by default.
 
-Node-Farbgruppen für die spätere Editor-Oberfläche:
+Node color groups for a future editor UI:
 
-- Visible/UI: grün
-- Color: blau
-- Notification: gelb
+- Visible/UI: green
+- Color: blue
+- Notification: yellow
 - Sound: pink
-- Validate/Deploy: grau oder violett
+- Validate/Deploy: gray or purple
 
-Die aktuelle Sound-Semantik verwendet `payload.sound.count`: `0` bedeutet
-Loop, `1` einmalige Wiedergabe und `2` bis `99` die exakte Anzahl. Der Server
-liest während der Migration weiterhin die alten Felder `payload.sound.mode`
-und `payload.sound.repeatCount`; neue oder umgebaute Flows sollen nur noch
-`payload.sound.count` erzeugen.
+The current sound semantics use `payload.sound.count`: `0` means loop, `1`
+means one playback, and `2` through `99` specify the exact playback count. The
+server continues to read the legacy `payload.sound.mode` and
+`payload.sound.repeatCount` fields during migration; new or updated flows
+should emit only `payload.sound.count`.
 
-Optional setzt `payload.sound.pauseSeconds` eine Pause ausschließlich zwischen
-vollständig beendeten Wiedergaben. Erlaubt sind ganze Zahlen von `0` bis `5`;
-das fehlende Feld und `0` bedeuten keine zusätzliche Pause. Jeder andere Wert
-macht die deployte Regel ungültig, damit der Server sie nicht stillschweigend
-korrigiert oder begrenzt.
+Optional `payload.sound.pauseSeconds` adds a pause only between fully completed
+playbacks. Valid values are integers from `0` through `5`; an absent field or
+`0` means no additional pause. Any other value makes the deployed rule invalid
+so the server does not silently correct or clamp it.

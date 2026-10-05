@@ -2,6 +2,11 @@
 
 ## Unit tests
 
+- Translation-catalog tests require identical complete built-in English and
+  German key sets, English fallback for missing custom entries, safe locale
+  normalization, and rejection of HTML-bearing custom values. Localization
+  failure must remain independent from notification and Node-RED readiness.
+
 - Store: snapshot reconstruction, delta upsert, normal/cleared state, duplicate
   input, restart recovery, and rejection of phantom parent notifications when
   a nested notification path contains a child named `state`.
@@ -61,7 +66,7 @@
   across restart and require a successful player exit for every failed
   occurrence before publishing `normal`.
 - Audible self-test: reject overlapping tests, record technical failure without
-  opening a feedback window, keep `Ton nicht gehört` available for 15 seconds
+  opening a feedback window, keep `Sound not heard` available for 15 seconds
   after technical success, latch explicit inaudible feedback, and pass without
   claiming audibility only after the complete window. Verify that a later pass
   clears only the stable self-test failure occurrence and does not stop normal
@@ -106,7 +111,7 @@ GPS source.
 ## Manual WebApp checks
 
 - Active alarms are legible from a distance and ordered by severity.
-- `Alarmton testen` produces one bounded tone. After technical success the
+- `Test alarm sound` produces one bounded tone. After technical success the
   counter-feedback button is immediately visible for 15 seconds; its absence
   yields only `technically played - no counter-report`. Confirm audit fields
   for actor, device, file, exit code, signal, and outcome.

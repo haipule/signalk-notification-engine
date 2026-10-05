@@ -3,6 +3,8 @@
 const pluginApi = '/plugins/signalk-notification-engine'
 const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = window.NotificationConnectivity
 const { compareNotificationPaths } = window.NotificationTableSort
+const i18n = window.NotificationI18n
+const t = (key, parameters) => i18n.t(key, parameters)
 const notificationContainer = document.querySelector('#notifications')
 const historyContainer = document.querySelector('#history')
 const historyCount = document.querySelector('#history-count')
@@ -20,6 +22,7 @@ const audioTestDueButton = document.querySelector('#show-audio-test')
 const audioTestDays = document.querySelector('#audio-test-days')
 let isConnected = false
 let configurationReady = true
+let currentConfigurationStatus = null
 let lastSuccessfulRefreshAt = null
 const pollingStartedAt = Date.now()
 let refreshInProgress = false
@@ -41,7 +44,7 @@ let historyDisplayLimit = 20
 let historyMode = 'selected'
 const deletedHistoryOccurrenceIds = new Set()
 let activeRules = []
-let currentAudioTest = { state: 'idle', statement: 'Noch kein Alarmtontest ausgeführt.' }
+let currentAudioTest = { state: 'idle', statement: 'No alarm sound test has been run yet.' }
 const sortStorageKey = 'notification-engine.table-sort'
 let tableSort = loadTableSort()
 
@@ -136,7 +139,7 @@ function renderNotifications(notifications) {
   const ignoredElement = document.querySelector('#ignored-count')
   if (ignoredElement) {
     ignoredElement.hidden = ignoredCount === 0
-    ignoredElement.textContent = ignoredCount === 1 ? '· 1 ignored' : `· ${ignoredCount} ignored`
+    ignoredElement.textContent = t('app.ignored', { count: ignoredCount })
   }
   const visible = notifications
     .filter(notification => notification.policy?.visible !== false)
@@ -151,24 +154,27 @@ function renderNotifications(notifications) {
   activeNotifications = visible
   renderVisualAlerts(visible)
   if (selectedId && !visible.some(notification => notification.id === selectedId)) closeDetails()
-  summary.textContent = `${stateCounts.emergency} emergency · ${stateCounts.alarm} alarm · ${stateCounts.warn} warn · ${stateCounts.alert} alert · ${normalCount} normal`
+  summary.textContent = t('app.summary', { ...stateCounts, normal: normalCount })
   if (ignoredElement) {
     summary.append(' ')
     summary.append(ignoredElement)
   }
 
   if (visible.length === 0) {
-    notificationContainer.innerHTML = '<p class="empty">No active notifications.</p>'
+    const empty = document.createElement('p')
+    empty.className = 'empty'
+    empty.textContent = t('app.noActiveNotifications')
+    notificationContainer.append(empty)
     updateActions(null)
     return
   }
   const table = document.createElement('table')
   table.innerHTML = `<thead><tr>
-    <th>Status</th>
-    ${sortableHeader('notification', 'Notification')}
-    ${sortableHeader('category', 'Category')}
-    ${sortableHeader('source', 'Source')}
-    <th>State</th>
+    <th>${escapeHtml(t('table.status'))}</th>
+    ${sortableHeader('notification', t('table.notification'))}
+    ${sortableHeader('category', t('table.category'))}
+    ${sortableHeader('source', t('table.source'))}
+    <th>${escapeHtml(t('table.state'))}</th>
   </tr></thead><tbody></tbody>`
   for (const header of table.querySelectorAll('[data-sort-column]')) {
     header.addEventListener('click', () => selectTableSort(header.dataset.sortColumn))
@@ -195,14 +201,15 @@ function renderNotifications(notifications) {
       }
     })
     const stateLabel = card.querySelector('.state')
+    stateLabel.setAttribute('aria-label', t('notification.state'))
     stateLabel.classList.add(`state-label-${notification.state}`)
     stateLabel.classList.toggle('state-acknowledged', false)
     stateLabel.style.removeProperty('color')
     stateLabel.classList.toggle('state-attention', ['warn', 'alert', 'alarm', 'emergency'].includes(notification.state))
     setText(card, '.state', formatState(notification.state))
     setText(card, '.category', formatCategory(notification.category))
-    setText(card, '.message', notification.message || 'No message supplied')
-    setText(card, '.source', notification.source?.label || 'Unknown source')
+    setText(card, '.message', notification.message || t('notification.noMessage'))
+    setText(card, '.source', notification.source?.label || t('notification.unknownSource'))
     setText(card, '.status-badges', formatStatus(notification.status))
     rows.append(card)
   }
@@ -225,7 +232,7 @@ function renderVisualAlerts(notifications) {
     const alert = document.createElement('div')
     alert.className = `visual-alert visual-${rule.display}${rule.flash ? ' visual-flash' : ''}`
     alert.style.setProperty('--visual-alert-color', rule.color || stateColors[notification.state] || '#d32f2f')
-    alert.textContent = `${formatState(notification.state)}: ${notification.message || 'No message supplied'}${rule.acknowledgeRequired ? ' · Acknowledgement required' : ''}`
+    alert.textContent = `${formatState(notification.state)}: ${notification.message || t('notification.noMessage')}${rule.acknowledgeRequired ? ` · ${t('visual.acknowledgementRequired')}` : ''}`
     alert.addEventListener('click', () => {
       selectedId = notification.id
       renderDetails(notification)
@@ -249,7 +256,7 @@ function isResolvedState(state) {
 }
 
 function updateActions(notification) {
-  const actionLabels = { silence: 'Silence', acknowledge: 'Acknowledge', clear: 'Clear' }
+  const actionLabels = { silence: t('actions.silence'), acknowledge: t('actions.acknowledge'), clear: t('actions.clear') }
   for (const button of document.querySelectorAll('#detail-actions [data-action]')) {
     const action = button.dataset.action
     const allowed = isConnected && configurationReady && Boolean(notification) && actionAllowed(notification, action)
@@ -257,15 +264,15 @@ function updateActions(notification) {
     button.title = allowed
       ? button.getAttribute('aria-label')
       : !isConnected || !configurationReady
-          ? 'Unavailable while offline or configuration is invalid'
-          : `${actionLabels[action]} is not permitted by Signal K`
+          ? t('actions.unavailable')
+          : t('actions.notPermitted', { action: actionLabels[action] })
     button.onclick = () => runAction(notification.id, action)
   }
 }
 
 function renderHistory(events) {
   historyContainer.replaceChildren()
-  historyCount.textContent = `${events.length} event${events.length === 1 ? '' : 's'}`
+  historyCount.textContent = t('history.events', { count: events.length })
   const grouped = []
   for (const event of events) {
     const previous = grouped[grouped.length - 1]
@@ -285,20 +292,20 @@ function renderHistory(events) {
     item.className = operator ? 'history-event history-operator' : 'history-event'
     const notification = event.notification || {}
     const state = String(notification.state || 'unknown').toUpperCase()
-    const label = operator ? `OPERATOR · ${String(event.action).toUpperCase()}` : event.type === 'raised' ? 'DETECTED' : event.type === 'cleared' ? 'RESOLVED' : 'STATE CHANGE'
+    const label = operator ? t('history.operator', { action: String(event.action).toUpperCase() }) : event.type === 'raised' ? t('history.detected') : event.type === 'cleared' ? t('history.resolved') : t('history.stateChange')
     const repetition = entry.count > 1 ? ` · ${entry.count}×` : ''
     const duration = event.type === 'cleared' ? formatDuration(notification.firstSeenAt, event.at) : ''
-    const durationLabel = duration ? ` · duration ${duration}` : ''
-    const day = new Date(event.at).toLocaleDateString()
+    const durationLabel = duration ? ` · ${t('history.duration', { duration })}` : ''
+    const day = i18n.date(event.at)
     const datePrefix = day !== lastDay ? `<time class="history-day">${day}</time>` : '<span class="history-day history-day-empty" aria-hidden="true"></span>'
-    const time = new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    const time = i18n.time(event.at)
     const message = notification.message ? ` · ${escapeHtml(notification.message)}` : ''
-    item.innerHTML = `${datePrefix}<time class="history-time">${time}</time><span class="history-summary"><strong>${label}</strong> <span class="history-state state-label-${notification.state || 'unknown'}">${state}</span>${message}${repetition}${durationLabel}</span>`
+    item.innerHTML = `${datePrefix}<time class="history-time">${escapeHtml(time)}</time><span class="history-summary"><strong>${escapeHtml(label)}</strong> <span class="history-state state-label-${notification.state || 'unknown'}">${escapeHtml(state)}</span>${message}${repetition}${escapeHtml(durationLabel)}</span>`
     if (historyMode === 'critical') {
       item.classList.add('history-selectable')
       item.tabIndex = 0
       item.setAttribute('role', 'button')
-      item.setAttribute('aria-label', `${state}: ${notification.message || 'No message supplied'}`)
+      item.setAttribute('aria-label', `${state}: ${notification.message || t('notification.noMessage')}`)
       const openHistoricalDetails = () => {
         const historical = { ...notification, historyOnly: true, status: null, policy: null }
         historyFocusNotification = historical
@@ -336,8 +343,8 @@ function renderCriticalHistory() {
     return Number.isFinite(at) && at >= cutoff && ['emergency', 'alarm'].includes(event.notification?.state)
   })
   renderHistory(events)
-  document.querySelector('#history-title').textContent = 'Emergency & alarm history'
-  document.querySelector('#history-key').textContent = 'Showing emergency and alarm events from the last 24 hours. Select an entry for details.'
+  document.querySelector('#history-title').textContent = t('history.criticalTitle')
+  document.querySelector('#history-key').textContent = t('history.criticalDescription')
   document.querySelector('#delete-history').hidden = true
 }
 
@@ -345,18 +352,18 @@ async function deleteLocalHistory() {
   const selected = activeNotifications.find(item => item.id === historyFocusId) || historyFocusNotification
   const occurrenceId = selected?.occurrenceId || historyOccurrenceId
   if (!occurrenceId) {
-    historyCount.textContent = 'This history has no occurrence ID and cannot be deleted here.'
+    historyCount.textContent = t('history.noOccurrence')
     return
   }
-  if (!window.confirm('Delete this local history entry? The Signal K notification will remain unchanged.')) return
+  if (!window.confirm(t('history.deleteConfirm'))) return
   try {
     const response = await fetch(`${pluginApi}/history?occurrenceId=${encodeURIComponent(occurrenceId)}`, { method: 'DELETE' })
-    if (!response.ok) throw new Error(`Could not delete history (${response.status})`)
+    if (!response.ok) throw new Error(t('history.deleteFailed', { status: response.status }))
     deletedHistoryOccurrenceIds.add(occurrenceId)
     renderHistory([])
     await refresh()
     document.querySelector('#delete-history').hidden = true
-    historyCount.textContent = 'Local history deleted. The Signal K notification remains unchanged.'
+    historyCount.textContent = t('history.deleted')
   } catch (error) {
     historyCount.textContent = error.message
   }
@@ -364,7 +371,7 @@ async function deleteLocalHistory() {
 
 function formatDateTime(value) {
   const date = new Date(value)
-  return Number.isNaN(date.valueOf()) ? 'Unknown time' : new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'medium' }).format(date)
+  return Number.isNaN(date.valueOf()) ? t('time.unknown') : i18n.dateTime(date)
 }
 
 function formatDuration(start, end) {
@@ -392,10 +399,10 @@ function showSelectedHistory(selected = activeNotifications.find(item => item.id
   historyPath = path
   historyOccurrenceId = selected.occurrenceId || ''
   historyDisplayLimit = 20
-  document.querySelector('#history-title').textContent = 'Notification history'
+  document.querySelector('#history-title').textContent = t('history.title')
   document.querySelector('#delete-history').hidden = !historyOccurrenceId || deletedHistoryOccurrenceIds.has(historyOccurrenceId)
   renderSelectedHistory()
-  document.querySelector('#history-key').textContent = `First seen: ${formatDateTime(selected.firstSeenAt || historyForNotification(selected)[0]?.notification?.firstSeenAt)}`
+  document.querySelector('#history-key').textContent = t('history.firstSeen', { time: formatDateTime(selected.firstSeenAt || historyForNotification(selected)[0]?.notification?.firstSeenAt) })
   document.querySelector('#history-sheet').setAttribute('aria-hidden', 'false')
   document.querySelector('#history-sheet').style.zIndex = '12'
 }
@@ -436,8 +443,8 @@ function closeHistory() {
 
 function setText(parent, selector, text) { parent.querySelector(selector).textContent = text }
 function formatStatus(status) {
-  if (!status) return 'Managed by source'
-  return [status.silenced && 'silenced', status.acknowledged && 'acknowledged'].filter(Boolean).join(', ') || 'active'
+  if (!status) return t('status.managedBySource')
+  return [status.silenced && t('status.silenced'), status.acknowledged && t('status.acknowledged')].filter(Boolean).join(', ') || t('status.active')
 }
 
 function loadTableSort() {
@@ -463,7 +470,8 @@ function selectTableSort(column) {
 function sortableHeader(column, label) {
   const active = tableSort.column === column
   const indicator = active ? (tableSort.direction === 'asc' ? ' ↑' : ' ↓') : ''
-  return `<th aria-sort="${active ? (tableSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" class="sort-header" data-sort-column="${column}" aria-label="Sort ${label} ${active && tableSort.direction === 'asc' ? 'descending' : 'ascending'}">${label}${indicator}</button></th>`
+  const direction = active && tableSort.direction === 'asc' ? t('sort.descending') : t('sort.ascending')
+  return `<th aria-sort="${active ? (tableSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}"><button type="button" class="sort-header" data-sort-column="${column}" aria-label="${escapeHtml(t('table.sort', { label, direction }))}">${escapeHtml(label)}${indicator}</button></th>`
 }
 
 function sortNotifications(notifications) {
@@ -485,7 +493,7 @@ function sortNotifications(notifications) {
 
 function sortValue(notification, column) {
   if (column === 'category') return formatCategory(notification.category)
-  if (column === 'source') return notification.source?.label || 'Unknown source'
+  if (column === 'source') return notification.source?.label || t('notification.unknownSource')
   return ''
 }
 
@@ -525,23 +533,23 @@ function renderDetails(notification) {
   detailSheet.style.zIndex = '12'
   document.querySelector('#history-sheet').style.zIndex = '11'
   setText(document, '#detail-state', `${formatState(notification.state)} · ${formatCategory(notification.category)}`)
-  setText(document, '#detail-message', notification.message || 'No message supplied')
+  setText(document, '#detail-message', notification.message || t('notification.noMessage'))
   setText(document, '#detail-category', notification.category)
-  setText(document, '#detail-source', notification.source?.label || 'Unknown source')
+  setText(document, '#detail-source', notification.source?.label || t('notification.unknownSource'))
   setText(document, '#detail-path', notification.path)
   setText(document, '#detail-id', notification.id)
-  setText(document, '#detail-occurrence-id', notification.occurrenceId || 'Not available')
+  setText(document, '#detail-occurrence-id', notification.occurrenceId || t('detail.notAvailable'))
   setText(document, '#detail-status', formatStatus(notification.status))
   setText(document, '#detail-method', formatMethod(notification.method))
   setText(document, '#detail-policy', formatPolicy(notification.policy))
   updateActions(notification)
   const unavailable = ['silence', 'acknowledge', 'clear'].filter(action => !actionAllowed(notification, action))
   const notes = []
-  if (notification.historyOnly) notes.push('This is a historical event; actions are unavailable.')
-  if (visualRules[notification.state]?.acknowledgeRequired && !notification.status?.acknowledged) notes.push('Acknowledgement required.')
-  if (notification.state === 'emergency' && !actionAllowed(notification, 'silence')) notes.push('Silence is not permitted for emergency in Signal K.')
-  if (unavailable.includes('clear')) notes.push('Clear is not permitted by the notification source.')
-  setText(document, '#detail-action-note', notes.join(' ') || 'Available actions are shown above.')
+  if (notification.historyOnly) notes.push(t('detail.historical'))
+  if (visualRules[notification.state]?.acknowledgeRequired && !notification.status?.acknowledged) notes.push(t('detail.acknowledgementRequired'))
+  if (notification.state === 'emergency' && !actionAllowed(notification, 'silence')) notes.push(t('detail.emergencyNoSilence'))
+  if (unavailable.includes('clear')) notes.push(t('detail.clearNotPermitted'))
+  setText(document, '#detail-action-note', notes.join(' ') || t('detail.availableActions'))
   if (infoAutoCloseSeconds > 0) {
     infoCloseTimer = setTimeout(closeDetails, infoAutoCloseSeconds * 1000)
   }
@@ -554,7 +562,7 @@ function showSelectedRules(notification = activeNotifications.find(item => item.
   element.hidden = false
   element.textContent = matches.length
     ? JSON.stringify({ notification: { state: notification.state, category: notification.category, path: notification.path }, matchingRules: matches }, null, 2)
-    : 'No matching deployed rule. This notification is shown because emergency and alarm states are always visible.'
+    : t('rules.noMatch')
   const sheet = document.querySelector('#rules-sheet')
   sheet.setAttribute('aria-hidden', 'false')
   sheet.style.zIndex = '13'
@@ -576,11 +584,17 @@ function ruleMatchesNotification(rule, notification) {
   return new RegExp(`^${pattern}$`).test(notification.path)
 }
 
-function formatState(state) { return String(state || 'unknown').toUpperCase() }
-function formatCategory(category) { return String(category || 'OTHER').toUpperCase() }
+function formatState(state) {
+  const value = String(state || 'unknown').toLowerCase()
+  return ['emergency', 'alarm', 'warn', 'alert', 'info', 'nominal', 'normal', 'unknown'].includes(value) ? t(`state.${value}`) : value.toUpperCase()
+}
+function formatCategory(category) {
+  const value = String(category || 'OTHER').toLowerCase()
+  return ['navigation', 'weather', 'electrical', 'propulsion', 'system', 'security', 'anchor', 'collision', 'other'].includes(value) ? t(`category.${value}`) : value.toUpperCase()
+}
 function formatMethod(method) {
-  if (!Array.isArray(method) || method.length === 0) return 'Not specified'
-  return method.map(value => value === 'sound' ? 'Audio' : value === 'visual' ? 'Visual' : String(value)).join(' + ')
+  if (!Array.isArray(method) || method.length === 0) return t('presentation.notSpecified')
+  return method.map(value => value === 'sound' ? t('presentation.audio') : value === 'visual' ? t('presentation.visual') : String(value)).join(' + ')
 }
 
 function closeDetails() {
@@ -613,26 +627,26 @@ function actionAllowed(notification, action) {
 }
 
 async function runAction(id, action, refreshAfter = true) {
-  if (action === 'clear' && !window.confirm('Request Clear from Signal K? This changes the authoritative notification state to normal.')) return
+  if (action === 'clear' && !window.confirm(t('actions.clearConfirm'))) return
   try {
-    if (!isConnected || !configurationReady) throw new Error('Actions are disabled while the Alarm Centre is offline or configuration is invalid.')
+    if (!isConnected || !configurationReady) throw new Error(t('actions.unavailable'))
     const response = await fetch(`${pluginApi}/notifications/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
-        throw new Error('Please sign in to Signal K with permission to change notifications.')
+        throw new Error(t('actions.signIn'))
       }
       const body = await response.json().catch(() => ({}))
       throw new Error(body.message || response.statusText)
     }
     if (refreshAfter) await refresh()
   } catch (error) {
-    summary.textContent = `Action failed: ${error.message}`
+    summary.textContent = t('actions.failed', { message: error.message })
   }
 }
 
 async function runGlobalAction(action) {
   try {
-    if (!isConnected || !configurationReady) throw new Error('Actions are disabled while the Alarm Centre is offline or configuration is invalid.')
+    if (!isConnected || !configurationReady) throw new Error(t('actions.unavailable'))
     const response = await fetch(`${pluginApi}/notifications/action-all/${action}`, { method: 'POST' })
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
@@ -640,7 +654,7 @@ async function runGlobalAction(action) {
     }
     await refresh()
   } catch (error) {
-    summary.textContent = `Action failed: ${error.message}`
+    summary.textContent = t('actions.failed', { message: error.message })
   }
 }
 
@@ -654,8 +668,9 @@ async function refresh() {
     isConnected = true
     clientPollDiagnostics.lastError = null
     lastSuccessfulRefreshAt = new Date()
-    configurationReady = notifications.configurationStatus?.state !== 'error'
-    updateHealthBanner(notifications.configurationStatus)
+    currentConfigurationStatus = notifications.configurationStatus || null
+    configurationReady = currentConfigurationStatus?.state !== 'error'
+    updateHealthBanner(currentConfigurationStatus)
     configuredStateOrder = Array.isArray(notifications.stateOrder) ? notifications.stateOrder : configuredStateOrder
     stateColors = notifications.stateColors || stateColors
     visualRules = notifications.visualRules || visualRules
@@ -699,7 +714,7 @@ async function showDiagnostics() {
   const content = document.querySelector('#diagnostics-content')
   sheet.setAttribute('aria-hidden', 'false')
   sheet.style.zIndex = '14'
-  content.textContent = 'Loading…'
+  content.textContent = t('diagnostics.loading')
   try {
     const server = await fetchJsonWithTimeout(`${pluginApi}/diagnostics`)
     content.textContent = JSON.stringify({ clientPoll: clientPollDiagnostics, server }, null, 2)
@@ -725,15 +740,15 @@ function closeAudioTest() {
 
 function updateHealthBanner(configurationStatus = null) {
   if (!isConnected) {
-    const lastUpdate = lastSuccessfulRefreshAt ? lastSuccessfulRefreshAt.toLocaleTimeString() : 'never'
-    healthBanner.textContent = `No connection to Signal K · displayed data is stale · last update ${lastUpdate}`
+    const lastUpdate = lastSuccessfulRefreshAt ? i18n.time(lastSuccessfulRefreshAt) : t('connection.never')
+    healthBanner.textContent = t('connection.offline', { time: lastUpdate })
     healthBanner.hidden = false
     document.documentElement.classList.add('connection-stale')
     return
   }
   document.documentElement.classList.remove('connection-stale')
   if (configurationStatus?.state === 'error') {
-    healthBanner.textContent = `Notification processing disabled · invalid Node-RED configuration: ${configurationStatus.message}`
+    healthBanner.textContent = t('configuration.invalid', { message: configurationStatus.message })
     healthBanner.hidden = false
     return
   }
@@ -754,35 +769,42 @@ function markDisconnected() {
 function updateGlobalActions() {
   for (const button of actionBar.querySelectorAll('[data-global-action]')) {
     button.disabled = !isConnected || !configurationReady
-    button.title = button.disabled ? 'Unavailable while offline or configuration is invalid' : button.getAttribute('aria-label')
+    button.title = button.disabled ? t('actions.unavailable') : button.getAttribute('aria-label')
   }
   const running = ['playing', 'awaiting_feedback'].includes(currentAudioTest.state)
   audioTestStart.disabled = !isConnected || !configurationReady || running
-  audioTestStart.title = audioTestStart.disabled ? 'Unavailable while offline, invalid, or another test is running' : 'Play one bounded maintenance test tone'
+  audioTestStart.title = audioTestStart.disabled ? t('audioTest.unavailable') : t('audioTest.playTitle')
   audioTestNotHeard.hidden = currentAudioTest.state !== 'awaiting_feedback'
   audioTestNotHeard.disabled = !isConnected || !configurationReady || currentAudioTest.state !== 'awaiting_feedback'
 }
 
 function renderAudioTest(value) {
-  currentAudioTest = value || { state: 'idle', statement: 'Noch kein Alarmtontest ausgeführt.' }
+  currentAudioTest = value || { state: 'idle', statement: 'No alarm sound test has been run yet.' }
   const feedbackSeconds = currentAudioTest.state === 'awaiting_feedback'
     ? Math.max(0, Math.ceil((Date.parse(currentAudioTest.feedbackDeadlineAt) - Date.now()) / 1000))
     : null
+  const audioTestStateKeys = {
+    idle: 'audioTest.idle',
+    playing: 'audioTest.playing',
+    technical_failure: 'audioTest.technicalFailure',
+    not_heard: 'audioTest.notHeardStatus',
+    passed_no_counter_report: 'audioTest.passed'
+  }
   audioTestStatus.textContent = feedbackSeconds === null
-    ? (currentAudioTest.statement || currentAudioTest.state)
-    : `Technisch abgespielt; noch ${feedbackSeconds} Sekunden für "Ton nicht gehört".`
+    ? (audioTestStateKeys[currentAudioTest.state] ? t(audioTestStateKeys[currentAudioTest.state]) : currentAudioTest.statement || currentAudioTest.state)
+    : t('audioTest.awaitingFeedback', { count: feedbackSeconds })
   const passedAt = currentAudioTest.state === 'passed_no_counter_report' ? Date.parse(currentAudioTest.passedAt || currentAudioTest.completedAt) : NaN
   const remainingDays = Number.isFinite(passedAt) ? Math.max(0, Math.ceil((passedAt + (7 * 86400000) - Date.now()) / 86400000)) : 0
   const running = ['playing', 'awaiting_feedback'].includes(currentAudioTest.state)
   audioTestDays.textContent = running ? '…' : String(remainingDays)
   audioTestDueButton.classList.toggle('is-due', !running && remainingDays === 0)
   audioTestDueButton.classList.toggle('is-running', running)
-  audioTestDueButton.title = running ? 'Alarmtontest läuft' : remainingDays === 0 ? 'Alarmtontest: fällig' : `Alarmtontest: noch ${remainingDays} Tag${remainingDays === 1 ? '' : 'e'}`
+  audioTestDueButton.title = running ? t('audioTest.running') : remainingDays === 0 ? t('audioTest.due') : t('audioTest.daysRemaining', { count: remainingDays })
   document.querySelector('#audio-test-actor').textContent = currentAudioTest.actor || '–'
   document.querySelector('#audio-test-device').textContent = currentAudioTest.device || '–'
   document.querySelector('#audio-test-file').textContent = currentAudioTest.file || '–'
   document.querySelector('#audio-test-player').textContent = currentAudioTest.player ? `${currentAudioTest.player.ok ? 'Exit 0' : `Exit ${currentAudioTest.player.code ?? '?'}`}${currentAudioTest.player.signal ? ` / ${currentAudioTest.player.signal}` : ''}` : '–'
-  document.querySelector('#audio-test-completed').textContent = currentAudioTest.completedAt ? new Date(currentAudioTest.completedAt).toLocaleString() : '–'
+  document.querySelector('#audio-test-completed').textContent = currentAudioTest.completedAt ? i18n.dateTime(currentAudioTest.completedAt) : '–'
   updateGlobalActions()
 }
 
@@ -797,25 +819,41 @@ async function reportAudioTestNotHeard() {
 
 async function runAudioTestRequest(route) {
   try {
-    if (!isConnected || !configurationReady) throw new Error('Audio test is unavailable while offline or configuration is invalid.')
+    if (!isConnected || !configurationReady) throw new Error(t('audioTest.requestUnavailable'))
     const response = await fetch(`${pluginApi}${route}`, { method: 'POST' })
     const body = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(body.message || response.statusText)
     renderAudioTest(body)
     setTimeout(scheduleRefresh, 500)
   } catch (error) {
-    audioTestStatus.textContent = `Audio test failed: ${error.message}`
+    audioTestStatus.textContent = t('audioTest.failed', { message: error.message })
   }
 }
 
 const scheduleRefresh = createRefreshScheduler(refresh)
 window.addEventListener('offline', markDisconnected)
 window.addEventListener('online', scheduleRefresh)
-scheduleRefresh()
-updateGlobalActions()
-setInterval(scheduleRefresh, 5000)
-setInterval(() => {
-  const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
-  if (isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS, refreshInProgress)) markDisconnected()
-}, 1000)
-setInterval(() => renderAudioTest(currentAudioTest), 1000)
+window.addEventListener('notification-language-changed', () => {
+  renderNotifications(activeNotifications)
+  renderAudioTest(currentAudioTest)
+  updateHealthBanner(currentConfigurationStatus)
+  if (detailSheet.getAttribute('aria-hidden') === 'false') {
+    const notification = activeNotifications.find(item => item.id === selectedId) || historyFocusNotification
+    if (notification) renderDetails(notification)
+  }
+  if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false') {
+    if (historyMode === 'critical') renderCriticalHistory()
+    else renderSelectedHistory()
+  }
+})
+
+void i18n.initialize().then(() => {
+  scheduleRefresh()
+  updateGlobalActions()
+  setInterval(scheduleRefresh, 5000)
+  setInterval(() => {
+    const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
+    if (isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS, refreshInProgress)) markDisconnected()
+  }, 1000)
+  setInterval(() => renderAudioTest(currentAudioTest), 1000)
+})

@@ -350,6 +350,38 @@
   Paket `0.1.3` bleibt lokal erhalten, wird aber aus Git entfernt.
 - [ ] Git-Remote, Release-Tags und unabhängige CI-Prüfungen einrichten, bevor
   das Paket öffentlich veröffentlicht wird.
+- [x] Establish English as the canonical project language before release:
+  source code, identifiers, comments, API fields, persisted event codes,
+  server logs, diagnostics, configuration descriptions and every built-in UI
+  string must be English. Replace the remaining German audio-self-test strings
+  in the backend and WebApp, and add a regression check that prevents new
+  untranslated built-in literals from being introduced accidentally. Completed
+  in `0.1.33` and included in the deployed `0.1.34` package.
+- [x] Add a small WebApp localization layer without changing the canonical API
+  data. Use stable translation keys with a complete English fallback catalog;
+  select the initial locale from an explicit per-browser preference and then
+  `navigator.languages`, falling back to English. Provide a visible language
+  selector, persist its value locally on that browser, update `html[lang]`, and
+  format dates, times, durations and numbers with `Intl`. Translate only
+  Notification Engine labels and known state/category/event descriptions;
+  preserve Signal K paths, IDs, sources, raw diagnostics and producer-supplied
+  notification messages verbatim. Version `0.1.34` ships complete English and
+  German catalogs with 135 keys each, safe persistent custom-locale overrides,
+  English fallback, browser-language detection and a per-browser language
+  button. Live on Tab 3, `DE` rendered `Alarmzentrale`, changed without reload
+  to `EN` / `Alarm Centre` / `Alarm sound test`, and changed back to German
+  with `de` persisted locally and no undefined text.
+
+### Post-release integrations
+
+- [ ] After the first public release, evaluate ntfy and Gotify as optional
+  native system-notification outputs. Keep Raspberry Pi audio as the primary
+  channel and the WebApp as an optical client. Start with an isolated Tab 3
+  proof covering foreground, closed browser, screen off, Doze/battery
+  optimization, reboot, Wi-Fi loss/recovery, notification-channel sound and
+  Do Not Disturb. Any later integration may publish presentation events only;
+  it must not acknowledge, silence, clear or otherwise own a Signal K alarm
+  lifecycle.
 
 ## Abgeschlossene Historienoptimierung
 

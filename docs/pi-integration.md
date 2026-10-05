@@ -103,6 +103,23 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.34` was deployed and verified on 2026-10-04. The complete prior
+`0.1.32` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.32-live-20261004T221515-0400`
+and at the sibling `0.1.32-replaced` path with the same timestamp. The package
+SHA-256 is
+`c8062a13abc615c75d8c1348f4cc9b90dc89d9dbd6308888b5f6b307d0ead141`.
+Both read-only translation endpoints returned complete English and German
+catalogs with 135 keys and no validation errors. Tab 3 loaded the `0.1.34`
+assets, selected German from its browser preferences, switched live to English
+and back through the language button, persisted `de` locally, and showed no
+undefined text. Signal K and `signalk-health.timer` were active; the embedded
+Node-RED configuration and runtime-deploy interface were ready; audio was ready
+with zero active processes, retries, open breakers, or unresolved failures;
+history was healthy; and the separate `nodered.service` remained inactive.
+Source/live hashes for the API, WebApp localization code and both catalogs
+matched exactly.
+
 Version `0.1.32` was deployed and verified on 2026-10-04. Version `0.1.31`
 is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.31-20261004T233830Z.tgz`

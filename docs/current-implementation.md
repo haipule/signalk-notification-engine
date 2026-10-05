@@ -69,7 +69,7 @@
   would create competing ALSA ownership and requires a controlled hand-off.
 - The authenticated WebApp self-test plays the configured test-tone file once
   without taking ownership of existing audio. It logs its technical result and
-  offers `Ton nicht gehört` for 15 seconds. Silence after that window is an
+  offers `Sound not heard` for 15 seconds. Silence after that window is an
   operational pass, not evidence that a human heard the tone.
 - The Plugin Config also controls the combined state visibility/sort order, info-window auto-close
   timeout, and the `i`/`h` keyboard shortcuts. A zero timeout keeps the info

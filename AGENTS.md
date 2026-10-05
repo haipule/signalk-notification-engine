@@ -142,6 +142,36 @@ compatibility; if it is unavailable, notification processing must not start.
 - Update `docs/architecture.md` whenever a component boundary or data flow
   changes, and `docs/testing.md` when adding a new test category.
 
+## Language and localization policy
+
+- English is the canonical project and runtime language. Source code,
+  identifiers, comments, API fields and values, persisted event codes, server
+  logs, diagnostics, configuration descriptions, built-in UI strings and
+  maintained project documentation must be English.
+- Localization is a presentation layer only. It must never change Signal K
+  notification state, policy evaluation, action permissions, lifecycle
+  ownership, matching behaviour or persisted machine-readable values.
+- The WebApp must use stable translation keys and ship a complete English
+  catalog. Every missing or invalid translation must fall back to English;
+  localization failure must not stop notification processing or make the
+  Node-RED configuration invalid.
+- User-provided translations must be declarative JSON, one file per locale,
+  and must be loaded from persistent Signal K plugin configuration data outside
+  the installed npm package so upgrades do not overwrite them. Translation
+  files are untrusted input: validate their schema, size, value types and
+  placeholders; ignore unknown keys; never evaluate them as code or inject
+  their values as HTML.
+- Language selection is per browser. Prefer an explicit locally persisted user
+  choice, then `navigator.languages`, and finally English. Update the document
+  language and format dates, times, durations, numbers and plurals with the
+  browser `Intl` APIs.
+- Translate only Notification Engine labels, instructions and known display
+  descriptions. Preserve producer-supplied notification messages, Signal K
+  paths, IDs, sources, raw diagnostics and other authoritative external data
+  verbatim. A future API may expose stable English statement codes and
+  parameters for localized rendering, but must retain an English fallback for
+  compatibility and diagnostics.
+
 ## Tests and verification
 
 - Unit-test state transitions, classification precedence, policy resolution,

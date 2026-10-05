@@ -2,6 +2,22 @@
 
 ## Component boundary
 
+### Localization boundary
+
+The WebApp renders Notification Engine labels through stable keys. Built-in
+English is complete and authoritative; built-in German and validated custom
+locale JSON files override only presentation strings. `TranslationCatalog`
+loads custom files from the persistent Signal K plugin data directory, rejects
+unsafe input, and merges every valid locale over English before returning it
+through the read-only translation API. Catalog failure is deliberately outside
+Node-RED configuration readiness and notification processing.
+
+The browser stores the selected locale locally, applies `navigator.languages`
+only when there is no explicit choice, and uses `Intl` for locale-sensitive
+date, time and plural rendering. Signal K messages, paths, sources, IDs,
+machine-readable states, event codes and raw Diagnostics cross this boundary
+unchanged.
+
 ```text
 Signal K notifications and API
              │ snapshot + deltas + permitted actions
@@ -123,7 +139,7 @@ an active notification lifecycle. The server records the Signal K request
 identity available to the plugin, device, file, timestamps, exit code, signal,
 technical outcome, and operator counter-feedback in local audit history.
 
-After a successful player exit, `Ton nicht gehört` remains available for exactly
+After a successful player exit, `Sound not heard` remains available for exactly
 15 seconds. A counter-report latches the visual audio-system notification. With
 no counter-report, the test passes operationally only after the full window and
 is described as technically played without counter-report; it never claims

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.34 - 2026-10-04
+
+- Add English and German WebApp catalogs, automatic browser-language
+  selection, a persistent per-browser language button, localized dates and
+  plurals, and English fallback for missing translations.
+- Load optional user locale JSON files from persistent plugin data with strict
+  validation. Invalid localization falls back to English and never affects
+  notification processing or Node-RED configuration readiness.
+
+## 0.1.33 - 2026-10-04
+
+- Make English the canonical language for every built-in Alarm Centre audio
+  self-test label, status, audit statement and prototype validation message.
+- Refresh the WebApp asset version so existing clients load the English UI.
+
 ## 0.1.32 - 2026-10-04
 
 - Canonicalize playback signatures to the absolute file path used by the
@@ -76,7 +91,7 @@
 
 ## Development series 0.1.4-0.1.22
 
-- Fix the audible self-test failure latch: `Ton nicht gehört` now uses a
+- Fix the audible self-test failure latch: `Sound not heard` now uses a
   distinct internal failure origin, so the recursion guard for the published
   audio-system notification no longer suppresses the visual warning.
 
@@ -103,7 +118,7 @@
 
 - Add an authenticated, bounded audible operator self-test to the WebApp. It
   records actor, device, file, player result, and explicit counter-feedback;
-  after a technically successful playback it keeps `Ton nicht gehört` available
+  after a technically successful playback it keeps `Sound not heard` available
   for 15 seconds and reports only `technically played - no counter-report`,
   never that a person heard the tone. A reported or technical failure latches
   the visual audio-system notification until a later technical success receives
