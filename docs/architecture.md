@@ -87,6 +87,13 @@ passive watchdog recovery, and audio diagnostics. It never executes a Signal K
 notification action; the action adapter remains authoritative for permitted
 Silence requests, and a rejected request removes only the local marker.
 
+The plugin runtime coordinator owns lifecycle tokens and the mandatory
+Node-RED configuration boundary. Initial startup cannot proceed without a
+valid runtime/configuration interface. A later invalid deploy is latched,
+suspends snapshot subscriptions and local audio, and is not retried by WebApp
+polling; only a subsequent deploy event may apply a valid configuration and
+resume the injected services.
+
 Runtime integration tests use a separate bounded maintenance adapter around
 the Signal K Notification API. It can raise only fixed
 `notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores

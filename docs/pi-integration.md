@@ -103,6 +103,21 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.43` was deployed and verified on 2026-10-05. The complete prior
+`0.1.42` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.42-live-20261005T223832Z`
+and at the sibling replaced path. Package SHA-256 is
+`7d4de376f4b3544dc431acaddfc3426636cfe60107bdc1436c4917c9d3121930`.
+Notifications, rules, history, translations, and diagnostics returned HTTP
+200. Mandatory Node-RED configuration and runtime deploy events were ready;
+audio had zero processes, retries, open breakers, or unresolved failures;
+History restored 500 entries without error; and Android GPS was fresh. Signal
+K and its health timer were active with zero restarts, external
+`nodered.service` remained inactive, the journal contained no Notification
+Engine error line, and source/live hashes for `package.json`, `index.js`, and
+`lib/plugin-runtime.js` matched. This completes the staged component-boundary
+refactor recorded in Prio 4.
+
 Version `0.1.42` was deployed and verified on 2026-10-05. The complete prior
 `0.1.41` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.41-live-20261005T223136Z`

@@ -9,6 +9,7 @@ const { PolicyResolver } = require('./lib/policies')
 const HistoryService = require('./lib/history-service')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const SnapshotService = require('./lib/snapshot-service')
+const PluginRuntime = require('./lib/plugin-runtime')
 const AudioPlayer = require('./lib/audio-player')
 const AudioController = require('./lib/audio-controller')
 const { AudioCircuitBreaker } = require('./lib/audio-circuit-breaker')
@@ -103,13 +104,6 @@ module.exports = function createPlugin(app) {
   })
   const actions = new NotificationActions(app)
   const runtimeTests = new RuntimeTestNotifications(app)
-  let lifecycle = 0
-  let nodeRedUnsubscribe = null
-  let nodeRedConfigChecksum = null
-  let nodeRedRuntime = null
-  let runtimeOptions = {}
-  let configReloadPromise = null
-  let configurationError = null
   let activeRules = []
   const conditionValues = new Map()
   let conditionUnsubscribes = []
@@ -144,6 +138,17 @@ module.exports = function createPlugin(app) {
     onFailure: (test, result) => audioSystemNotification.recordFailure({ ...audioSelfTestRecord, message: test.statement }, result),
     onPassed: () => audioSystemNotification.recordSuccess(audioSelfTestRecord)
   })
+  const runtime = new PluginRuntime({
+    getNodeRed,
+    readConfiguration,
+    subscribeToDeploy,
+    applyConfiguration: applyRuntimeConfiguration,
+    writeRules: writeRuleDescriptionFiles,
+    suspend: suspendNotificationProcessing,
+    resume: resumeNotificationProcessing,
+    debug: message => app.debug?.(message),
+    error: message => app.error?.(message)
+  })
 
   function readSignalKValue(pathName) {
     const cached = conditionValues.get(pathName)
@@ -166,6 +171,7 @@ module.exports = function createPlugin(app) {
   }
 
   function applyRuntimeConfiguration(flowOptions) {
+    activeRules = flowOptions?.activeRules || []
     configurationService.loadColorPalette(flowOptions?.colorPaletteFile)
     soundsByState = configurationService.normalizeSoundsByState(flowOptions?.soundsByState, flowOptions?.soundPaletteFile)
     audioController.configure(flowOptions?.audioPlayer, flowOptions?.audioDevice)
@@ -185,38 +191,6 @@ module.exports = function createPlugin(app) {
       name: 'Android GPS', path: 'navigation.position', source: 'android_udp.gps', staleAfterSeconds: 15
     }])
     subscribeToConditions()
-  }
-
-  // Node-RED does not emit a deploy event on every supported Signal K build.
-  // Re-read the flow on API access as a safety net so a deployed rule cannot
-  // remain active in this plugin merely because the event was missed.
-  async function refreshNodeRedConfiguration({ force = false } = {}) {
-    // A failed configuration is latched. Polling the WebApp must not repeatedly
-    // parse the same unsafe deploy or continue operating with stale rules; only
-    // a new runtime deploy event is allowed to attempt recovery.
-    if (configurationError && !force) return
-    if (!nodeRedRuntime || configReloadPromise) return configReloadPromise
-    configReloadPromise = (async () => {
-      try {
-        const next = await readConfiguration(nodeRedRuntime)
-        if (next.checksum === nodeRedConfigChecksum && !configurationError) return
-        const recovering = Boolean(configurationError)
-        nodeRedConfigChecksum = next.checksum
-        activeRules = next.rules
-        writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
-        applyRuntimeConfiguration({ ...runtimeOptions, ...next.config.notificationEngine, activeRules: next.rules })
-        configurationError = null
-        if (recovering) await resumeNotificationProcessing()
-        app.debug?.(`Notification Engine configuration updated from Node-RED`)
-      } catch (error) {
-        configurationError = { message: error.message, failedAt: new Date().toISOString() }
-        suspendNotificationProcessing()
-        app.error?.(`Unable to refresh Node-RED notification rules: ${error.message}`)
-      } finally {
-        configReloadPromise = null
-      }
-    })()
-    return configReloadPromise
   }
 
   const plugin = {
@@ -411,21 +385,7 @@ module.exports = function createPlugin(app) {
     async start(options) {
       stopSubscriptions()
       void stopTestNotification()
-      const currentLifecycle = ++lifecycle
-      const nodeRed = getNodeRed()
-      nodeRedRuntime = nodeRed
-      runtimeOptions = { ...options }
-      const nodeRedConfig = await readConfiguration(nodeRed)
-      nodeRedConfigChecksum = nodeRedConfig.checksum
-      configurationError = null
-      activeRules = nodeRedConfig.rules
-      writeRuleDescriptionFiles(activeRules, nodeRedConfigChecksum)
-      const flowOptions = {
-        ...options,
-        activeRules: nodeRedConfig.rules,
-        stateOrder: nodeRedConfig.config.notificationEngine.stateOrder,
-        visibleStates: nodeRedConfig.config.notificationEngine.visibleStates
-      }
+      const { token, flowOptions } = await runtime.start(options)
       applyRuntimeConfiguration(flowOptions)
       lifecycleRules = loadLifecycleRules(app.getDataDirPath?.(), message => app.error?.(message))
       store.lifecycleRules = lifecycleRules
@@ -441,17 +401,15 @@ module.exports = function createPlugin(app) {
       audioSystemRepository = new AudioSystemRepository(app.getDataDirPath?.(), {
         onError: message => app.error?.(message)
       })
-      nodeRedUnsubscribe = subscribeToDeploy(nodeRed, async () => {
-        await refreshNodeRedConfiguration({ force: true })
-      })
-      void initialize(currentLifecycle, flowOptions?.testNotif)
+      runtime.subscribe()
+      void initialize(token, flowOptions?.testNotif)
       if (options?.playTestTone === true && typeof app.savePluginOptions === 'function') {
         app.savePluginOptions({ ...options, playTestTone: false }, error => {
           if (error) app.error?.(`Unable to reset audio test configuration: ${error.message}`)
         })
       }
       if (options?.playTestTone === true) {
-        void playTestTone(currentLifecycle, options?.testTonePath)
+        void playTestTone(token, options?.testTonePath)
       }
       if (options?.testNotif?.enabled === true && typeof app.savePluginOptions === 'function') {
         app.savePluginOptions({ ...options, testNotif: { ...options.testNotif, enabled: false } }, error => {
@@ -461,17 +419,13 @@ module.exports = function createPlugin(app) {
     },
 
     async stop() {
-      lifecycle += 1
+      runtime.stop()
       audioController.shutdown()
       audioSelfTest.stop()
       stopSubscriptions()
       snapshotService.stopPolling()
       await stopTestNotification()
       await runtimeTests.clearAll()
-      nodeRedUnsubscribe?.()
-      nodeRedUnsubscribe = null
-      nodeRedConfigChecksum = null
-      configurationError = null
       await audioCircuitRepository?.flush()
       audioCircuitRepository = null
       await audioSystemRepository?.flush()
@@ -505,14 +459,14 @@ module.exports = function createPlugin(app) {
 
   /** Bind transport-neutral domain operations to the isolated HTTP adapter. */
   function createHttpApi() {
-    const configurationStatus = () => configurationError ? { state: 'error', ...configurationError } : { state: 'ready' }
+    const configurationStatus = () => runtime.status()
     return {
       async notifications() {
         // Polling is also the compatibility fallback when this Signal K build
         // does not emit an embedded Node-RED runtime-deploy event.
-        await refreshNodeRedConfiguration()
-        if (!configurationError) await snapshotService.sync()
-        return { notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, configurationStatus: configurationStatus(), stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, audioTest: audioSelfTest.toJSON(), updatedAt: new Date().toISOString() }
+        await runtime.refresh()
+        if (!runtime.configurationError) await snapshotService.sync()
+        return { notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: runtime.checksum, configurationStatus: configurationStatus(), stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, audioTest: audioSelfTest.toJSON(), updatedAt: new Date().toISOString() }
       },
       rules() {
         const file = path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'deployed-rules', 'deployed-rules.md')
@@ -526,7 +480,7 @@ module.exports = function createPlugin(app) {
       diagnostics() {
         const locales = translationCatalog.list()
         return diagnostics.toJSON({
-          nodeRed: { revision: nodeRedConfigChecksum, configurationStatus: configurationStatus(), runtimeDeployEventsAvailable: Boolean(nodeRedUnsubscribe) },
+          nodeRed: { revision: runtime.checksum, configurationStatus: configurationStatus(), runtimeDeployEventsAvailable: runtime.eventsAvailable() },
           criticalInputs: inspectInputSources(criticalInputs, readSignalKLeaf),
           audio: {
             ...audioController.diagnostics(),
@@ -538,12 +492,12 @@ module.exports = function createPlugin(app) {
           localization: { locales, fallbackLocale: 'en', errors: translationCatalog.errors }
         })
       },
-      configurationError: () => configurationError,
-      processingUnavailable: () => configurationError
-        ? `Notification processing is disabled: ${configurationError.message}`
+      configurationError: () => runtime.configurationError,
+      processingUnavailable: () => runtime.configurationError
+        ? `Notification processing is disabled: ${runtime.configurationError.message}`
         : !audioController.ready ? 'Notification processing is not ready' : null,
-      audioUnavailable: () => configurationError
-        ? `Notification processing is disabled: ${configurationError.message}`
+      audioUnavailable: () => runtime.configurationError
+        ? `Notification processing is disabled: ${runtime.configurationError.message}`
         : !audioController.ready ? 'Audio is not ready' : null,
       runtimeTests,
       audioTest: {
@@ -593,12 +547,12 @@ module.exports = function createPlugin(app) {
     ])
     audioCircuitBreaker.restore(circuitSnapshot)
     audioSystemNotification.restore(audioSystemSnapshot)
-    if (currentLifecycle !== lifecycle) return
+    if (!runtime.isCurrent(currentLifecycle)) return
     await runtimeTests.clearStale()
     audioSelfTest.restore(historyState.lastAudioTest)
     await snapshotService.sync()
     audioCircuitBreaker.reconcileActive(store.list())
-    if (configurationError) return
+    if (runtime.configurationError) return
     await historyService.clearAfterSnapshot()
     snapshotService.subscribe()
     audioSystemNotification.synchronize()
@@ -632,8 +586,8 @@ module.exports = function createPlugin(app) {
   }
 
   async function playTestTone(currentLifecycle, configuredPath) {
-    while (currentLifecycle === lifecycle && !audioController.ready) await new Promise(resolve => setTimeout(resolve, 100))
-    if (currentLifecycle === lifecycle) audioPlayer.play(path.resolve(String(configuredPath || path.join(__dirname, 'sounds', 'test.wav'))))
+    while (runtime.isCurrent(currentLifecycle) && !audioController.ready) await new Promise(resolve => setTimeout(resolve, 100))
+    if (runtime.isCurrent(currentLifecycle)) audioPlayer.play(path.resolve(String(configuredPath || path.join(__dirname, 'sounds', 'test.wav'))))
   }
 
   async function stopTestNotification() {

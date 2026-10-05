@@ -112,6 +112,10 @@ circuit, a completed finite signature is not replayed by a refresh, and a
 rejected optimistic Silence rolls back locally without changing notification
 state.
 
+Plugin-runtime tests verify mandatory initial Node-RED loading, lifecycle-token
+invalidation, deploy unsubscription, latched fail-closed suspension, suppression
+of poll-driven retries, and recovery only after a forced deploy refresh.
+
 Use a fake Signal K application object to simulate `app.notifications` and
 notification deltas. Cover an API-managed alarm and a classic producer delta,
 where clear must be unavailable.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.43 - 2026-10-05
+
+- Complete the component-boundary refactor with a plugin runtime coordinator
+  for lifecycle tokens, mandatory initial Node-RED configuration, deploy
+  reloads, latched fail-closed suspension, and controlled recovery.
+
 ## 0.1.42 - 2026-10-05
 
 - Extract local playback policy, silence rollback, repeat/retry scheduling,

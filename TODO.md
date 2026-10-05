@@ -339,7 +339,7 @@
 
 ### Prio 4 – Komponentengrenzen nach der Stabilisierung
 
-- [ ] Den rund 1.000 Zeilen großen Einstiegspunkt entlang klarer Start-/Stop-
+- [x] Den rund 1.000 Zeilen großen Einstiegspunkt entlang klarer Start-/Stop-
   und Fehlergrenzen in Plugin-Runtime, Snapshot-Service, Audio-Controller,
   Configuration-Service, History-Service und HTTP-Routen zerlegen.
   `0.1.37` beginnt die verhaltensneutrale Zerlegung mit einem separat
@@ -351,8 +351,9 @@
   History-Service; `0.1.41` verschiebt die Signal-K-Datenpfadauflösung korrekt
   auf den Plugin-Startzeitpunkt. `0.1.42` isoliert lokale Playback-Policy,
   Wiederholung, Retry/Probe, Silence-Rollback, Deduplizierung und Watchdog im
-  Audio-Controller. Nur die abschließende Runtime-Grenze bleibt offen, daher
-  ist dieser Punkt noch nicht erledigt.
+  Audio-Controller. `0.1.43` schließt die Runtime-Grenze für Lifecycle-Token,
+  zwingende Initialkonfiguration, Deploy-Reload, fail-closed Suspend und
+  kontrollierte Recovery; der Einstiegspunkt ist auf 722 Zeilen reduziert.
 
 ### Prio 5 – Dokumentation und Release-Basis
 
