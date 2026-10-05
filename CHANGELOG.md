@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.39 - 2026-10-05
+
+- Extract notification snapshot reconstruction, producer-source enrichment,
+  delta subscription, diagnostics timing, and periodic reconciliation into a
+  separately tested read-only snapshot service.
+
 ## 0.1.38 - 2026-10-05
 
 - Extract Signal K readonly and readwrite HTTP route registration into a

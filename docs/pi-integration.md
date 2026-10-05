@@ -103,6 +103,26 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.39` was deployed and verified on 2026-10-05. The complete prior
+`0.1.38` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.38-live-20261005T220405Z`
+and at the sibling `0.1.38-replaced` path with the same timestamp. The package
+SHA-256 is
+`93e940c706b863fca19e690f509f144a722bf0a82005172e28e8ac327af25ffc`.
+The snapshot boundary now owns read-only reconstruction, producer-source
+enrichment, delta subscription, and periodic reconciliation. Two consecutive
+live snapshots completed without error, the second in 141 ms; the delta count
+advanced from 19 to 22 during observation; and 15 active records retained
+their producer identities, including `engineroomStbd.XX`,
+`hoekens-anchor-alarm`, `gnssOffsetCorrector`, `noaa-storms`, and
+`engineroomPort.XX`. The WebApp, notifications, rules, and diagnostics returned
+HTTP 200; Node-RED configuration and runtime deploy events were ready; Android
+GPS was fresh; and audio had zero processes, retries, open breakers, or
+unresolved failures. Signal K and `signalk-health.timer` were active with zero
+service restarts, external `nodered.service` remained inactive, the deployment
+journal contained no Notification Engine error line, and source/live hashes
+for `package.json`, `index.js`, and `lib/snapshot-service.js` matched.
+
 Version `0.1.38` was deployed and verified on 2026-10-05. The complete prior
 `0.1.37` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.37-live-20261005T215335Z`

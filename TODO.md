@@ -344,9 +344,11 @@
   Configuration-Service, History-Service und HTTP-Routen zerlegen.
   `0.1.37` beginnt die verhaltensneutrale Zerlegung mit einem separat
   getesteten Configuration-Service. `0.1.38` trennt zusätzlich die
-  readonly/readwrite HTTP-Routen als getesteten Transportadapter ab; Snapshot,
-  History, Audio und die abschließende Runtime-Grenze bleiben offen, daher ist
-  dieser Punkt noch nicht erledigt.
+  readonly/readwrite HTTP-Routen als getesteten Transportadapter ab. `0.1.39`
+  isoliert Snapshot-Rekonstruktion, Producer-Quellen, Delta-Abonnement und
+  periodischen Abgleich in einem read-only Snapshot-Service. History, Audio und
+  die abschließende Runtime-Grenze bleiben offen, daher ist dieser Punkt noch
+  nicht erledigt.
 
 ### Prio 5 – Dokumentation und Release-Basis
 

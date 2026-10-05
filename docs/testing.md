@@ -95,6 +95,12 @@ responses when notification processing is unavailable. Domain behaviour stays
 covered by the notification, action, runtime-test, audio, and history tests;
 route tests use injected fakes and do not acquire Signal K authority.
 
+Snapshot-service tests cover merging all supported Signal K views, retaining
+the official API projection when an optional in-process view fails, filtering
+the disabled manager-owned test notification, subscribing to notification and
+mirrored producer paths, preserving the original producer source, and owning
+exactly one periodic reconciliation timer.
+
 Use a fake Signal K application object to simulate `app.notifications` and
 notification deltas. Cover an API-managed alarm and a classic producer delta,
 where clear must be unavailable.

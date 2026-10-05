@@ -8,8 +8,7 @@ const NotificationActions = require('./lib/actions')
 const { PolicyResolver } = require('./lib/policies')
 const HistoryRepository = require('./lib/history-repository')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
-const { fromDataModel, mergeSnapshots } = require('./lib/notification-snapshot')
-const { normalizeSource } = require('./lib/notification-source')
+const SnapshotService = require('./lib/snapshot-service')
 const AudioPlayer = require('./lib/audio-player')
 const AudioPlaybackRegistry = require('./lib/audio-playback-registry')
 const AudioRepeatPlan = require('./lib/audio-repeat-plan')
@@ -34,8 +33,6 @@ const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
 const defaultColorPaletteFile = path.join(__dirname, 'examples', 'notification-colors.json')
 const defaultSoundPaletteFile = path.join(__dirname, 'examples', 'notification-sounds.json')
-
-const SNAPSHOT_INTERVAL_MS = 5000
 
 /**
  * Create the Signal K notification manager plugin.
@@ -80,6 +77,7 @@ module.exports = function createPlugin(app) {
   const audioAttempts = new Map()
   const audioPlaybackRegistry = new AudioPlaybackRegistry()
   const silencedAudio = new Map()
+  const diagnostics = new Diagnostics()
   const store = new NotificationStore({
     classify: notification => configuredClassifier(notification),
     shouldRecord: notification => shouldRecordHistory(notification),
@@ -89,6 +87,12 @@ module.exports = function createPlugin(app) {
       historyRepository?.append(event)
     },
     onChange: event => applyNotificationAudio(event)
+  })
+  const snapshotService = new SnapshotService({
+    app,
+    store,
+    diagnostics,
+    includeTestNotifications: () => testNotificationEnabled
   })
   const audioCircuitBreaker = new AudioCircuitBreaker({
     onTransition: event => {
@@ -136,9 +140,7 @@ module.exports = function createPlugin(app) {
   const actions = new NotificationActions(app)
   const runtimeTests = new RuntimeTestNotifications(app)
   let policyResolver = new PolicyResolver([], {}, readSignalKValue)
-  let unsubscribes = []
   let lifecycle = 0
-  let snapshotTimer = null
   let audioReady = false
   let nodeRedUnsubscribe = null
   let nodeRedConfigChecksum = null
@@ -148,8 +150,6 @@ module.exports = function createPlugin(app) {
   let configurationError = null
   let activeRules = []
   const conditionValues = new Map()
-  const originalSources = new Map()
-  const diagnostics = new Diagnostics()
   const audioWatchdog = new AudioWatchdog()
   let audioWatchdogTimer = null
   let conditionUnsubscribes = []
@@ -515,7 +515,7 @@ module.exports = function createPlugin(app) {
       audioSelfTest.stop()
       stopAudioWatchdog()
       stopSubscriptions()
-      stopSnapshotSync()
+      snapshotService.stopPolling()
       await stopTestNotification()
       await runtimeTests.clearAll()
       nodeRedUnsubscribe?.()
@@ -562,7 +562,7 @@ module.exports = function createPlugin(app) {
         // Polling is also the compatibility fallback when this Signal K build
         // does not emit an embedded Node-RED runtime-deploy event.
         await refreshNodeRedConfiguration()
-        if (!configurationError) await syncSnapshot()
+        if (!configurationError) await snapshotService.sync()
         return { notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: nodeRedConfigChecksum, configurationStatus: configurationStatus(), stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, audioTest: audioSelfTest.toJSON(), updatedAt: new Date().toISOString() }
       },
       rules() {
@@ -689,19 +689,19 @@ module.exports = function createPlugin(app) {
         store.replaceHistory(historyRepository.events)
       }
     }
-    await syncSnapshot()
+    await snapshotService.sync()
     audioCircuitBreaker.reconcileActive(store.list())
     if (configurationError) return
     if (clearHistoryOnStart) {
       await historyRepository.clear()
       store.replaceHistory([])
     }
-    subscribeToNotifications()
+    snapshotService.subscribe()
     audioSystemNotification.synchronize()
     audioReady = true
     for (const notification of store.list()) applyNotificationAudio({ type: 'startup', notification })
     void startTestNotification(testNotificationConfiguration)
-    startSnapshotSync()
+    snapshotService.startPolling()
     app.debug?.(`Notification manager started with ${store.size} notification(s)`)
   }
 
@@ -776,137 +776,6 @@ module.exports = function createPlugin(app) {
     })
   }
 
-  /**
-   * Read the notification manager and both supported data-model views.
-   *
-   * The REST fallback matters when Signal K core notification management is
-   * enabled: its registry contains managed alarms, while producers that write
-   * directly to the notification data model remain visible through this API.
-   */
-  async function readSnapshot() {
-    let apiNotifications = {}
-    try {
-      apiNotifications = await readNotificationsApi()
-    } catch (error) {
-      // The HTTP projection is a fallback, so retain any previously observed
-      // state and still try the in-process APIs when it is temporarily down.
-      app.error?.(`Unable to read Signal K notifications API: ${error.message}`)
-    }
-
-    try {
-      const managed = typeof app.notifications?.list === 'function' ? app.notifications.list() : {}
-      // Depending on server version and a provider's startup order, either
-      // view of the full model can be populated first. Merge both instead of
-      // making the WebApp depend on the notification registry alone.
-      const selfNotifications = typeof app.getSelfPath === 'function'
-        ? fromDataModel(app.getSelfPath('notifications'))
-        : {}
-      const fullModelNotifications = typeof app.getPath === 'function'
-        ? fromDataModel(app.getPath('vessels.self.notifications'))
-        : {}
-      const snapshot = mergeSnapshots(selfNotifications, fullModelNotifications, apiNotifications, managed)
-      enrichOriginalSources(snapshot)
-      if (!testNotificationEnabled) {
-        for (const [id, notification] of Object.entries(snapshot)) {
-          if (notification.value?.data?.notificationManagerTest === true) delete snapshot[id]
-        }
-      }
-      return snapshot
-    } catch (error) {
-      // Do not discard the independently obtained API snapshot because an
-      // optional in-process view is unavailable on this server version.
-      app.error?.(`Unable to read in-process notification snapshot: ${error.message}`)
-      return apiNotifications
-    }
-  }
-
-  /**
-   * Notification producers often write a notification under the same path as
-   * the condition they report, while the notification node itself is stamped
-   * with the handler source. Recover the producer source from that underlying
-   * Signal K path when available.
-   */
-  function enrichOriginalSources(snapshot) {
-    for (const notification of Object.values(snapshot || {})) {
-      const dataPath = String(notification.path || '').replace(/^notifications\./, '')
-      const source = originalSources.get(dataPath) || readOriginalSource(notification.path)
-      if (source) notification.source = source
-    }
-  }
-
-  function readOriginalSource(notificationPath) {
-    const dataPath = String(notificationPath || '').replace(/^notifications\./, '')
-    if (!dataPath) return null
-    const candidates = []
-    if (typeof app.getSelfPath === 'function') candidates.push(app.getSelfPath(dataPath))
-    if (typeof app.getPath === 'function') candidates.push(app.getPath(`vessels.self.${dataPath}`))
-    for (const value of candidates) {
-      const source = normalizeSource(value?.$source || value?.source || value?.value?.$source || value?.value?.source)
-      if (source) return source
-    }
-    return null
-  }
-
-  /** Read the server's official, read-only notification projection locally. */
-  async function readNotificationsApi() {
-    if (typeof fetch !== 'function') return {}
-    const port = app.config?.settings?.port || 3000
-    const response = await fetch(`http://127.0.0.1:${port}/signalk/v1/api/vessels/self/notifications`)
-    if (!response.ok) throw new Error(`notification API returned HTTP ${response.status}`)
-    return fromDataModel(await response.json())
-  }
-
-  /** Update the store without allowing a failed local read to stop future polls. */
-  async function syncSnapshot() {
-    const finish = diagnostics.beginSnapshot()
-    try {
-      const snapshot = await readSnapshot()
-      store.replaceSnapshot(snapshot)
-      finish()
-    } catch (error) {
-      finish(error)
-      throw error
-    }
-  }
-
-  /** Subscribe through Signal K's supported subscription manager API. */
-  function subscribeToNotifications() {
-    if (!app.subscriptionmanager?.subscribe) {
-      app.error?.('Signal K subscription manager is unavailable; notification updates will not be observed')
-      return
-    }
-
-    const mirroredPaths = [...new Set(store.list()
-      .map(notification => String(notification.path || '').replace(/^notifications\./, ''))
-      .filter(Boolean))]
-    app.subscriptionmanager.subscribe(
-      {
-        context: '*',
-        sourcePolicy: 'all',
-        subscribe: [{ path: 'notifications.*' }, ...mirroredPaths.map(path => ({ path }))]
-      },
-      unsubscribes,
-      error => app.error?.(`Notification subscription error: ${error}`),
-      delta => {
-        diagnostics.recordDelta()
-        logNotificationDelta(delta)
-        for (const update of delta?.updates || []) {
-          for (const item of update.values || []) {
-            if (String(item.path || '').startsWith('notifications.')) continue
-            const source = normalizeSource(update.source || update.$source || item.source || item.$source)
-            if (!source) continue
-            originalSources.set(item.path, source)
-            store.setSourceForPath(item.path, source)
-          }
-        }
-        store.applyDelta(delta, path => {
-          const dataPath = String(path || '').replace(/^notifications\./, '')
-          return originalSources.get(dataPath) || readOriginalSource(path)
-        })
-      }
-    )
-  }
-
   function subscribeToConditions() {
     stopConditionSubscriptions()
     const paths = [...new Set(activeRules.flatMap(rule => rule.match?.conditions?.map(condition => condition.path) || []))]
@@ -944,33 +813,9 @@ module.exports = function createPlugin(app) {
     for (const notification of store.list()) applyNotificationAudio({ type: 'condition_updated', notification })
   }
 
-
-  /** Log notification changes to correlate an active alarm by ID. */
-  function logNotificationDelta(delta) {
-    const changes = []
-    for (const update of delta?.updates || []) {
-      for (const item of update.values || []) {
-        if (!String(item.path || '').startsWith('notifications.')) continue
-        const value = item.value
-        changes.push({
-          path: item.path,
-          source: update.source?.label || update.source?.type || '',
-          id: value?.id || null,
-          state: value?.state || null,
-          acknowledged: value?.status?.acknowledged ?? null,
-          value: value === null ? null : undefined
-        })
-      }
-    }
-    if (changes.length > 0) app.debug?.(`Notification delta: ${JSON.stringify(changes)}`)
-  }
-
   function stopSubscriptions() {
     stopConditionSubscriptions()
-    for (const unsubscribe of unsubscribes) {
-      unsubscribe()
-    }
-    unsubscribes = []
+    snapshotService.stopSubscription()
   }
 
   /** Stop all rule-dependent processing while retaining the last observed view. */
@@ -985,37 +830,18 @@ module.exports = function createPlugin(app) {
     audioPlaybackRegistry.retainCompleted()
     audioPlayer.stop()
     stopSubscriptions()
-    stopSnapshotSync()
+    snapshotService.stopPolling()
   }
 
   /** Rebuild the authoritative view after a subsequent valid Node-RED deploy. */
   async function resumeNotificationProcessing() {
     stopSubscriptions()
-    stopSnapshotSync()
-    await syncSnapshot()
-    subscribeToNotifications()
+    snapshotService.stopPolling()
+    await snapshotService.sync()
+    snapshotService.subscribe()
     audioReady = true
     for (const notification of store.list()) applyNotificationAudio({ type: 'configuration_recovered', notification })
-    startSnapshotSync()
-  }
-
-  /**
-   * Reconcile the current server snapshot periodically.
-   *
-   * Some notification producers raise their first value after plugins have
-   * started. This closes that startup ordering gap while the store suppresses
-   * unchanged values from the local audit history.
-   */
-  function startSnapshotSync() {
-    stopSnapshotSync()
-    snapshotTimer = setInterval(() => { void syncSnapshot() }, SNAPSHOT_INTERVAL_MS)
-  }
-
-  function stopSnapshotSync() {
-    if (snapshotTimer !== null) {
-      clearInterval(snapshotTimer)
-      snapshotTimer = null
-    }
+    snapshotService.startPolling()
   }
 
   /** Refresh passive audio health without opening the device or playing sound. */

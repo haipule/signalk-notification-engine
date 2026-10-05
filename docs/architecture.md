@@ -65,6 +65,14 @@ configuration readiness, and persistence remain with their existing domain
 owners. The literal global-action route is registered before the parameterized
 single-notification route so Express cannot interpret `action-all` as an id.
 
+The snapshot service owns the read-only reconstruction boundary for active
+notifications. It merges the official local HTTP projection, both supported
+in-process data-model views, and `app.notifications.list()`; enriches handler
+projections with the original producer source; applies subscribed notification
+deltas to the cache; and periodically reconciles startup-order gaps. It records
+snapshot/delta diagnostics but never raises, clears, acknowledges, silences, or
+otherwise becomes authoritative for a Signal K notification.
+
 Runtime integration tests use a separate bounded maintenance adapter around
 the Signal K Notification API. It can raise only fixed
 `notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores
