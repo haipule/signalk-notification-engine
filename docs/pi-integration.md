@@ -103,6 +103,23 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.35` was deployed and verified on 2026-10-04. The complete prior
+`0.1.34` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.34-live-20261005T023221Z`
+and at the sibling `0.1.34-replaced` path with the same timestamp. The package
+SHA-256 is
+`ea1c961a8bfecefc84f82e90e86e18f7afd40ece510f576f5b38e525ca7cf46a`.
+The installed validator rejected an active whitespace-only sound path and
+accepted the same explicit empty path with `sound.active: false`; this used
+synthetic in-process rules and did not alter the real embedded flow. `/signalk`,
+the WebApp, notifications API, and deployed-rules endpoint returned HTTP 200.
+Diagnostics reported ready Node-RED configuration and runtime-deploy support,
+ready audio with zero active processes, retries, open breakers, or unresolved
+failures, and healthy history. Signal K and `signalk-health.timer` were active,
+the external `nodered.service` remained inactive, and source/live hashes for
+`package.json` and `lib/flow-rules.js` matched. Startup reconstruction played
+the still-active GNSS warning once successfully and returned to idle.
+
 Version `0.1.34` was deployed and verified on 2026-10-04. The complete prior
 `0.1.32` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.32-live-20261004T221515-0400`

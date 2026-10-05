@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.35 - 2026-10-04
+
+- Reject an explicitly empty or whitespace-only sound path while audio is
+  active. Deliberate suppression remains available through
+  `payload.sound.active: false` without changing Signal K notification state.
+
 ## 0.1.34 - 2026-10-04
 
 - Add English and German WebApp catalogs, automatic browser-language

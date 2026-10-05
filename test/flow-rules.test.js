@@ -99,6 +99,27 @@ test('rejects invalid and conflicting canonical sound counts', () => {
   assert.throws(() => validateRules([{ ...base, actions: { ...base.actions, sound: { count: 3, pauseSeconds: 6 } } }]), /integer from 0 to 5/)
 })
 
+test('rejects an explicitly empty active sound file and permits explicit deactivation', () => {
+  const rule = soundFile => ({
+    id: 'warn-1',
+    match: { state: 'warn' },
+    actions: { soundFile }
+  })
+
+  assert.throws(() => validateRules([rule('')]), /empty active sound file/)
+  assert.throws(() => validateRules([rule('   ')]), /empty active sound file/)
+  assert.throws(() => validateRules([{
+    id: 'warn-1',
+    match: { state: 'warn' },
+    actions: { sound: { active: true, file: '' } }
+  }]), /empty active sound file/)
+  assert.doesNotThrow(() => validateRules([{
+    id: 'warn-1',
+    match: { state: 'warn' },
+    actions: { sound: { active: false, file: '' } }
+  }]))
+})
+
 test('rejects an invalid pauseSeconds literal from a function node', () => {
   const flow = [
     { id: 'warn', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['sound']] },

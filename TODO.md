@@ -636,9 +636,10 @@
 - [x] Eine konfigurierte, aber nicht vorhandene Sounddatei beeinflusst den
   autoritativen Alarm nicht und erzeugt begrenzte Audiofehler-, Circuit-
   Breaker-, Systemnotification- und Historiennachweise; live seit `0.1.15`.
-- [ ] Semantik für einen ausdrücklich leeren Soundpfad festlegen: entweder als
-  `Active: false` behandeln oder als Konfigurationsfehler in Server-Log und
-  lokaler Historie melden. Kein stiller, unbeabsichtigter Fallback.
+- [x] Einen ausdrücklich leeren Soundpfad bei aktivem Sound als ungültige
+  Node-RED-Konfiguration ablehnen. Bewusstes Abschalten erfolgt ausschließlich
+  mit `payload.sound.active: false`; dadurch gibt es keinen stillen,
+  unbeabsichtigten Fallback.
 - [ ] Eine Möglichkeit schaffen, die lokale Historie zu speichern bzw. zu
   exportieren.
 

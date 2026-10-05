@@ -36,6 +36,9 @@
   unknown states, activation at `Activate`, and preservation of an explicit
   `payload.sound.active: false` through policy normalization. The inactive
   branch must suppress, rather than fall back to, an inherited state sound.
+  An explicitly empty or whitespace-only sound path must reject an active
+  rule, while the same empty path remains valid only with
+  `payload.sound.active: false`.
 - WebApp table sorting: newest-first default, column A–Z/Z–A toggles, persisted
   sort selection, and segment-wise Signal K path grouping for the Notification
   column within each authoritative state hierarchy level.
