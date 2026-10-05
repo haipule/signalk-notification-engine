@@ -329,9 +329,13 @@
   Zustand, den Produzenten-Zeitstempel, das Alter und die erwartete sowie
   beobachtete Quelle; Standard ist `navigation.position` von `android_udp.gps`
   mit 15 Sekunden Toleranz.
-- [ ] Hohe Signal-K-CPU-Last, volle Swap-Nutzung, 81 Prozent
+- [x] Hohe Signal-K-CPU-Last, volle Swap-Nutzung, 81 Prozent
   Dateisystembelegung und sekündliches Node-RED-/Engine-Monitor-Logging
-  getrennt profilieren und bewerten.
+  getrennt profilieren und bewerten. Der read-only Nachweis und die priorisierte
+  Bewertung stehen in `docs/operational-resource-profile.md`: CPU ist eine
+  systemweite Summenlast, der 1-Sekunden-Python-Exec ist vermeidbare Zusatzlast,
+  der volle Swap zeigt aktuell keine I/O-Aktivität, und der 8,46-GiB-APT-Cache
+  ist der erste sichere Platten-Bereinigungskandidat nach Freigabe.
 
 ### Prio 4 – Komponentengrenzen nach der Stabilisierung
 
