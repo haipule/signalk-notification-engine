@@ -80,6 +80,13 @@ and final write flushing. Its clear operations update only the local audit
 store and repository; they never call a Signal K notification action or imply
 that an authoritative notification was removed.
 
+The audio controller owns local playback presentation state: eligibility,
+finite/loop repetition, inter-play pauses, retry/probe timers, completed
+signature deduplication, optimistic silence rollback, circuit interaction,
+passive watchdog recovery, and audio diagnostics. It never executes a Signal K
+notification action; the action adapter remains authoritative for permitted
+Silence requests, and a rejected request removes only the local marker.
+
 Runtime integration tests use a separate bounded maintenance adapter around
 the Signal K Notification API. It can raise only fixed
 `notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores

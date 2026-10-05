@@ -103,6 +103,19 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.42` was deployed and verified on 2026-10-05. The complete prior
+`0.1.41` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.41-live-20261005T223136Z`
+and at the sibling replaced path. Package SHA-256 is
+`fe92259a8838fa1b947ace14995489b9e2c759faa3d80b097f817a792771275c`.
+The extracted audio controller reconstructed one active warning and completed
+its configured finite playback successfully, then reported zero processes,
+retries, open breakers, or unresolved failures. Configuration/runtime events,
+GPS, and the 500-entry history were healthy. Signal K and its health timer were
+active with zero restarts, external `nodered.service` remained inactive, and
+source/live hashes for `package.json`, `index.js`, and
+`lib/audio-controller.js` matched.
+
 Version `0.1.41` was deployed and verified on 2026-10-05. The complete prior
 `0.1.40` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.40-live-20261005T221458Z`

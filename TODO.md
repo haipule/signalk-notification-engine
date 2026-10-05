@@ -349,8 +349,10 @@
   periodischen Abgleich in einem read-only Snapshot-Service. `0.1.40` kapselt
   lokale Audit-Policy, Persistenz, Retention und Löschoperationen in einem
   History-Service; `0.1.41` verschiebt die Signal-K-Datenpfadauflösung korrekt
-  auf den Plugin-Startzeitpunkt. Audio und die abschließende Runtime-Grenze
-  bleiben offen, daher ist dieser Punkt noch nicht erledigt.
+  auf den Plugin-Startzeitpunkt. `0.1.42` isoliert lokale Playback-Policy,
+  Wiederholung, Retry/Probe, Silence-Rollback, Deduplizierung und Watchdog im
+  Audio-Controller. Nur die abschließende Runtime-Grenze bleibt offen, daher
+  ist dieser Punkt noch nicht erledigt.
 
 ### Prio 5 – Dokumentation und Release-Basis
 

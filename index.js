@@ -10,8 +10,7 @@ const HistoryService = require('./lib/history-service')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const SnapshotService = require('./lib/snapshot-service')
 const AudioPlayer = require('./lib/audio-player')
-const AudioPlaybackRegistry = require('./lib/audio-playback-registry')
-const AudioRepeatPlan = require('./lib/audio-repeat-plan')
+const AudioController = require('./lib/audio-controller')
 const { AudioCircuitBreaker } = require('./lib/audio-circuit-breaker')
 const AudioCircuitRepository = require('./lib/audio-circuit-repository')
 const { AudioSystemNotification, AUDIO_SYSTEM_PATH } = require('./lib/audio-system-notification')
@@ -20,12 +19,10 @@ const { AudioSelfTest, AUDIO_SELF_TEST_ORIGIN_PATH } = require('./lib/audio-self
 const requestActor = require('./lib/request-actor')
 const Diagnostics = require('./lib/diagnostics')
 const { inspectInputSources, normalizeInputSources } = require('./lib/input-source-diagnostics')
-const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catalog')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
-const { createSoundSignature, resolveSoundPauseSeconds } = require('./lib/sound-config')
 const { ConfigurationService, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
 const registerHttpRoutes = require('./lib/http-routes')
 const visualColorPool = require('./lib/visual-colors')
@@ -66,13 +63,10 @@ module.exports = function createPlugin(app) {
   let testNotificationTimer = null
   let testNotificationEnabled = false
   let testTonePath = path.join(__dirname, 'sounds', 'test.wav')
-  const audioTimers = new Map()
-  const audioAttempts = new Map()
-  const audioPlaybackRegistry = new AudioPlaybackRegistry()
-  const silencedAudio = new Map()
   const diagnostics = new Diagnostics()
   let policyResolver = new PolicyResolver([], {}, readSignalKValue)
   let historyService = null
+  let audioController = null
   const store = new NotificationStore({
     classify: notification => configuredClassifier(notification),
     shouldRecord: notification => historyService?.shouldRecord(notification) === true,
@@ -81,7 +75,7 @@ module.exports = function createPlugin(app) {
     onEvent: event => {
       historyService?.append(event)
     },
-    onChange: event => applyNotificationAudio(event)
+    onChange: event => audioController?.apply(event)
   })
   historyService = new HistoryService({
     // Signal K may not expose the plugin data directory until start().
@@ -107,42 +101,9 @@ module.exports = function createPlugin(app) {
     publish: notification => publishAudioSystemNotification(notification),
     onChange: snapshot => audioSystemRepository?.save(snapshot)
   })
-  function applyNotificationAudio(event) {
-    // This plugin-owned warning is visual-only by design. Keeping the guard
-    // ahead of policy resolution prevents any Node-RED sound rule from turning
-    // an audio failure report into a recursive playback failure.
-    if (event.notification.path === AUDIO_SYSTEM_PATH) {
-      stopNotificationAudio(event.notification.occurrenceId)
-      return
-    }
-    const policy = policyResolver.resolve(event.notification)
-    const locallyEnabled = isLocallyEnabledState(event.notification.state)
-    const audioEligible = audioReady && locallyEnabled && event.type !== 'action_requested'
-    const signalKSilenced = event.notification.status?.silenced === true
-    if (event.type === 'cleared') {
-      silencedAudio.delete(event.notification.occurrenceId)
-      stopNotificationAudio(event.notification.occurrenceId)
-      audioCircuitBreaker.endLifecycle(event.notification)
-    } else if (['normal', 'nominal'].includes(event.notification.state)) {
-      silencedAudio.delete(event.notification.occurrenceId)
-      stopNotificationAudio(event.notification.occurrenceId)
-      audioCircuitBreaker.endLifecycle(event.notification)
-    } else if (signalKSilenced) {
-      silencedAudio.set(event.notification.occurrenceId, event.notification.state)
-      stopNotificationAudio(event.notification.occurrenceId)
-    } else if (silencedAudio.get(event.notification.occurrenceId) === event.notification.state) stopNotificationAudio(event.notification.occurrenceId)
-    else if (audioEligible && policy.audio !== 'off' && policy.soundConfig?.active !== false && policy.soundConfig?.file) {
-      silencedAudio.delete(event.notification.occurrenceId)
-      startNotificationAudio(event.notification, policy.soundConfig)
-    } else if (policy.audio === 'off' || policy.visible === false) {
-      stopNotificationAudio(event.notification.occurrenceId)
-    }
-  }
-
   const actions = new NotificationActions(app)
   const runtimeTests = new RuntimeTestNotifications(app)
   let lifecycle = 0
-  let audioReady = false
   let nodeRedUnsubscribe = null
   let nodeRedConfigChecksum = null
   let nodeRedRuntime = null
@@ -151,12 +112,19 @@ module.exports = function createPlugin(app) {
   let configurationError = null
   let activeRules = []
   const conditionValues = new Map()
-  const audioWatchdog = new AudioWatchdog()
-  let audioWatchdogTimer = null
   let conditionUnsubscribes = []
   const audioPlayer = new AudioPlayer({
     onError: error => app.error?.(`Unable to play notification sound: ${error.message}`),
     onResult: () => {}
+  })
+  audioController = new AudioController({
+    player: audioPlayer,
+    circuitBreaker: audioCircuitBreaker,
+    systemNotification: audioSystemNotification,
+    resolvePolicy: notification => policyResolver.resolve(notification),
+    isEnabledState: state => isLocallyEnabledState(state),
+    baseDirectory: __dirname,
+    logError: message => app.error?.(message)
   })
   const audioSelfTestRecord = {
     id: 'notification-engine-audio-self-test',
@@ -200,9 +168,7 @@ module.exports = function createPlugin(app) {
   function applyRuntimeConfiguration(flowOptions) {
     configurationService.loadColorPalette(flowOptions?.colorPaletteFile)
     soundsByState = configurationService.normalizeSoundsByState(flowOptions?.soundsByState, flowOptions?.soundPaletteFile)
-    audioPlayer.player = String(flowOptions?.audioPlayer || 'aplay')
-    audioPlayer.device = String(flowOptions?.audioDevice || 'default')
-    runAudioWatchdog()
+    audioController.configure(flowOptions?.audioPlayer, flowOptions?.audioDevice)
     policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...configurationService.normalizePolicies(flowOptions?.policies)], soundsByState, readSignalKValue)
     configuredClassifier = classify
     configuredStateOrder = configurationService.normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
@@ -496,15 +462,8 @@ module.exports = function createPlugin(app) {
 
     async stop() {
       lifecycle += 1
-      audioReady = false
-      for (const timer of audioTimers.values()) clearInterval(timer)
-      audioTimers.clear()
-      audioAttempts.clear()
-      audioPlaybackRegistry.clear()
-      silencedAudio.clear()
-      audioPlayer.stop()
+      audioController.shutdown()
       audioSelfTest.stop()
-      stopAudioWatchdog()
       stopSubscriptions()
       snapshotService.stopPolling()
       await stopTestNotification()
@@ -570,11 +529,7 @@ module.exports = function createPlugin(app) {
           nodeRed: { revision: nodeRedConfigChecksum, configurationStatus: configurationStatus(), runtimeDeployEventsAvailable: Boolean(nodeRedUnsubscribe) },
           criticalInputs: inspectInputSources(criticalInputs, readSignalKLeaf),
           audio: {
-            ready: audioReady, player: audioPlayer.player, device: audioPlayer.device,
-            activeProcesses: audioPlayer.activeProcessCount(), activeProcessDetails: audioPlayer.activeProcessDetails(),
-            pendingRetries: audioTimers.size, playbackRegistry: audioPlaybackRegistry.toJSON(),
-            lastResult: audioPlayer.lastResult ? { ...audioPlayer.lastResult, error: audioPlayer.lastResult.error?.message || null } : null,
-            watchdog: audioWatchdog.lastCheck,
+            ...audioController.diagnostics(),
             circuitBreaker: { ...audioCircuitBreaker.toJSON(), persistence: audioCircuitRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
             systemNotification: { ...audioSystemNotification.toJSON(), persistence: audioSystemRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
             selfTest: audioSelfTest.toJSON()
@@ -586,10 +541,10 @@ module.exports = function createPlugin(app) {
       configurationError: () => configurationError,
       processingUnavailable: () => configurationError
         ? `Notification processing is disabled: ${configurationError.message}`
-        : !audioReady ? 'Notification processing is not ready' : null,
+        : !audioController.ready ? 'Notification processing is not ready' : null,
       audioUnavailable: () => configurationError
         ? `Notification processing is disabled: ${configurationError.message}`
-        : !audioReady ? 'Audio is not ready' : null,
+        : !audioController.ready ? 'Audio is not ready' : null,
       runtimeTests,
       audioTest: {
         start: request => audioSelfTest.start({ actor: requestActor(request), device: audioPlayer.device, file: testTonePath }),
@@ -600,15 +555,14 @@ module.exports = function createPlugin(app) {
         const records = plugin.getNotifications()
         const silencedRecords = action === 'silence' ? records.filter(record => actions.allowed(record, 'silence')) : []
         for (const record of silencedRecords) {
-          silencedAudio.set(record.occurrenceId, record.state)
-          stopNotificationAudio(record.occurrenceId)
+          audioController.silence(record)
         }
         try {
           const affected = await actions.executeAll(records, action)
           for (const record of affected) store.recordOperatorAction(action, record)
           return affected.length
         } catch (error) {
-          for (const record of silencedRecords) silencedAudio.delete(record.occurrenceId)
+          for (const record of silencedRecords) audioController.rollbackSilence(record)
           throw error
         }
       },
@@ -617,14 +571,13 @@ module.exports = function createPlugin(app) {
         let silenced = false
         if (action === 'silence') {
           silenced = true
-          silencedAudio.set(record.occurrenceId, record.state)
-          stopNotificationAudio(record.occurrenceId)
+          audioController.silence(record)
         }
         try {
           await actions.execute(record, action)
           store.recordOperatorAction(action, record)
         } catch (error) {
-          if (silenced) silencedAudio.delete(record.occurrenceId)
+          if (silenced) audioController.rollbackSilence(record)
           throw error
         }
       }
@@ -649,8 +602,7 @@ module.exports = function createPlugin(app) {
     await historyService.clearAfterSnapshot()
     snapshotService.subscribe()
     audioSystemNotification.synchronize()
-    audioReady = true
-    for (const notification of store.list()) applyNotificationAudio({ type: 'startup', notification })
+    audioController.enable(store.list())
     void startTestNotification(testNotificationConfiguration)
     snapshotService.startPolling()
     app.debug?.(`Notification manager started with ${store.size} notification(s)`)
@@ -680,7 +632,7 @@ module.exports = function createPlugin(app) {
   }
 
   async function playTestTone(currentLifecycle, configuredPath) {
-    while (currentLifecycle === lifecycle && !audioReady) await new Promise(resolve => setTimeout(resolve, 100))
+    while (currentLifecycle === lifecycle && !audioController.ready) await new Promise(resolve => setTimeout(resolve, 100))
     if (currentLifecycle === lifecycle) audioPlayer.play(path.resolve(String(configuredPath || path.join(__dirname, 'sounds', 'test.wav'))))
   }
 
@@ -761,7 +713,7 @@ module.exports = function createPlugin(app) {
   }
 
   function refreshConditionEffects() {
-    for (const notification of store.list()) applyNotificationAudio({ type: 'condition_updated', notification })
+    for (const notification of store.list()) audioController.apply({ type: 'condition_updated', notification })
   }
 
   function stopSubscriptions() {
@@ -771,15 +723,7 @@ module.exports = function createPlugin(app) {
 
   /** Stop all rule-dependent processing while retaining the last observed view. */
   function suspendNotificationProcessing() {
-    audioReady = false
-    for (const timer of audioTimers.values()) clearTimeout(timer)
-    audioTimers.clear()
-    audioAttempts.clear()
-    // Recovery is not a new notification occurrence. Retain only signatures
-    // that already completed so an unchanged finite sound is not replayed;
-    // interrupted loops and repeats must be eligible to resume after recovery.
-    audioPlaybackRegistry.retainCompleted()
-    audioPlayer.stop()
+    audioController.suspend()
     stopSubscriptions()
     snapshotService.stopPolling()
   }
@@ -790,110 +734,8 @@ module.exports = function createPlugin(app) {
     snapshotService.stopPolling()
     await snapshotService.sync()
     snapshotService.subscribe()
-    audioReady = true
-    for (const notification of store.list()) applyNotificationAudio({ type: 'configuration_recovered', notification })
+    audioController.enable(store.list(), 'configuration_recovered')
     snapshotService.startPolling()
-  }
-
-  /** Refresh passive audio health without opening the device or playing sound. */
-  function runAudioWatchdog() {
-    const check = () => {
-      const previousState = audioWatchdog.lastCheck?.state || null
-      const result = audioWatchdog.check(audioPlayer.player, audioPlayer.device)
-      if (previousState === 'error' && result.state === 'ready') {
-        const key = audioCircuitBreaker.watchdogRecovered()
-        if (key) scheduleAudioAttempt(key, 0)
-      }
-    }
-    check()
-    if (audioWatchdogTimer === null) audioWatchdogTimer = setInterval(check, 60000)
-  }
-
-  function stopAudioWatchdog() {
-    if (audioWatchdogTimer !== null) clearInterval(audioWatchdogTimer)
-    audioWatchdogTimer = null
-  }
-
-  function startNotificationAudio(notification, soundConfig) {
-    const key = notification.occurrenceId
-    const config = soundConfig || {}
-    const file = config.file
-    if (!file) return
-    const count = Number.isInteger(config.count) && config.count >= 0 && config.count <= 99 ? config.count : 1
-    const pauseSeconds = resolveSoundPauseSeconds(config)
-    const resolvedFile = path.resolve(__dirname, file)
-    const signature = createSoundSignature(file, count, pauseSeconds, __dirname)
-    if (audioPlaybackRegistry.current(key) === signature) return
-    stopNotificationAudio(key)
-    audioCircuitBreaker.adopt(notification)
-    audioPlaybackRegistry.begin(key, signature)
-    const repeatPlan = new AudioRepeatPlan(count, pauseSeconds)
-    const play = () => {
-      if (!audioPlaybackRegistry.isCurrent(key, signature)) return
-      const permission = audioCircuitBreaker.beginAttempt(notification)
-      if (!permission.allowed) {
-        const delay = Math.max(0, Number(permission.retryAt || Date.now()) - Date.now())
-        scheduleAudioAttempt(key, delay)
-        return
-      }
-      repeatPlan.startAttempt()
-      audioPlayer.play(resolvedFile, key, result => {
-        if (!audioPlaybackRegistry.isCurrent(key, signature)) return
-        if (result?.ok) {
-          audioSystemNotification.recordSuccess(notification)
-          audioCircuitBreaker.recordSuccess(notification)
-          const nextDelayMs = repeatPlan.nextDelayMs()
-          if (nextDelayMs !== null) {
-            // Do not start a new ALSA process re-entrantly from the previous
-            // ChildProcess close event. Let Node finish releasing the process
-            // and its device handles before the next exact-count attempt.
-            if (nextDelayMs > 0) scheduleAudioAttempt(key, nextDelayMs)
-            else setImmediate(play)
-          }
-          else {
-            // Keep the completed finite signature until this occurrence ends
-            // or its sound configuration changes. Snapshot/condition refreshes
-            // must not replay an unchanged once/repeat sound.
-            audioPlaybackRegistry.complete(key, signature)
-            audioAttempts.delete(key)
-          }
-          return
-        }
-        audioSystemNotification.recordFailure(notification, result)
-        const circuit = audioCircuitBreaker.recordFailure(notification, result)
-        const delay = circuit.state === 'open'
-          ? Math.max(0, Number(circuit.nextProbeAt) - Date.now())
-          : Math.min(60000, 1000 * (2 ** Math.min(circuit.failureCount - 1, 6)))
-        app.error?.(circuit.state === 'open'
-          ? `Notification audio circuit open after ${circuit.failureCount} failures; probe in ${delay}ms for ${key}`
-          : `Notification audio retry ${circuit.failureCount} in ${delay}ms for ${key}`)
-        scheduleAudioAttempt(key, delay)
-      })
-    }
-    audioAttempts.set(key, play)
-    play()
-  }
-
-  /** Schedule a single bounded retry/probe for one notification lifecycle. */
-  function scheduleAudioAttempt(key, delay) {
-    const existing = audioTimers.get(key)
-    if (existing) clearTimeout(existing)
-    const attempt = audioAttempts.get(key)
-    if (!attempt) return
-    const timer = setTimeout(() => {
-      audioTimers.delete(key)
-      attempt()
-    }, Math.max(0, delay))
-    audioTimers.set(key, timer)
-  }
-
-  function stopNotificationAudio(key) {
-    const timer = audioTimers.get(key)
-    if (timer) clearTimeout(timer)
-    audioTimers.delete(key)
-    audioAttempts.delete(key)
-    audioPlaybackRegistry.end(key)
-    audioPlayer.stopKey(key)
   }
 
   function isLocallyEnabledState(state) {

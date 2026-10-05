@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.42 - 2026-10-05
+
+- Extract local playback policy, silence rollback, repeat/retry scheduling,
+  playback deduplication, circuit interaction, watchdog handling, and audio
+  diagnostics into a separately tested audio controller.
+
 ## 0.1.41 - 2026-10-05
 
 - Resolve the Signal K plugin data directory when the history service is
