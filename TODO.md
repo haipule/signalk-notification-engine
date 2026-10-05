@@ -368,7 +368,10 @@
   `.gitignore` aus der Versionsverwaltung ausschließen. Das zuvor getrackte
   Paket `0.1.3` bleibt lokal erhalten, wird aber aus Git entfernt.
 - [ ] Git-Remote, Release-Tags und unabhängige CI-Prüfungen einrichten, bevor
-  das Paket öffentlich veröffentlicht wird.
+  das Paket öffentlich veröffentlicht wird. `0.1.44` bereitet Repository-
+  Metadaten, MIT-Lizenz und GitHub Actions für Node.js 20, 22 und 24 lokal vor;
+  Repository-Erstellung, erster Push, erfolgreicher Remote-CI-Lauf und
+  Release-Tag bleiben bis zur ausdrücklichen Veröffentlichung offen.
 - [x] Establish English as the canonical project language before release:
   source code, identifiers, comments, API fields, persisted event codes,
   server logs, diagnostics, configuration descriptions and every built-in UI

@@ -103,6 +103,17 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.44` was deployed and verified on 2026-10-05. The complete prior
+`0.1.43` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.43-live-20261005T230954Z`
+and at the sibling replaced path. Package SHA-256 is
+`231f758c166ae2ae3b5b18c266a5ce8c841b5387853193d658051ef3ffb19d3d`.
+This release-preparation package adds the MIT license and public GitHub package
+metadata without changing runtime behaviour. Configuration/runtime events,
+audio, 500-entry history, and Android GPS were healthy; Signal K and its health
+timer were active with zero restarts; external `nodered.service` remained
+inactive; and source/live hashes for `package.json` and `LICENSE` matched.
+
 Version `0.1.43` was deployed and verified on 2026-10-05. The complete prior
 `0.1.42` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.42-live-20261005T223832Z`

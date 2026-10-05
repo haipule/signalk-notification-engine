@@ -1,7 +1,16 @@
 {
   "name": "signalk-notification-engine",
-  "version": "0.1.43",
+  "version": "0.1.44",
   "description": "Signal K notification automation engine with visual flows.",
+  "author": "haipule",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haipule/signalk-notification-engine.git"
+  },
+  "homepage": "https://github.com/haipule/signalk-notification-engine#readme",
+  "bugs": {
+    "url": "https://github.com/haipule/signalk-notification-engine/issues"
+  },
   "main": "index.js",
   "scripts": {
     "check": "node --check index.js && node --check lib/plugin-runtime.js && node --check lib/runtime-test-notifications.js && node --check lib/configuration-service.js && node --check lib/http-routes.js && node --check lib/snapshot-service.js && node --check lib/history-service.js && node --check lib/audio-controller.js && node --check lib/input-source-diagnostics.js && node --check lib/audio-player.js && node --check lib/audio-playback-registry.js && node --check lib/audio-repeat-plan.js && node --check lib/sound-config.js && node --check lib/audio-watchdog.js && node --check lib/audio-circuit-breaker.js && node --check lib/audio-circuit-repository.js && node --check lib/audio-system-notification.js && node --check lib/audio-system-repository.js && node --check lib/audio-self-test.js && node --check lib/translation-catalog.js && node --check lib/request-actor.js && node --check lib/diagnostics.js && node --check lib/notification-source.js && node --check lib/notification-states.js && node --check lib/notification-store.js && node --check lib/classifier.js && node --check lib/actions.js && node --check lib/policies.js && node --check lib/history-repository.js && node --check lib/lifecycle-rules.js && node --check lib/notification-snapshot.js && node --check lib/node-red-config.js && node --check lib/node-red-runtime.js && node --check public/connectivity.js && node --check public/table-sort.js && node --check public/localization.js && node --check public/app.js && node --check test/*.test.js",
@@ -15,5 +24,5 @@
   },
   "license": "MIT",
   "engines": { "node": ">=20" },
-  "files": ["index.js", "lib", "public", "examples", "sounds", "lifecycle-rules.json", "node-red", "README.md", "package.json"]
+  "files": ["index.js", "lib", "public", "examples", "sounds", "lifecycle-rules.json", "node-red", "README.md", "LICENSE", "package.json"]
 }

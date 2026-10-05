@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.44 - 2026-10-05
+
+- Add GitHub repository, issue, homepage, author, and packaged MIT license
+  metadata for the planned `haipule/signalk-notification-engine` release.
+- Add independent GitHub Actions checks on Node.js 20, 22, and 24 for syntax,
+  unit tests, and package contents.
+
 ## 0.1.43 - 2026-10-05
 
 - Complete the component-boundary refactor with a plugin runtime coordinator
