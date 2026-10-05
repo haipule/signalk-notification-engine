@@ -346,9 +346,11 @@
   getesteten Configuration-Service. `0.1.38` trennt zusätzlich die
   readonly/readwrite HTTP-Routen als getesteten Transportadapter ab. `0.1.39`
   isoliert Snapshot-Rekonstruktion, Producer-Quellen, Delta-Abonnement und
-  periodischen Abgleich in einem read-only Snapshot-Service. History, Audio und
-  die abschließende Runtime-Grenze bleiben offen, daher ist dieser Punkt noch
-  nicht erledigt.
+  periodischen Abgleich in einem read-only Snapshot-Service. `0.1.40` kapselt
+  lokale Audit-Policy, Persistenz, Retention und Löschoperationen in einem
+  History-Service; `0.1.41` verschiebt die Signal-K-Datenpfadauflösung korrekt
+  auf den Plugin-Startzeitpunkt. Audio und die abschließende Runtime-Grenze
+  bleiben offen, daher ist dieser Punkt noch nicht erledigt.
 
 ### Prio 5 – Dokumentation und Release-Basis
 

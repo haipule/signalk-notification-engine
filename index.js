@@ -6,7 +6,7 @@ const NotificationStore = require('./lib/notification-store')
 const classify = require('./lib/classifier')
 const NotificationActions = require('./lib/actions')
 const { PolicyResolver } = require('./lib/policies')
-const HistoryRepository = require('./lib/history-repository')
+const HistoryService = require('./lib/history-service')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const SnapshotService = require('./lib/snapshot-service')
 const AudioPlayer = require('./lib/audio-player')
@@ -26,7 +26,7 @@ const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catal
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
 const { createSoundSignature, resolveSoundPauseSeconds } = require('./lib/sound-config')
-const { ConfigurationService, normalizeClearPath, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
+const { ConfigurationService, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
 const registerHttpRoutes = require('./lib/http-routes')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
@@ -49,7 +49,6 @@ module.exports = function createPlugin(app) {
     builtInDirectory: path.join(__dirname, 'public', 'translations'),
     customDirectory: path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'translations')
   })
-  let historyRepository = null
   let audioCircuitRepository = null
   let audioSystemRepository = null
   let configuredClassifier = classify
@@ -61,13 +60,7 @@ module.exports = function createPlugin(app) {
   let infoAutoCloseSeconds = 0
   let shortcutInfo = 'i'
   let shortcutHistory = 'h'
-  let historyRules = []
   let lifecycleRules = []
-  let clearHistoryOnStart = false
-  let clearHistoryPath = ''
-  let clearHistoryPathOnSave = false
-  let clearHistoryOccurrenceId = ''
-  let historyRetentionDays = 0
   let criticalInputs = []
   let testNotificationId = null
   let testNotificationTimer = null
@@ -78,15 +71,24 @@ module.exports = function createPlugin(app) {
   const audioPlaybackRegistry = new AudioPlaybackRegistry()
   const silencedAudio = new Map()
   const diagnostics = new Diagnostics()
+  let policyResolver = new PolicyResolver([], {}, readSignalKValue)
+  let historyService = null
   const store = new NotificationStore({
     classify: notification => configuredClassifier(notification),
-    shouldRecord: notification => shouldRecordHistory(notification),
+    shouldRecord: notification => historyService?.shouldRecord(notification) === true,
     lifecycleRules,
     endsLifecycle,
     onEvent: event => {
-      historyRepository?.append(event)
+      historyService?.append(event)
     },
     onChange: event => applyNotificationAudio(event)
+  })
+  historyService = new HistoryService({
+    // Signal K may not expose the plugin data directory until start().
+    directory: () => app.getDataDirPath?.(),
+    store,
+    resolvePolicy: notification => policyResolver.resolve(notification),
+    onError: message => app.error?.(message)
   })
   const snapshotService = new SnapshotService({
     app,
@@ -139,7 +141,6 @@ module.exports = function createPlugin(app) {
 
   const actions = new NotificationActions(app)
   const runtimeTests = new RuntimeTestNotifications(app)
-  let policyResolver = new PolicyResolver([], {}, readSignalKValue)
   let lifecycle = 0
   let audioReady = false
   let nodeRedUnsubscribe = null
@@ -211,14 +212,9 @@ module.exports = function createPlugin(app) {
     shortcutInfo = normalizeShortcut(flowOptions?.shortcutInfo, 'i')
     shortcutHistory = normalizeShortcut(flowOptions?.shortcutHistory, 'h')
     if (shortcutInfo && shortcutInfo === shortcutHistory) shortcutHistory = ''
-    historyRules = normalizeHistoryRules(flowOptions?.historyRules)
-    clearHistoryOnStart = flowOptions?.clearHistoryOnStart === true
-    clearHistoryPath = normalizeClearPath(flowOptions?.clearHistoryPath)
-    clearHistoryPathOnSave = flowOptions?.clearHistoryPathOnSave === true
-    clearHistoryOccurrenceId = String(flowOptions?.clearHistoryOccurrenceId || '')
+    historyService.setRules(normalizeHistoryRules(flowOptions?.historyRules))
     testNotificationEnabled = flowOptions?.testNotif?.enabled === true
     testTonePath = path.resolve(String(flowOptions?.testTonePath || path.join(__dirname, 'sounds', 'test.wav')))
-    historyRetentionDays = Number.isInteger(flowOptions?.historyRetentionDays) ? Math.max(0, Math.min(3650, flowOptions.historyRetentionDays)) : 0
     criticalInputs = normalizeInputSources(flowOptions?.criticalInputs || [{
       name: 'Android GPS', path: 'navigation.position', source: 'android_udp.gps', staleAfterSeconds: 15
     }])
@@ -467,16 +463,11 @@ module.exports = function createPlugin(app) {
       applyRuntimeConfiguration(flowOptions)
       lifecycleRules = loadLifecycleRules(app.getDataDirPath?.(), message => app.error?.(message))
       store.lifecycleRules = lifecycleRules
-      clearHistoryOnStart = flowOptions?.clearHistoryOnStart === true
-      clearHistoryPath = normalizeClearPath(flowOptions?.clearHistoryPath)
-      clearHistoryPathOnSave = flowOptions?.clearHistoryPathOnSave === true
-      clearHistoryOccurrenceId = String(flowOptions?.clearHistoryOccurrenceId || '')
       testNotificationEnabled = flowOptions?.testNotif?.enabled === true
-      historyRetentionDays = Number.isInteger(flowOptions?.historyRetentionDays) ? Math.max(0, Math.min(3650, flowOptions.historyRetentionDays)) : 0
-      const historyLimit = Number.isInteger(flowOptions?.historyLimit) ? flowOptions.historyLimit : 500
-      historyRepository = new HistoryRepository(app.getDataDirPath?.(), {
-        limit: Math.max(50, Math.min(5000, historyLimit)),
-        onError: message => app.error?.(message)
+      historyService.configure({
+        ...flowOptions,
+        historyRules: normalizeHistoryRules(flowOptions?.historyRules),
+        testNotificationEnabled
       })
       audioCircuitRepository = new AudioCircuitRepository(app.getDataDirPath?.(), {
         onError: message => app.error?.(message)
@@ -526,8 +517,7 @@ module.exports = function createPlugin(app) {
       audioCircuitRepository = null
       await audioSystemRepository?.flush()
       audioSystemRepository = null
-      await historyRepository?.flush()
-      historyRepository = null
+      await historyService.stop()
       audioCircuitBreaker.restore({ version: 1, states: [] })
       store.clear()
     },
@@ -589,7 +579,7 @@ module.exports = function createPlugin(app) {
             systemNotification: { ...audioSystemNotification.toJSON(), persistence: audioSystemRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
             selfTest: audioSelfTest.toJSON()
           },
-          history: historyRepository?.status() || { available: false, eventCount: 0, lastWriteAt: null, lastError: null },
+          history: historyService.status(),
           localization: { locales, fallbackLocale: 'en', errors: translationCatalog.errors }
         })
       },
@@ -605,16 +595,7 @@ module.exports = function createPlugin(app) {
         start: request => audioSelfTest.start({ actor: requestActor(request), device: audioPlayer.device, file: testTonePath }),
         notHeard: request => audioSelfTest.reportNotHeard(requestActor(request))
       },
-      async clearHistory(query) {
-        if (!historyRepository) return false
-        const pathPrefix = normalizeClearPath(query.path)
-        const occurrenceId = String(query.occurrenceId || '')
-        if (occurrenceId) await historyRepository.prune(event => event.notification?.occurrenceId === occurrenceId)
-        else if (pathPrefix) await historyRepository.prune(event => String(event.notification?.path || '').toLowerCase().startsWith(pathPrefix))
-        else await historyRepository.clear()
-        store.replaceHistory(historyRepository.events)
-        return true
-      },
+      clearHistory: query => historyService.clear(query),
       async actionAll(action) {
         const records = plugin.getNotifications()
         const silencedRecords = action === 'silence' ? records.filter(record => actions.allowed(record, 'silence')) : []
@@ -652,8 +633,8 @@ module.exports = function createPlugin(app) {
 
   /** Read the authoritative current notification snapshot when available. */
   async function initialize(currentLifecycle, testNotificationConfiguration) {
-    const [events, circuitSnapshot, audioSystemSnapshot] = await Promise.all([
-      historyRepository.load(),
+    const [historyState, circuitSnapshot, audioSystemSnapshot] = await Promise.all([
+      historyService.initialize(),
       audioCircuitRepository.load(),
       audioSystemRepository.load()
     ])
@@ -661,41 +642,11 @@ module.exports = function createPlugin(app) {
     audioSystemNotification.restore(audioSystemSnapshot)
     if (currentLifecycle !== lifecycle) return
     await runtimeTests.clearStale()
-    if (clearHistoryOnStart) {
-      await historyRepository.clear()
-      store.replaceHistory([])
-    } else {
-      store.replaceHistory(events)
-      const lastAudioTest = store.history().find(event => event.audioTest)?.audioTest
-      audioSelfTest.restore(lastAudioTest)
-      if (!testNotificationEnabled) {
-        await historyRepository.prune(event => event.notification?.data?.notificationManagerTest === true)
-        store.replaceHistory(historyRepository.events)
-      }
-      if (historyRetentionDays > 0) {
-        await historyRepository.pruneBefore(Date.now() - historyRetentionDays * 86400000)
-        store.replaceHistory(historyRepository.events)
-      }
-      if (clearHistoryPathOnSave && clearHistoryPath) {
-        await historyRepository.prune(event => {
-          const notification = event.notification || {}
-          return String(notification.path || '').toLowerCase().startsWith(clearHistoryPath) &&
-            !['alarm', 'emergency'].includes(notification.state)
-        })
-        store.replaceHistory(historyRepository.events)
-      }
-      if (clearHistoryOccurrenceId) {
-        await historyRepository.prune(event => event.notification?.occurrenceId === clearHistoryOccurrenceId)
-        store.replaceHistory(historyRepository.events)
-      }
-    }
+    audioSelfTest.restore(historyState.lastAudioTest)
     await snapshotService.sync()
     audioCircuitBreaker.reconcileActive(store.list())
     if (configurationError) return
-    if (clearHistoryOnStart) {
-      await historyRepository.clear()
-      store.replaceHistory([])
-    }
+    await historyService.clearAfterSnapshot()
     snapshotService.subscribe()
     audioSystemNotification.synchronize()
     audioReady = true
@@ -943,17 +894,6 @@ module.exports = function createPlugin(app) {
     audioAttempts.delete(key)
     audioPlaybackRegistry.end(key)
     audioPlayer.stopKey(key)
-  }
-
-  function shouldRecordHistory(notification) {
-    const resolvedPolicy = policyResolver.resolve(notification)
-    if (typeof resolvedPolicy.history === 'boolean') return resolvedPolicy.history
-    const rule = historyRules.find(candidate =>
-      (!candidate.pathPrefix || String(notification.path || '').toLowerCase().startsWith(candidate.pathPrefix)) &&
-      (!candidate.source || candidate.source === notification.source?.label)
-    )
-    if (rule) return rule.history
-    return false
   }
 
   function isLocallyEnabledState(state) {

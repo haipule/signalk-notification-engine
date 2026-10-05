@@ -73,6 +73,13 @@ deltas to the cache; and periodically reconciles startup-order gaps. It records
 snapshot/delta diagnostics but never raises, clears, acknowledges, silences, or
 otherwise becomes authoritative for a Signal K notification.
 
+The history service owns the Notification Engine's local audit persistence
+lifecycle: recording policy, bounded repository creation, startup loading and
+retention, explicitly configured pruning, WebApp deletion, health reporting,
+and final write flushing. Its clear operations update only the local audit
+store and repository; they never call a Signal K notification action or imply
+that an authoritative notification was removed.
+
 Runtime integration tests use a separate bounded maintenance adapter around
 the Signal K Notification API. It can raise only fixed
 `notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores

@@ -103,6 +103,26 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.41` was deployed and verified on 2026-10-05. The complete prior
+`0.1.40` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.40-live-20261005T221458Z`
+and at the sibling `0.1.40-replaced` path with the same timestamp. The package
+SHA-256 is
+`2c1975c66d8701e505153ad3d2c8d133e07509abca8436d8276f288da62b2ba4`.
+Live verification of `0.1.40` detected that Signal K did not yet expose the
+plugin data directory during early plugin construction: diagnostics reported
+history unavailable and the API contained only nine in-memory startup events.
+The existing history file was neither deleted nor overwritten. `0.1.41`
+resolves the directory when the service is configured at plugin start; after
+restart both Diagnostics and the History API restored all 500 retained events,
+with persistence available and no last error. Configuration and runtime deploy
+events were ready; Android GPS was fresh; and audio had zero processes,
+retries, open breakers, or unresolved failures. Signal K and
+`signalk-health.timer` were active with zero service restarts, external
+`nodered.service` remained inactive, the deployment journal contained no
+Notification Engine error line, and source/live hashes for `package.json`,
+`index.js`, and `lib/history-service.js` matched.
+
 Version `0.1.39` was deployed and verified on 2026-10-05. The complete prior
 `0.1.38` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.38-live-20261005T220405Z`

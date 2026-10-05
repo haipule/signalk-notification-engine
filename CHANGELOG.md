@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.41 - 2026-10-05
+
+- Resolve the Signal K plugin data directory when the history service is
+  configured at plugin start, so persisted audit entries remain available when
+  the server does not expose that directory during early plugin construction.
+
+## 0.1.40 - 2026-10-05
+
+- Extract local audit recording policy, persistence lifecycle, startup
+  retention/pruning, WebApp deletion, diagnostics, and flush handling into a
+  separately tested history service without affecting Signal K notifications.
+
 ## 0.1.39 - 2026-10-05
 
 - Extract notification snapshot reconstruction, producer-source enrichment,
