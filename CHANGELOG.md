@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.37 - 2026-10-05
+
+- Extract presentation, sound, palette, shortcut, and history-rule
+  normalization from the plugin entrypoint into a separately tested
+  configuration service without changing Signal K or Node-RED authority.
+
 ## 0.1.36 - 2026-10-04
 
 - Add read-only critical-input freshness diagnostics with configurable Signal K

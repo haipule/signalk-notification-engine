@@ -26,7 +26,8 @@ const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catalog')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
-const { createSoundSignature, normalizeSoundConfig, resolveSoundPauseSeconds } = require('./lib/sound-config')
+const { createSoundSignature, resolveSoundPauseSeconds } = require('./lib/sound-config')
+const { ConfigurationService, normalizeClearPath, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
 const visualColorNames = ['🔴 Red', '🔴 Dark Red', '🟡 Yellow', '🟠 Orange', '🟢 Green', '⚪ Grey', '🔵 Blue', '🟣 Purple']
@@ -56,7 +57,7 @@ module.exports = function createPlugin(app) {
   let configuredClassifier = classify
   let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
   let stateColors = { emergency: visualColorPool.red, alarm: visualColorPool.darkRed, warn: visualColorPool.yellow, alert: visualColorPool.orange, nominal: visualColorPool.green, normal: visualColorPool.grey }
-  let colorPalette = { ...visualColorPool }
+  const configurationService = new ConfigurationService({ baseDirectory: __dirname, visualColorPool })
   let visualRules = {}
   let soundsByState = {}
   let infoAutoCloseSeconds = 0
@@ -195,16 +196,16 @@ module.exports = function createPlugin(app) {
   }
 
   function applyRuntimeConfiguration(flowOptions) {
-    colorPalette = loadPalette(flowOptions?.colorPaletteFile, visualColorPool)
-    soundsByState = normalizeSoundsByState(flowOptions?.soundsByState, flowOptions?.soundPaletteFile)
+    configurationService.loadColorPalette(flowOptions?.colorPaletteFile)
+    soundsByState = configurationService.normalizeSoundsByState(flowOptions?.soundsByState, flowOptions?.soundPaletteFile)
     audioPlayer.player = String(flowOptions?.audioPlayer || 'aplay')
     audioPlayer.device = String(flowOptions?.audioDevice || 'default')
     runAudioWatchdog()
-    policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...normalizePolicies(flowOptions?.policies)], soundsByState, readSignalKValue)
+    policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...configurationService.normalizePolicies(flowOptions?.policies)], soundsByState, readSignalKValue)
     configuredClassifier = classify
-    configuredStateOrder = normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
-    stateColors = normalizeStateColors(flowOptions?.stateColors)
-    visualRules = normalizeVisualRules(flowOptions?.visualRules, stateColors)
+    configuredStateOrder = configurationService.normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
+    stateColors = configurationService.normalizeStateColors(flowOptions?.stateColors)
+    visualRules = configurationService.normalizeVisualRules(flowOptions?.visualRules, stateColors)
     infoAutoCloseSeconds = normalizeInfoTimeout(flowOptions?.infoAutoCloseSeconds)
     shortcutInfo = normalizeShortcut(flowOptions?.shortcutInfo, 'i')
     shortcutHistory = normalizeShortcut(flowOptions?.shortcutHistory, 'h')
@@ -1100,70 +1101,6 @@ module.exports = function createPlugin(app) {
     audioWatchdogTimer = null
   }
 
-  /** Convert the compact Plugin Config form to the policy module's model. */
-  function normalizePolicies(configuredPolicies) {
-    return Array.isArray(configuredPolicies)
-      ? configuredPolicies.map(policy => ({
-          ...policy,
-          sound: typeof policy.sound === 'string'
-            ? { active: true, file: policy.sound, count: 1 }
-            : normalizeSoundConfig(policy.sound),
-          match: {
-            pathPrefix: policy.pathPrefix || undefined,
-            source: policy.source || undefined
-          }
-        }))
-      : []
-  }
-
-  function normalizeStateOrder(order, legacySortOrder, legacyVisibleStates) {
-    const allowed = ['warn', 'alert', 'nominal', 'normal']
-    const selected = Array.isArray(order)
-      ? order.filter(state => allowed.includes(state))
-      : Array.isArray(legacySortOrder)
-        ? legacySortOrder.filter(state => allowed.includes(state))
-        : Array.isArray(legacyVisibleStates)
-          ? legacyVisibleStates.filter(state => allowed.includes(state))
-          : []
-    return [...new Set(selected)]
-  }
-
-  function loadPalette(fileName, fallback) {
-    if (!fileName) return { ...fallback }
-    try {
-      const value = JSON.parse(fs.readFileSync(path.resolve(fileName), 'utf8'))
-      return Object.fromEntries(Object.keys(fallback).map(name => [name, typeof value[name] === 'string' ? value[name] : fallback[name]]))
-    } catch (error) {
-      return { ...fallback }
-    }
-  }
-
-  function normalizeStateColors(colors) {
-    const defaults = { emergency: colorPalette.red, alarm: colorPalette.darkRed, warn: colorPalette.yellow, alert: colorPalette.orange, nominal: colorPalette.green, normal: colorPalette.grey }
-    for (const state of Object.keys(defaults)) {
-      if (typeof colors?.[state] === 'string') {
-        if (colorPalette[colors[state]]) defaults[state] = colorPalette[colors[state]]
-        else if (/^#[0-9a-f]{6}$/i.test(colors[state])) defaults[state] = colors[state]
-      }
-    }
-    return defaults
-  }
-
-  function normalizeSoundsByState(sounds, fileName) {
-    const palette = loadPalette(fileName, Object.fromEntries(['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal', 'info', 'notification'].map(state => [state, path.join(__dirname, 'sounds', `${state}.wav`)])))
-    const defaults = Object.fromEntries(Object.entries(palette).map(([state, sound]) => [state, { active: true, file: sound || null, count: 1 }]))
-    for (const state of Object.keys(defaults)) {
-      const configured = sounds?.[state]
-      if (typeof configured === 'string' && configured.trim()) defaults[state].file = configured.trim()
-      if (configured && typeof configured === 'object') {
-        if (typeof configured.active === 'boolean') defaults[state].active = configured.active
-        if (typeof configured.file === 'string' && configured.file.trim()) defaults[state].file = configured.file.trim()
-        defaults[state].count = normalizeSoundConfig(configured).count
-      }
-    }
-    return defaults
-  }
-
   function startNotificationAudio(notification, soundConfig) {
     const key = notification.occurrenceId
     const config = soundConfig || {}
@@ -1246,47 +1183,6 @@ module.exports = function createPlugin(app) {
     audioPlayer.stopKey(key)
   }
 
-  function normalizeVisualRules(rules, colors) {
-    const defaults = {
-      emergency: { display: 'overlay', color: colors.emergency, flash: true, acknowledgeRequired: true },
-      alarm: { display: 'overlay', color: colors.alarm, flash: true, acknowledgeRequired: true },
-      warn: { display: 'banner', color: colors.warn, flash: false, acknowledgeRequired: false },
-      alert: { display: 'banner', color: colors.alert, flash: false, acknowledgeRequired: false },
-      nominal: { display: 'table', color: colors.nominal, flash: false, acknowledgeRequired: false },
-      normal: { display: 'table', color: colors.normal, flash: false, acknowledgeRequired: false }
-    }
-    for (const state of Object.keys(defaults)) {
-      const candidate = rules?.[state]
-      if (!candidate) continue
-      if (['table', 'banner', 'overlay'].includes(candidate.display)) defaults[state].display = candidate.display
-      if (typeof candidate.color === 'string') {
-        if (colorPalette[candidate.color]) defaults[state].color = colorPalette[candidate.color]
-        else if (/^#[0-9a-f]{6}$/i.test(candidate.color)) defaults[state].color = candidate.color
-      }
-      if (typeof candidate.flash === 'boolean') defaults[state].flash = candidate.flash
-      if (typeof candidate.acknowledgeRequired === 'boolean') defaults[state].acknowledgeRequired = candidate.acknowledgeRequired
-    }
-    return defaults
-  }
-
-  function normalizeInfoTimeout(value) {
-    return Number.isInteger(value) ? Math.max(0, Math.min(3600, value)) : 0
-  }
-
-  function normalizeShortcut(value, fallback) {
-    return typeof value === 'string' && value.length <= 1 ? value.toLowerCase() : fallback
-  }
-
-  function normalizeHistoryRules(rules) {
-    return Array.isArray(rules)
-      ? rules.filter(rule => rule && (rule.pathPrefix || rule.source)).map(rule => ({
-        pathPrefix: String(rule.pathPrefix || '').toLowerCase(),
-        source: String(rule.source || ''),
-        history: rule.history !== false
-      }))
-      : []
-  }
-
   function shouldRecordHistory(notification) {
     const resolvedPolicy = policyResolver.resolve(notification)
     if (typeof resolvedPolicy.history === 'boolean') return resolvedPolicy.history
@@ -1316,10 +1212,6 @@ module.exports = function createPlugin(app) {
     }
   }
 
-
-  function normalizeClearPath(value) {
-    return String(value || '').trim().toLowerCase().replace(/\*$/, '')
-  }
 
   // Rule definitions come from the deployed Node-RED builder flow. Keep only
   // operational settings in the Signal K plugin configuration form.

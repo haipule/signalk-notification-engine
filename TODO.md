@@ -342,6 +342,10 @@
 - [ ] Den rund 1.000 Zeilen großen Einstiegspunkt entlang klarer Start-/Stop-
   und Fehlergrenzen in Plugin-Runtime, Snapshot-Service, Audio-Controller,
   Configuration-Service, History-Service und HTTP-Routen zerlegen.
+  `0.1.37` beginnt die verhaltensneutrale Zerlegung mit einem separat
+  getesteten Configuration-Service; HTTP-Routen, Snapshot, History, Audio und
+  die abschließende Runtime-Grenze bleiben offen, daher ist dieser Punkt noch
+  nicht erledigt.
 
 ### Prio 5 – Dokumentation und Release-Basis
 

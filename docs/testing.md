@@ -53,6 +53,9 @@
   history persistence health, critical-input source freshness and current-
   browser poll timing remain read-only. Critical inputs distinguish fresh,
   stale, missing, source-mismatched and timestamp-less data.
+- Configuration service: state order, palette-backed colors, visual rules,
+  explicit inactive sound, legacy compact policies, shortcuts, timeouts and
+  history-rule normalization are tested independently from runtime side effects.
 - Passive audio watchdog: present/missing backend, present/missing hardware PCM,
   and an explicit statement that no audible end-to-end result is inferred.
 - Audio circuit breaker: independent counters per notification lifecycle,

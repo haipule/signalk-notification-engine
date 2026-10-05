@@ -50,6 +50,13 @@ observe playback without changing Signal K notification state.
 The WebApp adds its own local poll start/end, duration, and network error so a
 slow client can be distinguished from a slow Signal K snapshot.
 
+Declarative Plugin Config normalization is isolated in the configuration
+service. It loads optional palettes and normalizes presentation, sound,
+shortcut, state-order, and history-rule values without starting subscriptions,
+audio, HTTP routes, or notification processing. Runtime application remains in
+the plugin lifecycle boundary so invalid Node-RED configuration still fails
+closed before processing starts.
+
 Runtime integration tests use a separate bounded maintenance adapter around
 the Signal K Notification API. It can raise only fixed
 `notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores
