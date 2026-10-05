@@ -58,6 +58,11 @@
   each notification lifecycle has an independent playback process, and
   `silence` stops only that lifecycle's audio. Legacy `mode`/`repeatCount`
   input remains readable during the migration.
+- `audioDevice` is an ALSA PCM passed to `aplay`. Numeric `plughw` card indices
+  are host-specific: on the verified Pi cards 0 and 1 are HDMI, while
+  `plughw:2,0` is the analog Headphones output used by the plugin. Passive
+  Diagnostics verify only that the PCM exists; the bounded authenticated audio
+  test plus operator feedback remains the audible end-to-end check.
 - The legacy embedded Node-RED `Audio Alarms` tab is retained but disabled, and
   its Anchor/Bilge audio scripts are stopped. The Notification Engine is the
   only active rule-based notification audio path. Re-enabling the legacy tab

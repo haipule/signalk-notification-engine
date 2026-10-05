@@ -359,9 +359,12 @@
   nicht gelistete Zustände keinen Alarmton aktivieren; die Konfiguration muss
   diesen Zusammenhang ausdrücklich erklären.
 
-- [ ] AudioDevice-Dokumentation vervollständigen: `default`, `plughw:0,0`,
+- [x] AudioDevice-Dokumentation vervollständigen: `default`, `plughw:0,0`,
   `plughw:1,0` und `plughw:2,0` erklären; Testton vor Notification-Tests
-  abspielen und funktionierenden Ausgang dokumentieren.
+  abspielen und funktionierenden Ausgang dokumentieren. Live-Inventur am
+  2026-10-04: Karten 0/1 sind HDMI, Karte 2 ist `bcm2835 Headphones`; das
+  konfigurierte `plughw:2,0` ist passiv bereit und wurde im früheren physischen
+  Lautsprecher-Aus-/Ein-Test technisch und hörbar bestätigt.
 - [ ] Mehrere UI-Designvarianten für die Alarmzentrale auswählen können, zum
   Beispiel `color`, `contrast` und `night`.
 

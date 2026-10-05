@@ -18,7 +18,7 @@ The current Node-RED prototype is in [node-red/prototype](node-red/prototype/REA
 
 ## Current status
 
-The project is an active development build (`0.1.26`). The plugin currently
+The project is an active development build (`0.1.32`). The plugin currently
 provides an active-notification WebApp, snapshot/delta reconstruction,
 capability-checked Signal K actions, local lifecycle/history persistence,
 classification, presentation and audio policies, and the first Node-RED flow
@@ -68,6 +68,23 @@ player exit opens a 15-second `Ton nicht gehört` counter-feedback window. With
 no counter-report the result is only technically played, never proven audible.
 Full automatic amplifier/loudspeaker verification requires hardware loopback
 or a microphone.
+
+### Audio device selection
+
+`audioDevice` is passed to ALSA `aplay` as its playback PCM. `default` uses
+the host's configured default route (PulseAudio on the current Pi), while
+`plughw:<card>,<device>` selects one hardware card and permits ALSA format and
+rate conversion. Numeric card indices are host-specific and must be confirmed
+with `aplay -l`; they must not be copied to another installation blindly.
+
+On the currently verified Pi, `plughw:0,0` is the first HDMI output,
+`plughw:1,0` is the second HDMI output, and `plughw:2,0` is the BCM2835 analog
+Headphones output used by Notification Engine. The equivalent symbolic form
+is `plughw:CARD=Headphones,DEV=0`, which is easier to understand when card
+indices change. After changing the device, first check Diagnostics for passive
+backend/PCM availability and then run the authenticated bounded
+`Alarmton testen` action. Only the operator's audible confirmation verifies
+the amplifier, volume, cabling, and loudspeaker; exit code zero alone does not.
 
 The Alarm Centre polls every five seconds. A notification request may take up
 to twelve seconds and the displayed snapshot becomes stale after fifteen

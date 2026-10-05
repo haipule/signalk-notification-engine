@@ -129,6 +129,14 @@ and 3021751), and an interrupted `count: 0` loop resumed after valid recovery
 (active PID 3022143) before authenticated Silence stopped it without changing
 the authoritative `warn` state.
 
+The live ALSA inventory on 2026-10-04 contains `vc4-hdmi-0` as card 0,
+`vc4-hdmi-1` as card 1, and `bcm2835 Headphones` as card 2, all on device 0.
+Notification Engine is configured for `plughw:2,0`, equivalent to
+`plughw:CARD=Headphones,DEV=0`; its passive watchdog reports the PCM ready.
+The earlier physical loudspeaker-off/on test and audible recovery used this
+same device. Card indices are installation-specific and must be rechecked with
+`aplay -l` after hardware or operating-system changes.
+
 The WebApp uses a twelve-second request deadline and a fifteen-second
 stale threshold after live samples showed a healthy response could take 8.551
 seconds. Tab 3 loaded the new threshold and remained connected over multiple
