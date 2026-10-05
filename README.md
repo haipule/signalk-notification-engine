@@ -119,6 +119,12 @@ oversized files and malformed placeholders are rejected as localization
 diagnostics only; they never disable notification processing. Producer-supplied
 messages, Signal K paths, IDs, sources and raw Diagnostics remain verbatim.
 
+`criticalInputs` is an optional Signal K Plugin Config array for read-only
+source freshness checks. Each entry requires `name`, `path`, `source`, and an
+integer `staleAfterSeconds` from `1` through `3600`. The default checks
+`navigation.position` from `android_udp.gps` after 15 seconds. Results appear
+only in Diagnostics and never create a notification or change alarm handling.
+
 ## Documentation
 
 - [Phase-1 brief](docs/codex-phase-1.md)

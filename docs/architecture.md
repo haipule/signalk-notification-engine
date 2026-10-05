@@ -39,8 +39,11 @@ Optional audio backends
 ```
 
 Diagnostics are a read-only observation path. Server-side snapshot and delta
-timings, Node-RED revision/configuration health, audio process results, and
-history persistence status are exposed separately from notification authority.
+timings, configured critical-input source freshness, Node-RED revision and
+configuration health, audio process results, and history persistence status
+are exposed separately from notification authority. Critical-input checks read
+the existing local Signal K leaf and its producer timestamp on demand; they do
+not subscribe broadly, publish a notification, or affect alarm processing.
 Audio process diagnostics identify the affected local lifecycle key and expose
 player, device, file, PID, start/end time, duration, exit code, and signal; they
 observe playback without changing Signal K notification state.

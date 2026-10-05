@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.36 - 2026-10-04
+
+- Add read-only critical-input freshness diagnostics with configurable Signal K
+  path, expected source, stale threshold, observed timestamp, age, and state.
+- Monitor `navigation.position` from `android_udp.gps` with a 15-second default
+  stale threshold without changing notifications or alarm processing.
+
 ## 0.1.35 - 2026-10-04
 
 - Reject an explicitly empty or whitespace-only sound path while audio is

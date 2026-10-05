@@ -20,6 +20,7 @@ const AudioSystemRepository = require('./lib/audio-system-repository')
 const { AudioSelfTest, AUDIO_SELF_TEST_ORIGIN_PATH } = require('./lib/audio-self-test')
 const requestActor = require('./lib/request-actor')
 const Diagnostics = require('./lib/diagnostics')
+const { inspectInputSources, normalizeInputSources } = require('./lib/input-source-diagnostics')
 const { AudioWatchdog } = require('./lib/audio-watchdog')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catalog')
@@ -68,6 +69,7 @@ module.exports = function createPlugin(app) {
   let clearHistoryPathOnSave = false
   let clearHistoryOccurrenceId = ''
   let historyRetentionDays = 0
+  let criticalInputs = []
   let testNotificationId = null
   let testNotificationTimer = null
   let testNotificationEnabled = false
@@ -181,6 +183,13 @@ module.exports = function createPlugin(app) {
     return unwrapSignalKValue(full)
   }
 
+  /** Return one unmodified local Signal K leaf for read-only diagnostics. */
+  function readSignalKLeaf(pathName) {
+    const direct = app.getSelfPath?.(pathName)
+    if (direct !== undefined) return direct
+    return app.getPath?.(`vessels.self.${pathName}`)
+  }
+
   function unwrapSignalKValue(value) {
     return value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value
   }
@@ -208,6 +217,9 @@ module.exports = function createPlugin(app) {
     testNotificationEnabled = flowOptions?.testNotif?.enabled === true
     testTonePath = path.resolve(String(flowOptions?.testTonePath || path.join(__dirname, 'sounds', 'test.wav')))
     historyRetentionDays = Number.isInteger(flowOptions?.historyRetentionDays) ? Math.max(0, Math.min(3650, flowOptions.historyRetentionDays)) : 0
+    criticalInputs = normalizeInputSources(flowOptions?.criticalInputs || [{
+      name: 'Android GPS', path: 'navigation.position', source: 'android_udp.gps', staleAfterSeconds: 15
+    }])
     subscribeToConditions()
   }
 
@@ -385,6 +397,21 @@ module.exports = function createPlugin(app) {
           description: 'Optional local occurrence ID to remove when saving configuration.', default: ''
         }
         ,
+        criticalInputs: {
+          type: 'array', title: 'Critical Input Diagnostics',
+          description: 'Read-only freshness checks. These do not create notifications or change alarm processing.',
+          default: [{ name: 'Android GPS', path: 'navigation.position', source: 'android_udp.gps', staleAfterSeconds: 15 }],
+          items: {
+            type: 'object', additionalProperties: false, required: ['name', 'path', 'source', 'staleAfterSeconds'],
+            properties: {
+              name: { type: 'string', title: 'Display name', minLength: 1 },
+              path: { type: 'string', title: 'Signal K path', minLength: 1 },
+              source: { type: 'string', title: 'Expected source label', minLength: 1 },
+              staleAfterSeconds: { type: 'integer', title: 'Stale after (seconds)', minimum: 1, maximum: 3600, default: 15 }
+            }
+          }
+        }
+        ,
         historyLimit: {
           type: 'integer', title: 'History Entries', description: 'Number of local audit events retained on disk.', default: 500, minimum: 50, maximum: 5000
         }
@@ -556,6 +583,7 @@ module.exports = function createPlugin(app) {
             configurationStatus: configurationError ? { state: 'error', ...configurationError } : { state: 'ready' },
             runtimeDeployEventsAvailable: Boolean(nodeRedUnsubscribe)
           },
+          criticalInputs: inspectInputSources(criticalInputs, readSignalKLeaf),
           audio: {
             ready: audioReady,
             player: audioPlayer.player,

@@ -324,8 +324,11 @@
   Audio-Prozesse, letzten Audio-Exitcode sowie Historien-Schreibstatus bauen.
   Version `0.1.11` ergänzt zusätzlich Poll-Start/-Ende, Dauer und letzten
   Netzwerkfehler des jeweiligen WebApp-Clients.
-- [ ] Zustand und Alter kritischer Eingangsquellen wie `android_udp.gps`
-  sichtbar machen.
+- [x] Zustand und Alter kritischer Eingangsquellen sichtbar machen. Version
+  `0.1.36` zeigt in Diagnostics für konfigurierbare Pfad-/Quellenpaare den
+  Zustand, den Produzenten-Zeitstempel, das Alter und die erwartete sowie
+  beobachtete Quelle; Standard ist `navigation.position` von `android_udp.gps`
+  mit 15 Sekunden Toleranz.
 - [ ] Hohe Signal-K-CPU-Last, volle Swap-Nutzung, 81 Prozent
   Dateisystembelegung und sekündliches Node-RED-/Engine-Monitor-Logging
   getrennt profilieren und bewerten.

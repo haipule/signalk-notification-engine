@@ -28,7 +28,7 @@
 |---|---|---|---|
 | GET | `/plugins/signalk-notification-engine/notifications` | readonly | Active reconstructed notifications and effective policy. |
 | GET | `/plugins/signalk-notification-engine/history` | readonly | Bounded persistent local audit history (500 entries by default). |
-| GET | `/plugins/signalk-notification-engine/diagnostics` | readonly | Snapshot/delta timings, Node-RED configuration, audio process/result and playback signatures, and local-history persistence health. |
+| GET | `/plugins/signalk-notification-engine/diagnostics` | readonly | Snapshot/delta timings, critical-input freshness, Node-RED configuration, audio process/result and playback signatures, and local-history persistence health. |
 | POST | `/plugins/signalk-notification-engine/audio-test/start` | readwrite | Start one bounded audible maintenance tone and open the 15-second feedback window after technical success. |
 | POST | `/plugins/signalk-notification-engine/audio-test/not-heard` | readwrite | Record explicit inaudible feedback while that feedback window is open. |
 | GET | `/plugins/signalk-notification-engine/runtime-tests` | readwrite | List only test notifications owned by the current plugin runtime. |

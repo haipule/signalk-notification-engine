@@ -103,6 +103,22 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.36` was deployed and verified on 2026-10-04. The complete prior
+`0.1.35` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.35-live-20261005T024414Z`
+and at the sibling `0.1.35-replaced` path with the same timestamp. The package
+SHA-256 is
+`90c9314b4547a13a3377b9cf76807df6d856853874d2651b859ae4f77c6ab029`.
+Live Diagnostics reported the default critical input `Android GPS` as `fresh`:
+`navigation.position` was produced by the expected `android_udp.gps` source,
+had a valid producer timestamp, a 387 ms age, and a present value. This
+read-only check used the existing local Signal K leaf and did not alter the
+embedded flow, subscribe to all paths, create a notification, or affect alarm
+processing. Signal K endpoints returned HTTP 200; Node-RED configuration,
+runtime deploy events, audio, and history were ready with no active processes,
+retries, open breakers, or unresolved failures. Startup reconstruction played
+the still-active GNSS warning once successfully and returned to idle.
+
 Version `0.1.35` was deployed and verified on 2026-10-04. The complete prior
 `0.1.34` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.34-live-20261005T023221Z`

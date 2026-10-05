@@ -50,7 +50,9 @@
   and still permits an actually changed sound signature.
 - Diagnostics: snapshot duration/error recovery, delta counters, Node-RED
   configuration state, audio process/result and playback-registry state,
-  history persistence health, and current-browser poll timing remain read-only.
+  history persistence health, critical-input source freshness and current-
+  browser poll timing remain read-only. Critical inputs distinguish fresh,
+  stale, missing, source-mismatched and timestamp-less data.
 - Passive audio watchdog: present/missing backend, present/missing hardware PCM,
   and an explicit statement that no audible end-to-end result is inferred.
 - Audio circuit breaker: independent counters per notification lifecycle,
