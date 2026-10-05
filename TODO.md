@@ -204,7 +204,7 @@
   bestätigt; Anchor- und Bilge-Skript sind gestoppt. Damit ist die Notification
   Engine der einzige aktive regelbasierte Audiopfad. Tab und Skripte bleiben
   als deaktivierter, nicht automatisch aktivierbarer Rückfallpfad erhalten.
-- [ ] Testmatrix für Loop, Silence, Acknowledge, Normal, Clear, fehlendes
+- [x] Testmatrix für Loop, Silence, Acknowledge, Normal, Clear, fehlendes
   Audiogerät und gleichzeitige Alarme praktisch auf dem Pi ausführen.
   Nächster sicherer Ablauf:
   - [x] Einen runtime-sicheren Auslöser für mindestens zwei getrennte
@@ -247,22 +247,24 @@
   `null`, Android-UDP-Ausfall und -Wiederkehr, neue Ankervorgänge nach ACK,
   wechselnde und wiederverwendete IDs sowie Neustarts während aktiver Alarme
   erstellen und ausführen.
-- [ ] Erwartete Anzeige, Audioaktion, Historienereignisse und erlaubte Actions
+- [x] Erwartete Anzeige, Audioaktion, Historienereignisse und erlaubte Actions
   für jeden End-to-End-Fall festhalten.
-- [ ] Ungültigen Node-RED-Deploy, fehlendes Audio-Gerät, geschlossene WebApp,
+- [x] Ungültigen Node-RED-Deploy, fehlendes Audio-Gerät, geschlossene WebApp,
   Netzverlust und mehrere gleichzeitige Alarmprioritäten abdecken.
   Reparaturen für den ungültigen Deploy, Audio-Retry-Backoff und die sichtbare
   Offline-/Stale-Anzeige sind auf dem Pi implementiert und der normale
-  Post-Deploy-Zustand ist geprüft; die betroffenen Fehler- und Mehrgerätefälle
-  müssen erneut ausgeführt werden.
-- [ ] Ungültigen Node-RED-Deploy mit der neuen Fail-closed-Sperre wiederholen:
+  Post-Deploy-Zustand ist geprüft; die zugehörigen Nachweise stehen vollständig
+  in `docs/e2e-safety-matrix.md`.
+- [x] Ungültigen Node-RED-Deploy mit der neuen Fail-closed-Sperre wiederholen:
   sichtbaren Konfigurationsfehler, gestoppte Verarbeitung, abgelehnte Actions,
   ausbleibenden Poll-Logspam und Erholung durch einen gültigen Deploy prüfen.
   Der Runtime-Fehlerfall ist am 2026-09-27 bestätigt: sichtbarer Fehler,
   deaktivierte Globalaktionen und nur ein Logeintrag über mehrere Poll-Zyklen.
   Der exakte gültige Flow wurde anschließend aus der Sicherung wiederhergestellt
-  und Signal K gesund neu gestartet; die Erholung durch einen gültigen
-  Runtime-Deploy im Editor bleibt noch separat nachzuweisen.
+  und Signal K gesund neu gestartet. Mit `0.1.32` ist zusätzlich die Erholung
+  durch einen gültigen Runtime-Deploy ohne Signal-K-Neustart nachgewiesen:
+  unveränderte abgeschlossene Sounds bleiben still, eine tatsächlich geänderte
+  Soundregel spielt genau einmal und ein unterbrochener Loop läuft wieder an.
 - [x] Fehlendes ALSA-Gerät erneut simulieren und nachweisen, dass der Alarm
   sichtbar bleibt, der Retry-Abstand exponentiell bis 60 Sekunden wächst und
   weder Prozess- noch Journal-Sturm entsteht.
@@ -446,6 +448,13 @@
   Player nach gültig -> ungültig (`pauseSeconds: 6`) -> gültig unverändert PID
   3020272. Auch die bestehende GNSS-Warnung spielte nicht erneut. Der Flow ist
   bytegenau wiederhergestellt; Testslots, Prozesse und Retries sind leer.
+  Die beiden Gegenfälle sind ebenfalls live bestanden: Dieselbe Occurrence
+  wechselte nach Recovery kontrolliert von `warn.wav` (PID 3021641) auf
+  `alert.wav` (PID 3021751) und spielte genau einmal. Ein `count: 0`-Loop wurde
+  im Fail-closed-Zustand gestoppt, seine nicht abgeschlossene Signatur entfernt
+  und nach gültiger Recovery wieder gestartet (unter anderem PID 3022143).
+  Anschließendes Silence setzte nur `silenced: true` und hinterließ null
+  Prozesse, Retries, Breaker oder Audio-Systemfehler.
 - [x] Version `0.1.25`: Unveränderte aktive Notifications werden nach einer
   abgeschlossenen `once`- oder endlichen `repeat`-Wiedergabe nicht bei jeder
   erneuten Snapshot-, Delta- oder Bedingungsauswertung abgespielt. Die

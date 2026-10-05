@@ -123,6 +123,11 @@ file. Version `0.1.32` canonicalizes the playback signature to the player's
 resolved absolute path. In the final live regression, the Runtime Slot played
 once as PID 3020272, invalid configuration failed closed, and valid recovery
 left that PID and the existing GNSS completion unchanged with no replay.
+The complementary live cases also passed: a real signature change from
+`warn.wav` to `alert.wav` played once for the same occurrence (PIDs 3021641
+and 3021751), and an interrupted `count: 0` loop resumed after valid recovery
+(active PID 3022143) before authenticated Silence stopped it without changing
+the authoritative `warn` state.
 
 The WebApp uses a twelve-second request deadline and a fifteen-second
 stale threshold after live samples showed a healthy response could take 8.551
