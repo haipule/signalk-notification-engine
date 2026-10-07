@@ -114,8 +114,10 @@ was explicitly disabled. Hoekens 2.13.1 represented the inactive
 metadata and returned HTTP 404 after the controlled Signal K restart. The
 implementation therefore accepts both explicit `off` and a removed value as
 the local anchor-occurrence boundary. At startup there was no retained anchor
-notification, so the later fresh-occurrence transition still requires the
-controlled raise/re-drop regression listed in the E2E matrix.
+notification. A later controlled raise/re-drop test completed the live proof:
+Hoekens reused one technical ID, the first local occurrence ended on Raise,
+and the next Drop received a different local occurrence ID. A final Raise
+restored anchor state `off` with healthy services and no audio work remaining.
 
 The installed source hashes match the packaged local source. Signal K and
 `signalk-health.timer` are active, `NRestarts=0`, `/signalk` and Diagnostics
@@ -139,6 +141,13 @@ The first replacement attempt was automatically rolled back because the
 root-owned persistent lifecycle-rules file rejected a write by `pi`. Service,
 manifest, plugin version, and rule contents were verified at the 0.1.46
 baseline before retrying with the required scoped privilege.
+
+Before the lifecycle regression, Hoekens was present but disabled after its
+update. Its HTTP route remained callable and threw on
+`plugin.configuration.allowZoneOutsideVessel` because `plugin.start()` had not
+initialized the configuration. Enabling the plugin through Signal K Plugin
+Config restored the normal `off` state and allowed the controlled test; no
+Hoekens source patch was applied.
 
 Version `0.1.46` was previously deployed and verified on 2026-10-07. The installed files
 had been silently returned to `0.1.26` after the preceding manual deployment

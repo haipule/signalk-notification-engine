@@ -645,8 +645,9 @@
   `navigation.anchor.state = off` transition to close only the local Hoekens
   occurrence. Version `0.1.47` implements and unit-tests that local-only
   boundary, including the value removal emitted by Hoekens 2.13.1 and repeated
-  snapshots while inactive; a controlled live
-  raise/re-drop regression remains listed in the release matrix. Do not treat
+  snapshots while inactive. The controlled live raise/re-drop regression
+  passed on 2026-10-07 with one reused technical notification ID and distinct
+  local occurrence IDs. Do not treat
   an empty `normal` notification as the boundary because the same value also
   represents normal watching when normal notifications are disabled.
 - The packaged custom lifecycle-rules file is now empty. The generic rule
