@@ -108,7 +108,39 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
-Version `0.1.46` was deployed and verified on 2026-10-07. The installed files
+Version `0.1.47` was deployed and verified on 2026-10-07 while the anchor watch
+was explicitly disabled. Hoekens 2.13.1 represented the inactive
+`navigation.anchor.state` by removing the value: the leaf first contained only
+metadata and returned HTTP 404 after the controlled Signal K restart. The
+implementation therefore accepts both explicit `off` and a removed value as
+the local anchor-occurrence boundary. At startup there was no retained anchor
+notification, so the later fresh-occurrence transition still requires the
+controlled raise/re-drop regression listed in the E2E matrix.
+
+The installed source hashes match the packaged local source. Signal K and
+`signalk-health.timer` are active, `NRestarts=0`, `/signalk` and Diagnostics
+return HTTP 200, Node-RED configuration is ready, GPS is fresh, history is
+available, and audio reports zero processes, retries, open circuits, and
+unresolved failures. The durable package reference is
+`file:plugin-packages/signalk-notification-engine-0.1.47.tgz`; package SHA-256
+is `063ebb7fe920518f95fbcc0b596fe9c3621fa4686deb8df38ca2d465f3762fc3`.
+The complete previous plugin, manifest, and persistent lifecycle-rules file
+are retained respectively at:
+
+- `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.46-before-0.1.47-20261007T2322Z`
+- `/home/pi/.signalk/plugin-backups/signalk-server-package-before-notification-engine-0.1.47-20261007T2322Z.json`
+- `/home/pi/.signalk/plugin-backups/lifecycle-rules-before-0.1.47-20261007T2322Z.json`
+
+The final local-audio-end refinement also retained the preceding installed
+0.1.47 build at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.47-before-local-audio-end-20261007T2327Z`.
+
+The first replacement attempt was automatically rolled back because the
+root-owned persistent lifecycle-rules file rejected a write by `pi`. Service,
+manifest, plugin version, and rule contents were verified at the 0.1.46
+baseline before retrying with the required scoped privilege.
+
+Version `0.1.46` was previously deployed and verified on 2026-10-07. The installed files
 had been silently returned to `0.1.26` after the preceding manual deployment
 because `/home/pi/.signalk/package.json` still referenced the old
 `file:../../../tmp/signalk-notification-engine-0.1.26.tgz`; the running process

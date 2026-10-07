@@ -1,11 +1,4 @@
 {
-  "rules": [
-    {
-      "name": "Hoekens Anchor Alarm",
-      "source": "hoekens-anchor-alarm",
-      "path": "notifications.navigation.anchor",
-      "endWhen": { "state": "normal", "message": "Off" }
-    }
-  ],
-  "documentation": "Copy this file to the Signal K plugin data directory as lifecycle-rules.json. It is read when the plugin starts; saving the Signal K Plugin Config reloads the plugin, so changed rules then become active without a separate server restart. A matching endWhen closes the current local lifecycle; the next matching notification starts a new occurrenceId. Use source and path to limit special cases."
+  "rules": [],
+  "documentation": "Copy this file to the Signal K plugin data directory as lifecycle-rules.json. It is read when the plugin starts; saving the Signal K Plugin Config reloads the plugin, so changed rules then become active without a separate server restart. A matching endWhen closes only the current local lifecycle; the next matching notification starts a new occurrenceId. Use source and path to limit custom producer cases. The built-in anchor boundary uses the authoritative inactive navigation.anchor.state input (off or removed value) and does not require a rule here."
 }

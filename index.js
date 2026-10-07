@@ -8,6 +8,7 @@ const NotificationActions = require('./lib/actions')
 const { PolicyResolver } = require('./lib/policies')
 const HistoryService = require('./lib/history-service')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
+const { applyLifecycleBoundary, lifecycleBoundaryPaths } = require('./lib/local-lifecycle-boundaries')
 const SnapshotService = require('./lib/snapshot-service')
 const PluginRuntime = require('./lib/plugin-runtime')
 const AudioPlayer = require('./lib/audio-player')
@@ -564,6 +565,7 @@ module.exports = function createPlugin(app) {
     await runtimeTests.clearStale()
     audioSelfTest.restore(historyState.lastAudioTest)
     await snapshotService.sync()
+    applyCurrentLifecycleBoundaries()
     audioCircuitBreaker.reconcileActive(store.list())
     if (runtime.configurationError) return
     await historyService.clearAfterSnapshot()
@@ -648,7 +650,8 @@ module.exports = function createPlugin(app) {
 
   function subscribeToConditions() {
     stopConditionSubscriptions()
-    const paths = [...new Set(activeRules.flatMap(rule => rule.match?.conditions?.map(condition => condition.path) || []))]
+    const conditionPaths = new Set(activeRules.flatMap(rule => rule.match?.conditions?.map(condition => condition.path) || []))
+    const paths = [...new Set([...conditionPaths, ...lifecycleBoundaryPaths()])]
     for (const pathName of paths) {
       const direct = app.getSelfPath?.(pathName)
       const full = direct === undefined ? app.getPath?.(`vessels.self.${pathName}`) : direct
@@ -665,12 +668,20 @@ module.exports = function createPlugin(app) {
           for (const item of update.values || []) {
             if (!paths.includes(item.path)) continue
             conditionValues.set(item.path, unwrapSignalKValue(item.value))
-            changed = true
+            applyLifecycleBoundary(store, item.path, unwrapSignalKValue(item.value))
+            if (conditionPaths.has(item.path)) changed = true
           }
         }
         if (changed) refreshConditionEffects()
       }
     )
+  }
+
+  /** Apply startup state after the authoritative notification snapshot exists. */
+  function applyCurrentLifecycleBoundaries() {
+    for (const pathName of lifecycleBoundaryPaths()) {
+      applyLifecycleBoundary(store, pathName, readSignalKValue(pathName))
+    }
   }
 
   function stopConditionSubscriptions() {
@@ -700,6 +711,7 @@ module.exports = function createPlugin(app) {
     stopSubscriptions()
     snapshotService.stopPolling()
     await snapshotService.sync()
+    applyCurrentLifecycleBoundaries()
     snapshotService.subscribe()
     audioController.enable(store.list(), 'configuration_recovered')
     snapshotService.startPolling()

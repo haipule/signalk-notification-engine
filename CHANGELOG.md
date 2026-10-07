@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.47 - 2026-10-07
+
+- Use authoritative inactive `navigation.anchor.state` input (`off` or the
+  value removal emitted by Hoekens 2.13.1) to end only the
+  Notification Engine's local anchor occurrence, without changing or clearing
+  the producer-owned Signal K notification.
+- Remove the obsolete built-in Hoekens `normal`/`Off` lifecycle rule while
+  retaining the custom lifecycle-rules file for other producer-specific cases.
+
 ## 0.1.46 - 2026-10-07
 
 - Add a configurable 0-to-30-day Alarm Sound Test interval; zero disables its

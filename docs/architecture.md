@@ -94,6 +94,17 @@ suspends snapshot subscriptions and local audio, and is not retried by WebApp
 polling; only a subsequent deploy event may apply a valid configuration and
 resume the injected services.
 
+The local lifecycle-boundary adapter subscribes to authoritative Signal K
+inputs that delimit an occurrence without changing notification state. Its
+first built-in mapping treats an inactive `navigation.anchor.state` (`off` or
+the value removal emitted by Hoekens 2.13.1) as the end of the
+local `notifications.navigation.anchor` occurrence. While `off` persists,
+snapshot refreshes retain that ended occurrence; after the input returns to
+`on`, the next producer notification receives a fresh local occurrence ID.
+This adapter never calls a Signal K notification lifecycle action.
+It also sends an explicit local end event to the audio controller so a missed
+producer-removal delta cannot leave local playback or circuit state running.
+
 Runtime integration tests use a separate bounded maintenance adapter around
 the Signal K Notification API. It can raise only fixed
 `notifications.system.notificationEngine.runtimeTest.<slot>` paths and stores

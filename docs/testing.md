@@ -117,6 +117,14 @@ Plugin-runtime tests verify mandatory initial Node-RED loading, lifecycle-token
 invalidation, deploy unsubscription, latched fail-closed suspension, suppression
 of poll-driven retries, and recovery only after a forced deploy refresh.
 
+Local lifecycle-boundary tests verify that anchor `off` and a removed state
+value leave the
+producer-owned notification unchanged, repeated `off` and snapshot refreshes
+are idempotent, unrelated notifications are untouched, and the first
+authoritative update after anchor `on` receives a new local occurrence ID.
+The local end event must stop playback and circuit state without imitating a
+Signal K clear or normal transition.
+
 Use a fake Signal K application object to simulate `app.notifications` and
 notification deltas. Cover an API-managed alarm and a classic producer delta,
 where clear must be unavailable.

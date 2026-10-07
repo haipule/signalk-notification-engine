@@ -38,6 +38,16 @@ test('ends local playback and circuit lifecycle on normal', () => {
   assert.deepEqual(player.stopped, ['one'])
 })
 
+test('ends local playback on a local lifecycle boundary without changing state', () => {
+  const { controller, circuit, player } = fixture()
+  const notification = { path: 'notifications.navigation.anchor', occurrenceId: 'anchor-one', state: 'alarm' }
+  controller.apply({ type: 'local_lifecycle_ended', notification })
+
+  assert.equal(notification.state, 'alarm')
+  assert.deepEqual(circuit.ended, [notification])
+  assert.deepEqual(player.stopped, ['anchor-one'])
+})
+
 test('retains a completed finite signature and does not replay a refresh', () => {
   const { controller, callbacks, system } = fixture()
   const notification = { path: 'notifications.engine', occurrenceId: 'one', state: 'warn' }

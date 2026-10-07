@@ -638,16 +638,19 @@
   temporarily retained `acknowledged: true`; the next controlled drag alarm
   correctly reset it to `false`. The safety-relevant inherited-ACK defect is
   therefore fixed for a new alarm.
-- [ ] Replace the obsolete Hoekens `normal`/`Off` local lifecycle boundary.
+- [x] Replace the obsolete Hoekens `normal`/`Off` local lifecycle boundary.
   Version `2.13.1` no longer exposes `Off`, while Signal K retains the same
   technical ID, so Notification Engine kept the same local `occurrenceId`
   across Raise and re-drop. Use the authoritative
   `navigation.anchor.state = off` transition to close only the local Hoekens
-  occurrence, with unit tests and a controlled regression test. Do not treat
+  occurrence. Version `0.1.47` implements and unit-tests that local-only
+  boundary, including the value removal emitted by Hoekens 2.13.1 and repeated
+  snapshots while inactive; a controlled live
+  raise/re-drop regression remains listed in the release matrix. Do not treat
   an empty `normal` notification as the boundary because the same value also
   represents normal watching when normal notifications are disabled.
-- Keep the existing `normal`/`Off` rule only as legacy rollback compatibility
-  until the new `navigation.anchor.state` boundary is implemented and tested.
+- The packaged custom lifecycle-rules file is now empty. The generic rule
+  mechanism remains available for other producer-specific cases.
 - [x] Lifecycle-Sonderfälle in `lifecycle-rules.json` auslagern und beim
   Speichern der Plugin-Konfiguration neu einlesen; Handhabung dokumentieren.
 

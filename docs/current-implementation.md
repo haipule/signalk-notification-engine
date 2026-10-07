@@ -108,14 +108,16 @@
 - The History window can delete only the selected notification lifecycle by
   its local `occurrenceId`.
 - Optional lifecycle exceptions are loaded from `lifecycle-rules.json` in the
-  plugin data directory. The packaged file documents the format and includes
-  the legacy Hoekens rule: `normal` with message `Off` closes the local
-  lifecycle. Hoekens `2.13.1` no longer exposes that marker and Signal K keeps
-  the same technical notification ID across Raise/re-drop, so the rule no
-  longer separates current Hoekens occurrences. A replacement based on the
-  authoritative `navigation.anchor.state = off` transition is pending. The
-  file is read at plugin start; saving the Signal K Plugin Config reloads the
-  plugin and applies changed rules without a separate server restart.
+  plugin data directory. The packaged file documents the format and is empty
+  by default. The anchor lifecycle has a built-in local boundary based on the
+  authoritative inactive `navigation.anchor.state` input. It accepts explicit
+  `off` as well as the value removal emitted by Hoekens 2.13.1. That boundary records a
+  local end marker but does not clear, normalize, or otherwise modify the
+  producer-owned Signal K notification. Repeated `off` values are idempotent;
+  after the anchor state returns to `on`, the next authoritative anchor
+  notification starts a new local `occurrenceId`. The file is read at plugin
+  start; saving the Signal K Plugin Config reloads the plugin and applies
+  changed custom rules without a separate server restart.
 
 ## Next UI iteration
 
@@ -164,8 +166,9 @@ Edit the `rules` array for producer-specific end markers. Specify `source` and
 local lifecycle is closed and the next notification starts a new
 `occurrenceId`. The file is read at plugin start. Save the Signal K Plugin
 Config after editing it; Signal K reloads the plugin as part of that operation,
-so a server restart is not required. Removing the file restores the built-in
-Hoekens rule; use an empty `rules` array to disable special lifecycle rules.
+so a server restart is not required. Removing the file restores an empty
+custom-rule set. The built-in anchor-state boundary is not configured through
+this file because it observes an authoritative non-notification Signal K path.
 
 An explicit `Show in Alarm Centre: false` hides a matching notification from
 the active view, but does not delete it, silence it, or change its Signal K
