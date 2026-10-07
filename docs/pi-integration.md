@@ -103,6 +103,23 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
+Version `0.1.45` was deployed and verified on 2026-10-07. The complete prior
+`0.1.44` installation is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.44-live-20261007`
+and at the sibling replaced path. Package SHA-256 is
+`062c727d67631bb7cf41d029cd35503411855b31a18b4d43eaa2522cc6aa2740`.
+This version adds explicit positive human confirmation to the bounded alarm
+sound test. `/signalk`, notifications, rules, history, translations, and
+diagnostics returned HTTP 200; the WebApp returned the expected HTTP 401
+without an authenticated browser session. Mandatory Node-RED configuration and
+runtime deploy events were ready; Android GPS was fresh; audio had zero active
+processes, retries, open breakers, or unresolved failures; and source/live
+hashes matched for the changed runtime and WebApp files. Signal K and its
+health timer were active with zero restarts, external `nodered.service`
+remained inactive, and the checked journal contained no Notification Engine
+error. The new `Alarm heard` interaction remains a manual Tab 3 check; no
+self-test tone was triggered during deployment.
+
 Version `0.1.44` was deployed and verified on 2026-10-05. The complete prior
 `0.1.43` installation is retained at
 `/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.43-live-20261005T230954Z`

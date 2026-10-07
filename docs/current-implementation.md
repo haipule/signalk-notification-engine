@@ -30,6 +30,7 @@
 | GET | `/plugins/signalk-notification-engine/history` | readonly | Bounded persistent local audit history (500 entries by default). |
 | GET | `/plugins/signalk-notification-engine/diagnostics` | readonly | Snapshot/delta timings, critical-input freshness, Node-RED configuration, audio process/result and playback signatures, and local-history persistence health. |
 | POST | `/plugins/signalk-notification-engine/audio-test/start` | readwrite | Start one bounded audible maintenance tone and open the 15-second feedback window after technical success. |
+| POST | `/plugins/signalk-notification-engine/audio-test/heard` | readwrite | Record explicit human confirmation that the technically successful tone was heard. |
 | POST | `/plugins/signalk-notification-engine/audio-test/not-heard` | readwrite | Record explicit inaudible feedback while that feedback window is open. |
 | GET | `/plugins/signalk-notification-engine/runtime-tests` | readwrite | List only test notifications owned by the current plugin runtime. |
 | POST | `/plugins/signalk-notification-engine/runtime-tests/{slot}` | readwrite | Raise a bounded simulated notification in a fixed plugin-owned path. |
@@ -69,8 +70,9 @@
   would create competing ALSA ownership and requires a controlled hand-off.
 - The authenticated WebApp self-test plays the configured test-tone file once
   without taking ownership of existing audio. It logs its technical result and
-  offers `Sound not heard` for 15 seconds. Silence after that window is an
-  operational pass, not evidence that a human heard the tone.
+  offers explicit `Alarm heard` and `Sound not heard` choices for 15 seconds.
+  Positive feedback records human audibility immediately. Silence after that
+  window is an operational pass, not evidence that a human heard the tone.
 - The Plugin Config also controls the combined state visibility/sort order, info-window auto-close
   timeout, and the `i`/`h` keyboard shortcuts. A zero timeout keeps the info
   window open until it is closed manually.

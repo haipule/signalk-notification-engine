@@ -20,7 +20,7 @@ function api(overrides = {}) {
     translations: () => ({}), translation: () => ({}), diagnostics: () => ({}),
     processingUnavailable: () => null, configurationError: () => null, audioUnavailable: () => null,
     runtimeTests: { list: () => [], raise: () => ({}), update: () => ({}), clear: async () => true },
-    audioTest: { start: () => ({}), notHeard: () => ({}) }, clearHistory: async () => true,
+    audioTest: { start: () => ({}), notHeard: () => ({}), heard: () => ({}) }, clearHistory: async () => true,
     actionAll: async () => 0, action: async () => {}, ...overrides
   }
 }
@@ -41,6 +41,7 @@ test('keeps readonly and readwrite routes on their Signal K access boundaries', 
     { level: 'readwrite', method: 'delete', path: '/runtime-tests/:slot' },
     { level: 'readwrite', method: 'post', path: '/audio-test/start' },
     { level: 'readwrite', method: 'post', path: '/audio-test/not-heard' },
+    { level: 'readwrite', method: 'post', path: '/audio-test/heard' },
     { level: 'readwrite', method: 'delete', path: '/history' },
     { level: 'readwrite', method: 'post', path: '/notifications/action-all/:action' },
     { level: 'readwrite', method: 'post', path: '/notifications/:id/:action' }

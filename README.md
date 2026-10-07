@@ -64,8 +64,9 @@ The disabled embedded Node-RED `Audio Alarms` legacy tab is
 retained for rollback, while the plugin is the only active rule-based
 notification audio path. The WebApp also provides an authenticated, bounded `Test alarm sound`
 maintenance action. Its configured test-tone file is played once; a successful
-player exit opens a 15-second `Sound not heard` counter-feedback window. With
-no counter-report the result is only technically played, never proven audible.
+player exit opens a 15-second window with explicit `Alarm heard` and
+`Sound not heard` choices. Positive feedback records human audibility; with no
+selection the result is only technically played, never proven audible.
 Full automatic amplifier/loudspeaker verification requires hardware loopback
 or a microphone.
 

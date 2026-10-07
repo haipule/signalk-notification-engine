@@ -169,17 +169,24 @@
 - [x] In der WebApp einen klar bezeichneten Button `Alarmton testen` ergänzen.
   Der Klick startet einen fest definierten, begrenzten Testton und protokolliert
   mindestens Zeitpunkt, auslösenden Signal-K-Benutzer, Gerät, Datei,
-  Player-Exitcode und technischen Erfolg. Ohne ausdrückliche Gegenmeldung gilt
-  der betriebliche Test als bestanden; die UI darf dies dennoch nur als
-  `Test ausgelöst / technisch abgespielt` und nicht als nachweislich
-  `vom Menschen gehört` bezeichnen. Nach erfolgreichem Player-Exit bleibt ein
-  verbindliches 15-Sekunden-Fenster für eine Gegenmeldung offen.
+  Player-Exitcode und technischen Erfolg. Eine ausdrückliche positive Meldung
+  wird als `vom Menschen gehört` protokolliert. Ohne Auswahl gilt der
+  betriebliche Test nach dem Fenster als bestanden; die UI darf dies dennoch
+  nur als `Test ausgelöst / technisch abgespielt` bezeichnen. Nach
+  erfolgreichem Player-Exit bleibt ein verbindliches 15-Sekunden-Fenster für
+  positive oder negative Rückmeldung offen.
 - [x] Neben dem Testton einen sofort sichtbaren Button `Ton nicht gehört`
   anbieten. Dieser erzeugt die visuelle Audio-Systemnotification, markiert den
   letzten Alarmtest als fehlgeschlagen und hält den Fehler aktiv, bis ein
   späterer Test technisch erfolgreich war und der Bediener ihn nicht als
-  unhörbar meldet. Der Fehler wird erst nach dem vollständigen
-  15-Sekunden-Fenster ohne Gegenmeldung aufgehoben.
+  unhörbar meldet. Der Fehler wird durch ausdrückliche positive Hörbestätigung
+  sofort oder nach dem vollständigen 15-Sekunden-Fenster ohne Gegenmeldung
+  aufgehoben.
+- [x] Nach technisch erfolgreicher Wiedergabe zusätzlich `Alarm gehört`
+  anbieten und die ausdrückliche positive Hörbestätigung mit Bediener und
+  Zeitpunkt protokollieren. Keine Auswahl bleibt ein rein technischer Erfolg
+  ohne behauptete menschliche Hörbarkeit. In Version `0.1.45` umgesetzt; der
+  neue Bedienpfad ist nach dem Deployment noch manuell auf Tab 3 zu prüfen.
 - [x] Wartungsintervall in der Haupt-Buttonzeile kompakt anzeigen: runder
   Zähler `7` bis `0`, bei Fälligkeit blinkend; Klick öffnet ein eigenes
   Prozessfenster. Der letzte abgeschlossene Test wird nach Neustart aus der
@@ -247,6 +254,38 @@
   `null`, Android-UDP-Ausfall und -Wiederkehr, neue Ankervorgänge nach ACK,
   wechselnde und wiederverwendete IDs sowie Neustarts während aktiver Alarme
   erstellen und ausführen.
+  Complete the following release-acceptance sequence before creating the
+  public repository, publishing npm artifacts, or claiming production safety:
+  - [ ] Inspect the installed Hoekens version/build read-only and establish
+    whether it contains merge commit
+    `75c05cc0d34718c1bd3fbf4cfbeb969103d278af`. Do not upgrade it merely because
+    the upstream pull request was merged.
+  - [ ] Obtain an explicit safe anchor-test window. Record that the vessel is
+    secure or ashore, no real watch depends on the test alarm, GPS is stable,
+    audible output is permitted, and one controlled Signal K restart is safe.
+  - [ ] With the identified Hoekens build, verify Raise -> notification `null`,
+    a fresh Drop/Watching lifecycle -> `normal`, Drag -> `alarm`, ACK, another
+    Raise, then another Drop/Drag with `acknowledged: false`. Record reused or
+    changed notification ids, permitted actions, audio, history transitions,
+    and absence of phantom notifications.
+  - [ ] During a controlled active test alarm, restart Signal K once and verify
+    authoritative snapshot reconstruction, correct playback deduplication,
+    no false new lifecycle or automatic clear/normal transition, healthy
+    services, and successful WebApp recovery.
+  - [ ] In a separate safe window, disconnect and restore the real Android GPS
+    producer. Record producer-delta, notification, snapshot, stale-diagnostics,
+    and recovery timestamps separately so detection latency can be compared
+    without inferring it from browser polling.
+  - [ ] Using only an approved safe input/simulation method at the real bilge
+    producer, verify alarm presentation, audio, history, permitted actions,
+    producer-authoritative return to normal, and absence of a phantom alarm.
+  - [ ] Perform the final release smoke test on Tab 3: active view, History,
+    Diagnostics, English/German selection, permitted individual/global
+    actions, audible self-test, network loss/recovery, valid Node-RED status,
+    and zero unexpected processes, retries, breakers, or persistence errors.
+  - [ ] Record every result in `docs/e2e-safety-matrix.md`. Any unexecuted real
+    producer case must be stated as a release limitation rather than marked
+    passed from a simulated runtime slot.
 - [x] Erwartete Anzeige, Audioaktion, Historienereignisse und erlaubte Actions
   für jeden End-to-End-Fall festhalten.
 - [x] Ungültigen Node-RED-Deploy, fehlendes Audio-Gerät, geschlossene WebApp,

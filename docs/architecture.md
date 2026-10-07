@@ -186,14 +186,14 @@ an active notification lifecycle. The server records the Signal K request
 identity available to the plugin, device, file, timestamps, exit code, signal,
 technical outcome, and operator counter-feedback in local audit history.
 
-After a successful player exit, `Sound not heard` remains available for exactly
-15 seconds. A counter-report latches the visual audio-system notification. With
-no counter-report, the test passes operationally only after the full window and
-is described as technically played without counter-report; it never claims
-that a person heard the sound. A prior self-test latch clears only after this
-later technical success and complete quiet feedback window. Technical success
-still proves neither amplifier nor loudspeaker output. Automatic end-to-end
-proof requires a hardware loopback or microphone.
+After a successful player exit, explicit `Alarm heard` and `Sound not heard`
+choices remain available for exactly 15 seconds. Positive feedback records the
+operator identity and confirms human audibility immediately. Negative feedback
+latches the visual audio-system notification. With no selection, the test
+passes operationally only after the full window and is described as technically
+played without counter-report; it never claims that a person heard the sound.
+Technical success alone still proves neither amplifier nor loudspeaker output.
+Automatic end-to-end proof requires a hardware loopback or microphone.
 
 The self-test uses a private failure-origin path distinct from the published
 audio-system notification. This preserves the recursion guard on

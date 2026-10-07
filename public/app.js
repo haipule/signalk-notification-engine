@@ -15,6 +15,7 @@ const detailSheet = document.querySelector('#detail-sheet')
 const visualAlerts = document.querySelector('#visual-alerts')
 const healthBanner = document.querySelector('#health-banner')
 const audioTestStart = document.querySelector('#start-audio-test')
+const audioTestHeard = document.querySelector('#audio-test-heard')
 const audioTestNotHeard = document.querySelector('#audio-test-not-heard')
 const audioTestStatus = document.querySelector('#audio-test-status')
 const audioTestSheet = document.querySelector('#audio-test-sheet')
@@ -64,6 +65,7 @@ audioTestDueButton.addEventListener('click', showAudioTest)
 document.querySelector('#close-audio-test').addEventListener('click', closeAudioTest)
 document.querySelector('#delete-history').addEventListener('click', deleteLocalHistory)
 audioTestStart.addEventListener('click', startAudioTest)
+audioTestHeard.addEventListener('click', reportAudioTestHeard)
 audioTestNotHeard.addEventListener('click', reportAudioTestNotHeard)
 detailSheet.addEventListener('pointerdown', () => { detailSheet.style.zIndex = '12' })
 document.querySelector('#history-sheet').addEventListener('pointerdown', event => { event.currentTarget.style.zIndex = '12'; detailSheet.style.zIndex = '11' })
@@ -776,6 +778,8 @@ function updateGlobalActions() {
   audioTestStart.title = audioTestStart.disabled ? t('audioTest.unavailable') : t('audioTest.playTitle')
   audioTestNotHeard.hidden = currentAudioTest.state !== 'awaiting_feedback'
   audioTestNotHeard.disabled = !isConnected || !configurationReady || currentAudioTest.state !== 'awaiting_feedback'
+  audioTestHeard.hidden = currentAudioTest.state !== 'awaiting_feedback'
+  audioTestHeard.disabled = !isConnected || !configurationReady || currentAudioTest.state !== 'awaiting_feedback'
 }
 
 function renderAudioTest(value) {
@@ -788,12 +792,13 @@ function renderAudioTest(value) {
     playing: 'audioTest.playing',
     technical_failure: 'audioTest.technicalFailure',
     not_heard: 'audioTest.notHeardStatus',
+    passed_heard: 'audioTest.heardStatus',
     passed_no_counter_report: 'audioTest.passed'
   }
   audioTestStatus.textContent = feedbackSeconds === null
     ? (audioTestStateKeys[currentAudioTest.state] ? t(audioTestStateKeys[currentAudioTest.state]) : currentAudioTest.statement || currentAudioTest.state)
     : t('audioTest.awaitingFeedback', { count: feedbackSeconds })
-  const passedAt = currentAudioTest.state === 'passed_no_counter_report' ? Date.parse(currentAudioTest.passedAt || currentAudioTest.completedAt) : NaN
+  const passedAt = ['passed_heard', 'passed_no_counter_report'].includes(currentAudioTest.state) ? Date.parse(currentAudioTest.passedAt || currentAudioTest.completedAt) : NaN
   const remainingDays = Number.isFinite(passedAt) ? Math.max(0, Math.ceil((passedAt + (7 * 86400000) - Date.now()) / 86400000)) : 0
   const running = ['playing', 'awaiting_feedback'].includes(currentAudioTest.state)
   audioTestDays.textContent = running ? '…' : String(remainingDays)
@@ -815,6 +820,10 @@ async function startAudioTest() {
 
 async function reportAudioTestNotHeard() {
   await runAudioTestRequest('/audio-test/not-heard')
+}
+
+async function reportAudioTestHeard() {
+  await runAudioTestRequest('/audio-test/heard')
 }
 
 async function runAudioTestRequest(route) {

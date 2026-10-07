@@ -22,7 +22,7 @@ test('logs technical success and passes only after the feedback window', () => {
   now = 1000
   close({ ok: true, code: 0, signal: null })
   assert.equal(selfTest.toJSON().state, 'awaiting_feedback')
-  assert.equal(selfTest.toJSON().statement, 'Technically played; 15 seconds remain to report that the sound was not heard.')
+  assert.equal(selfTest.toJSON().statement, 'Technically played; 15 seconds remain to confirm whether the sound was heard.')
   assert.equal(selfTest.toJSON().feedbackDeadlineAt, '1970-01-01T00:00:16.000Z')
   now = 16000
   timer()
@@ -53,6 +53,29 @@ test('not heard feedback fails the test and cancels automatic passing', () => {
   assert.equal(failures.length, 1)
 })
 
+test('heard feedback records explicit human confirmation and passes immediately', () => {
+  let close
+  let cleared = false
+  const passed = []
+  const events = []
+  const selfTest = new AudioSelfTest({
+    play: (_file, callback) => { close = callback },
+    onPassed: value => passed.push(value),
+    onEvent: event => events.push(event.type),
+    setTimer: () => 9,
+    clearTimer: id => { assert.equal(id, 9); cleared = true }
+  })
+  selfTest.start({ actor: 'hans', device: 'default', file: '/test.wav' })
+  close({ ok: true, code: 0 })
+  const result = selfTest.reportHeard('hans')
+  assert.equal(cleared, true)
+  assert.equal(result.state, 'passed_heard')
+  assert.equal(result.operatorFeedback.heard, true)
+  assert.equal(result.statement, 'Sound heard; human audibility was confirmed.')
+  assert.equal(passed.length, 1)
+  assert.equal(events.at(-1), 'audio_test_heard')
+})
+
 test('technical failure never opens a human feedback window', () => {
   let close
   const failures = []
@@ -66,6 +89,7 @@ test('technical failure never opens a human feedback window', () => {
   assert.equal(selfTest.toJSON().statement, 'Technical playback failed; audibility was not evaluated.')
   assert.equal(failures.length, 1)
   assert.throws(() => selfTest.reportNotHeard('hans'), /awaiting feedback/)
+  assert.throws(() => selfTest.reportHeard('hans'), /awaiting feedback/)
 })
 
 test('uses an English idle statement', () => {
@@ -79,4 +103,6 @@ test('restores only a terminal audited test after restart', () => {
   assert.equal(selfTest.toJSON().state, 'passed_no_counter_report')
   selfTest.restore({ state: 'awaiting_feedback', statement: 'stale active state' })
   assert.equal(selfTest.toJSON().state, 'passed_no_counter_report')
+  selfTest.restore({ state: 'passed_heard', completedAt: '2026-09-30T00:00:00.000Z', statement: 'Sound heard' })
+  assert.equal(selfTest.toJSON().state, 'passed_heard')
 })

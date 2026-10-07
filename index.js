@@ -502,7 +502,8 @@ module.exports = function createPlugin(app) {
       runtimeTests,
       audioTest: {
         start: request => audioSelfTest.start({ actor: requestActor(request), device: audioPlayer.device, file: testTonePath }),
-        notHeard: request => audioSelfTest.reportNotHeard(requestActor(request))
+        notHeard: request => audioSelfTest.reportNotHeard(requestActor(request)),
+        heard: request => audioSelfTest.reportHeard(requestActor(request))
       },
       clearHistory: query => historyService.clear(query),
       async actionAll(action) {

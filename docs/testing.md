@@ -74,8 +74,9 @@
   across restart and require a successful player exit for every failed
   occurrence before publishing `normal`.
 - Audible self-test: reject overlapping tests, record technical failure without
-  opening a feedback window, keep `Sound not heard` available for 15 seconds
-  after technical success, latch explicit inaudible feedback, and pass without
+  opening a feedback window, keep explicit `Alarm heard` and `Sound not heard`
+  choices available for 15 seconds after technical success, audit positive
+  human confirmation, latch explicit inaudible feedback, and pass without
   claiming audibility only after the complete window. Verify that a later pass
   clears only the stable self-test failure occurrence and does not stop normal
   notification audio.
@@ -147,9 +148,11 @@ GPS source.
 
 - Active alarms are legible from a distance and ordered by severity.
 - `Test alarm sound` produces one bounded tone. After technical success the
-  counter-feedback button is immediately visible for 15 seconds; its absence
-  yields only `technically played - no counter-report`. Confirm audit fields
-  for actor, device, file, exit code, signal, and outcome.
+  `Alarm heard` and `Sound not heard` feedback buttons are immediately visible
+  for 15 seconds. Positive feedback records human audibility, negative feedback
+  latches the audio-system warning, and no selection yields only
+  `technically played - no counter-report`. Confirm audit fields for actor,
+  device, file, exit code, signal, feedback, and outcome.
 - The UI clearly distinguishes active, silenced, and acknowledged.
 - Lifecycle-rule tests cover a producer that ends an alarm with a normal
   `Off` notification and then raises again with the same technical ID.

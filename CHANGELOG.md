@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.45 - 2026-10-07
+
+- Add an explicit `Alarm heard` confirmation to the alarm sound test and audit
+  positive human feedback separately from technical playback success.
+- Keep `Sound not heard` as the failure path and treat a feedback timeout as
+  technical success without claiming human audibility.
+
 ## 0.1.44 - 2026-10-05
 
 - Add GitHub repository, issue, homepage, author, and packaged MIT license

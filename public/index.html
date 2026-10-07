@@ -48,9 +48,10 @@
       </div>
       <aside id="audio-test-sheet" class="detail-sheet audio-test-sheet" tabindex="-1" aria-label="Alarm sound test" data-i18n-aria-label="audioTest.title" aria-hidden="true">
         <div class="detail-header"><strong data-i18n="audioTest.title">Alarm sound test</strong><div class="detail-window-actions"><button id="drag-audio-test" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move" data-i18n-title="window.drag" data-i18n-aria-label="window.drag"></button><button id="close-audio-test" class="close-detail" type="button" aria-label="Close alarm sound test" data-i18n-aria-label="audioTest.close">×</button></div></div>
-        <p class="detail-note" data-i18n="audioTest.instructions">If the sound is audible, do not press anything. After technical playback, you have 15 seconds to report that it was not heard.</p>
+        <p class="detail-note" data-i18n="audioTest.instructions">After technical playback, confirm whether you heard the alarm sound.</p>
         <div id="audio-test-controls" class="audio-test-controls" aria-live="polite">
             <button id="start-audio-test" type="button" data-i18n="audioTest.start">Test alarm sound</button>
+            <button id="audio-test-heard" type="button" hidden data-i18n="audioTest.heard">Alarm heard</button>
             <button id="audio-test-not-heard" type="button" hidden data-i18n="audioTest.notHeard">Sound not heard</button>
             <span id="audio-test-status" data-i18n="audioTest.idle">No alarm sound test has been run yet.</span>
           </div>

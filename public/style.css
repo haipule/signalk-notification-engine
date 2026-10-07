@@ -16,6 +16,7 @@ button { min-height: 48px; background: #1f3552; border: 1px solid #3d5776; borde
 button:disabled { opacity: .45; } .notification-grid { display: grid; gap: .8rem; margin-top: 1rem; }
 .audio-test-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: .75rem 0; padding: .65rem; border: 1px solid #3d5776; border-radius: .45rem; background: #101d2d; }
 .audio-test-controls #start-audio-test { background: #173c68; border-color: #78a9d8; font-weight: 700; }
+.audio-test-controls #audio-test-heard { background: #1c523f; border: 2px solid #66c99a; font-weight: 800; }
 .audio-test-controls #audio-test-not-heard { background: #812c22; border: 2px solid #ff9388; font-weight: 800; }
 .audio-test-controls #audio-test-status { flex: 1 1 18rem; color: #dbe8f8; }
 .audio-test-due { width: 48px; min-width: 48px; height: 48px; padding: 0; border-radius: 50%; font-size: 1.2rem; font-weight: 900; font-variant-numeric: tabular-nums; background: #1c523f; border: 2px solid #66c99a; }
