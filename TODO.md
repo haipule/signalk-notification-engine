@@ -630,25 +630,24 @@
 - Als Nachweis für das Issue dokumentieren: gleiche ID
   `e8cf94af-698a-4091-ad22-c8b17b5840d1` bei `alarm`, ACK und anschließendem
   `normal` nach Radiusänderung.
-- [ ] Den auf dem Pi installierten Hoekens-Stand erst auf einen Release oder
-  anderweitig eindeutig identifizierten Build aktualisieren, der Merge-Commit
-  `75c05cc0d34718c1bd3fbf4cfbeb969103d278af` enthält. Der Merge allein ändert
-  die installierte Plugin-Version nicht. Danach in einem ausdrücklich
-  bestätigten sicheren Ankertestfenster Raise -> `null`, anschließend frisches
-  Watching-`normal`, neuen Drop und `acknowledged: false` live nachweisen.
-- Bis zu diesem Live-Nachweis gilt die bisherige Zwischenlösung: Vor jedem
-  neuen Drop den vorherigen Anker vollständig raisen und prüfen, dass der Pfad
-  nicht mehr aktiv ist. Falls die ID bestehen bleibt,
-  `enableNormalNotifications` vor dem Raise vorübergehend deaktivieren, damit
-  Hoekens `null` sendet; danach wieder aktivieren und erst dann neu droppen.
-  Bis zum Live-Nachweis jeden neuen Alarm manuell auf
-  `acknowledged: false` prüfen und den Sound über den Notification Manager
-  testen.
-- Die Hoekens-Regel in `lifecycle-rules.json` (`normal`/`Off`) bis zum
-  erfolgreichen Upgrade- und Regressionstest als Abwärtskompatibilität
-  behalten. Erst danach prüfen, ob sie aus Default-Konfiguration und
-  Dokumentation entfernt werden kann; ein vorzeitiges Entfernen würde ältere
-  installierte Hoekens-Versionen wieder falsch korrelieren.
+- [x] Verify the installed Hoekens release containing the upstream Raise fix
+  in an explicitly approved live anchor-test window. Version `2.13.1` was
+  tested on 2026-10-07: Raise caused Hoekens to emit `null`, but this Signal K
+  notification handler retained the same technical ID as an empty `normal`
+  notification. After acknowledging the first controlled drag alarm, Raise
+  temporarily retained `acknowledged: true`; the next controlled drag alarm
+  correctly reset it to `false`. The safety-relevant inherited-ACK defect is
+  therefore fixed for a new alarm.
+- [ ] Replace the obsolete Hoekens `normal`/`Off` local lifecycle boundary.
+  Version `2.13.1` no longer exposes `Off`, while Signal K retains the same
+  technical ID, so Notification Engine kept the same local `occurrenceId`
+  across Raise and re-drop. Use the authoritative
+  `navigation.anchor.state = off` transition to close only the local Hoekens
+  occurrence, with unit tests and a controlled regression test. Do not treat
+  an empty `normal` notification as the boundary because the same value also
+  represents normal watching when normal notifications are disabled.
+- Keep the existing `normal`/`Off` rule only as legacy rollback compatibility
+  until the new `navigation.anchor.state` boundary is implemented and tested.
 - [x] Lifecycle-Sonderfälle in `lifecycle-rules.json` auslagern und beim
   Speichern der Plugin-Konfiguration neu einlesen; Handhabung dokumentieren.
 

@@ -109,11 +109,13 @@
   its local `occurrenceId`.
 - Optional lifecycle exceptions are loaded from `lifecycle-rules.json` in the
   plugin data directory. The packaged file documents the format and includes
-  the Hoekens rule: `normal` with message `Off` closes the local lifecycle, so
-  the next alarm starts a new local `occurrenceId` even when Signal K reuses
-  the technical notification ID. The file is read at plugin start; saving the
-  Signal K Plugin Config reloads the plugin and applies changed rules without
-  a separate server restart.
+  the legacy Hoekens rule: `normal` with message `Off` closes the local
+  lifecycle. Hoekens `2.13.1` no longer exposes that marker and Signal K keeps
+  the same technical notification ID across Raise/re-drop, so the rule no
+  longer separates current Hoekens occurrences. A replacement based on the
+  authoritative `navigation.anchor.state = off` transition is pending. The
+  file is read at plugin start; saving the Signal K Plugin Config reloads the
+  plugin and applies changed rules without a separate server restart.
 
 ## Next UI iteration
 
