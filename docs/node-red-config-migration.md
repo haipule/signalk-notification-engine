@@ -23,7 +23,7 @@ for Signal K API calls and lifecycle state.
 | `soundsByState`, `soundPaletteFile` | Node-RED | Sound selection and timing |
 | `historyRules` | Node-RED | Legacy history routing decisions |
 | `testNotif` | Node-RED | Test trigger and test lifecycle |
-| `audioPlayer`, `audioDevice`, `testTonePath` | Signal K initially | Host/device boundary and safe execution |
+| `audioPlayer`, `audioDevice`, `testTonePath`, `alarmSoundTest` | Signal K initially | Host/device boundary, safe execution, and local maintenance interval |
 | `historyLimit`, `historyRetentionDays` | Signal K initially | Local persistence ownership |
 | `clearHistory*` | Signal K initially | Destructive administrative operations |
 | `shortcutInfo`, `shortcutHistory` | Signal K initially | WebApp input handling |

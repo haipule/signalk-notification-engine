@@ -731,6 +731,7 @@ function closeDiagnostics() {
 }
 
 function showAudioTest() {
+  if (currentAudioTest.enabled === false) return
   audioTestSheet.setAttribute('aria-hidden', 'false')
   audioTestSheet.style.zIndex = '15'
   audioTestSheet.focus()
@@ -783,7 +784,12 @@ function updateGlobalActions() {
 }
 
 function renderAudioTest(value) {
-  currentAudioTest = value || { state: 'idle', statement: 'No alarm sound test has been run yet.' }
+  currentAudioTest = value || { state: 'idle', statement: 'No alarm sound test has been run yet.', intervalDays: 7, enabled: true }
+  const intervalDays = Number.isInteger(currentAudioTest.intervalDays) ? currentAudioTest.intervalDays : 7
+  const enabled = currentAudioTest.enabled !== false && intervalDays > 0
+  audioTestDueButton.hidden = !enabled
+  audioTestSheet.hidden = !enabled
+  if (!enabled) closeAudioTest()
   const feedbackSeconds = currentAudioTest.state === 'awaiting_feedback'
     ? Math.max(0, Math.ceil((Date.parse(currentAudioTest.feedbackDeadlineAt) - Date.now()) / 1000))
     : null
@@ -799,7 +805,7 @@ function renderAudioTest(value) {
     ? (audioTestStateKeys[currentAudioTest.state] ? t(audioTestStateKeys[currentAudioTest.state]) : currentAudioTest.statement || currentAudioTest.state)
     : t('audioTest.awaitingFeedback', { count: feedbackSeconds })
   const passedAt = ['passed_heard', 'passed_no_counter_report'].includes(currentAudioTest.state) ? Date.parse(currentAudioTest.passedAt || currentAudioTest.completedAt) : NaN
-  const remainingDays = Number.isFinite(passedAt) ? Math.max(0, Math.ceil((passedAt + (7 * 86400000) - Date.now()) / 86400000)) : 0
+  const remainingDays = Number.isFinite(passedAt) ? Math.max(0, Math.ceil((passedAt + (intervalDays * 86400000) - Date.now()) / 86400000)) : 0
   const running = ['playing', 'awaiting_feedback'].includes(currentAudioTest.state)
   audioTestDays.textContent = running ? '…' : String(remainingDays)
   audioTestDueButton.classList.toggle('is-due', !running && remainingDays === 0)

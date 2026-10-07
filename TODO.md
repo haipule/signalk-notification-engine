@@ -187,6 +187,11 @@
   Zeitpunkt protokollieren. Keine Auswahl bleibt ein rein technischer Erfolg
   ohne behauptete menschliche Hörbarkeit. In Version `0.1.45` umgesetzt; der
   neue Bedienpfad ist nach dem Deployment noch manuell auf Tab 3 zu prüfen.
+- [x] Make the `Alarm Sound Test` Plugin Config interval configurable as whole
+  days from `0` through `30`, retaining `7` as the default. Zero hides the App
+  button and blocks start requests server-side. Keep the separate one-shot
+  connection check named `Sound Test`; it changes neither operator confirmation
+  nor the recurring due date.
 - [x] Wartungsintervall in der Haupt-Buttonzeile kompakt anzeigen: runder
   Zähler `7` bis `0`, bei Fälligkeit blinkend; Klick öffnet ein eigenes
   Prozessfenster. Der letzte abgeschlossene Test wird nach Neustart aus der

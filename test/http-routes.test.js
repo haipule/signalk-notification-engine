@@ -20,7 +20,7 @@ function api(overrides = {}) {
     translations: () => ({}), translation: () => ({}), diagnostics: () => ({}),
     processingUnavailable: () => null, configurationError: () => null, audioUnavailable: () => null,
     runtimeTests: { list: () => [], raise: () => ({}), update: () => ({}), clear: async () => true },
-    audioTest: { start: () => ({}), notHeard: () => ({}), heard: () => ({}) }, clearHistory: async () => true,
+    audioTest: { enabled: () => true, start: () => ({}), notHeard: () => ({}), heard: () => ({}) }, clearHistory: async () => true,
     actionAll: async () => 0, action: async () => {}, ...overrides
   }
 }
@@ -59,6 +59,18 @@ test('rejects mutating runtime tests while processing is unavailable', () => {
   route.handler({ params: { slot: 'a' }, body: {} }, { status(value) { status = value; return this }, json(value) { body = value } })
   assert.equal(status, 503)
   assert.equal(body.state, 'REJECTED')
+})
+
+test('rejects starting a disabled alarm sound test server-side', () => {
+  const router = fakeRouter()
+  registerHttpRoutes(router, api({ audioTest: { enabled: () => false } }))
+  const route = router.routes.find(candidate => candidate.method === 'post' && candidate.path === '/audio-test/start')
+  let status
+  let body
+  route.handler({}, { status(value) { status = value; return this }, json(value) { body = value } })
+  assert.equal(status, 409)
+  assert.equal(body.state, 'REJECTED')
+  assert.match(body.message, /disabled/)
 })
 
 test('does not reinterpret a history repository failure as an action conflict', async () => {

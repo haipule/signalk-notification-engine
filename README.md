@@ -67,6 +67,11 @@ maintenance action. Its configured test-tone file is played once; a successful
 player exit opens a 15-second window with explicit `Alarm heard` and
 `Sound not heard` choices. Positive feedback records human audibility; with no
 selection the result is only technically played, never proven audible.
+The Plugin Config `Alarm Sound Test` interval accepts `0` through `30` days
+and defaults to `7`; `0` removes the WebApp control and disables its start API.
+The separate Plugin Config `Sound Test` plays the configured file once to check
+the audio connection and never completes or reschedules the operator-confirmed
+Alarm Sound Test.
 Full automatic amplifier/loudspeaker verification requires hardware loopback
 or a microphone.
 

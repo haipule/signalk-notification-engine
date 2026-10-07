@@ -24,7 +24,7 @@ const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catalog')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
-const { ConfigurationService, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
+const { ConfigurationService, normalizeAlarmTestInterval, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
 const registerHttpRoutes = require('./lib/http-routes')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
@@ -64,6 +64,7 @@ module.exports = function createPlugin(app) {
   let testNotificationTimer = null
   let testNotificationEnabled = false
   let testTonePath = path.join(__dirname, 'sounds', 'test.wav')
+  let audioTestIntervalDays = 7
   const diagnostics = new Diagnostics()
   let policyResolver = new PolicyResolver([], {}, readSignalKValue)
   let historyService = null
@@ -187,6 +188,7 @@ module.exports = function createPlugin(app) {
     historyService.setRules(normalizeHistoryRules(flowOptions?.historyRules))
     testNotificationEnabled = flowOptions?.testNotif?.enabled === true
     testTonePath = path.resolve(String(flowOptions?.testTonePath || path.join(__dirname, 'sounds', 'test.wav')))
+    audioTestIntervalDays = normalizeAlarmTestInterval(flowOptions?.alarmSoundTest?.intervalDays)
     criticalInputs = normalizeInputSources(flowOptions?.criticalInputs || [{
       name: 'Android GPS', path: 'navigation.position', source: 'android_udp.gps', staleAfterSeconds: 15
     }])
@@ -288,9 +290,18 @@ module.exports = function createPlugin(app) {
         ,
         audioDevice: { type: 'string', title: 'Audio Device', description: 'ALSA device for aplay, for example default or plughw:2,0.', default: 'default' }
         ,
-        playTestTone: { type: 'boolean', title: 'Play Test Tone', description: 'Play test.wav once after saving, then reset this switch.', default: false }
+        alarmSoundTest: {
+          type: 'object', title: 'Alarm Sound Test',
+          description: 'Scheduled audible safety check in the Alarm Centre with explicit operator feedback.',
+          default: { intervalDays: 7 }, additionalProperties: false,
+          properties: {
+            intervalDays: { type: 'integer', title: 'Test interval (days)', description: 'Days between confirmed alarm sound tests. Set to 0 to disable the test in the Alarm Centre.', minimum: 0, maximum: 30, default: 7 }
+          }
+        }
         ,
-        testTonePath: { type: 'string', title: 'Test Tone Path', description: 'WAV file used by Play Test Tone.', default: path.join(__dirname, 'sounds', 'test.wav') }
+        playTestTone: { type: 'boolean', title: 'Sound Test', description: 'Play the configured sound once after saving to check the audio connection. This does not complete the scheduled Alarm Sound Test.', default: false }
+        ,
+        testTonePath: { type: 'string', title: 'Sound Test File', description: 'WAV file used by Sound Test and Alarm Sound Test.', default: path.join(__dirname, 'sounds', 'test.wav') }
         ,
         infoAutoCloseSeconds: {
           type: 'integer', title: 'Info Auto-Close (seconds)',
@@ -466,7 +477,7 @@ module.exports = function createPlugin(app) {
         // does not emit an embedded Node-RED runtime-deploy event.
         await runtime.refresh()
         if (!runtime.configurationError) await snapshotService.sync()
-        return { notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: runtime.checksum, configurationStatus: configurationStatus(), stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, audioTest: audioSelfTest.toJSON(), updatedAt: new Date().toISOString() }
+        return { notifications: plugin.getNotifications(), rules: activeRules, ruleChecksum: runtime.checksum, configurationStatus: configurationStatus(), stateOrder: configuredStateOrder, stateColors, visualRules, infoAutoCloseSeconds, shortcutInfo, shortcutHistory, audioTest: { ...audioSelfTest.toJSON(), intervalDays: audioTestIntervalDays, enabled: audioTestIntervalDays > 0 }, updatedAt: new Date().toISOString() }
       },
       rules() {
         const file = path.join(app.getDataDirPath?.() || path.join(__dirname, 'data'), 'deployed-rules', 'deployed-rules.md')
@@ -501,6 +512,7 @@ module.exports = function createPlugin(app) {
         : !audioController.ready ? 'Audio is not ready' : null,
       runtimeTests,
       audioTest: {
+        enabled: () => audioTestIntervalDays > 0,
         start: request => audioSelfTest.start({ actor: requestActor(request), device: audioPlayer.device, file: testTonePath }),
         notHeard: request => audioSelfTest.reportNotHeard(requestActor(request)),
         heard: request => audioSelfTest.reportHeard(requestActor(request))

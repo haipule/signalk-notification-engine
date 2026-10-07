@@ -73,6 +73,10 @@
   offers explicit `Alarm heard` and `Sound not heard` choices for 15 seconds.
   Positive feedback records human audibility immediately. Silence after that
   window is an operational pass, not evidence that a human heard the tone.
+  Its Plugin Config interval accepts zero through 30 days; zero hides the
+  WebApp control and rejects direct start requests. The separate Plugin Config
+  `Sound Test` is a one-shot audio-connection check and does not complete or
+  reschedule this confirmed test.
 - The Plugin Config also controls the combined state visibility/sort order, info-window auto-close
   timeout, and the `i`/`h` keyboard shortcuts. A zero timeout keeps the info
   window open until it is closed manually.

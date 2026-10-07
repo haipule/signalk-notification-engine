@@ -48,6 +48,11 @@ safe operating window; routine deployment does not authorize it.
 1. Build the exact local package with `npm pack` and record its version and
    checksum.
 2. Copy the tarball to a temporary location on the Pi.
+   Then retain the verified tarball under
+   `/home/pi/.signalk/plugin-packages/` and point the exact
+   `signalk-notification-engine` dependency in `/home/pi/.signalk/package.json`
+   to that persistent file. A dependency that still points to an older `/tmp`
+   tarball can silently reinstall the old version after a manual replacement.
 3. Stop `signalk-health.timer` temporarily. Its one-minute check can otherwise
    restart Signal K again while the server is still initializing.
 4. Create a timestamped copy of the complete installed plugin directory under
@@ -102,6 +107,29 @@ observes and presents those notifications. This monitoring relationship does
 not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
+
+Version `0.1.46` was deployed and verified on 2026-10-07. The installed files
+had been silently returned to `0.1.26` after the preceding manual deployment
+because `/home/pi/.signalk/package.json` still referenced the old
+`file:../../../tmp/signalk-notification-engine-0.1.26.tgz`; the running process
+remained `0.1.45` only until restart. The dependency now points to the durable
+`file:plugin-packages/signalk-notification-engine-0.1.46.tgz`. The previous
+on-disk `0.1.26` package is retained at
+`/home/pi/.signalk/plugin-backups/signalk-notification-engine-0.1.26-live-20261007T2246Z`,
+the pre-change Signal K package manifest at
+`/home/pi/.signalk/plugin-backups/signalk-server-package-before-notification-engine-0.1.46-20261007T2246Z.json`,
+and the earlier complete `0.1.45` source at its recorded backup path. Package
+SHA-256 is
+`1d99a3aa935c50d1f7f28234644040dfab30800cb9cc9c6c79c6cf02ab57a457`.
+The Alarm Sound Test API reported the backward-compatible default interval of
+seven days and enabled state while retaining the previous audit result. All
+read-only Plugin endpoints returned HTTP 200; mandatory Node-RED configuration,
+runtime deploy events, Android GPS, audio, and persistence were healthy, with
+zero active audio processes, retries, open breakers, or unresolved failures.
+Signal K and its health timer were active with zero restarts, external
+`nodered.service` remained inactive, and source/live hashes matched. Live UI
+checks for a changed interval and the zero-day hidden state remain pending; no
+Alarm Sound Test or Plugin Config Sound Test was triggered during deployment.
 
 Version `0.1.45` was deployed and verified on 2026-10-07. The complete prior
 `0.1.44` installation is retained at

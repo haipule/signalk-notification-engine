@@ -195,14 +195,21 @@ played without counter-report; it never claims that a person heard the sound.
 Technical success alone still proves neither amplifier nor loudspeaker output.
 Automatic end-to-end proof requires a hardware loopback or microphone.
 
+The Plugin Config controls the recurring interval from zero through 30 days.
+Zero disables both the WebApp control and its server-side start operation;
+existing audit evidence is retained. The separate one-shot Plugin Config
+`Sound Test` checks the configured audio connection but does not create
+operator feedback or change the recurring test schedule.
+
 The self-test uses a private failure-origin path distinct from the published
 audio-system notification. This preserves the recursion guard on
 `notifications.system.notificationEngine.audio` while allowing an explicit
 operator `not heard` report to latch that visual warning.
 
 The maintenance UI boundary was agreed on 2026-09-29. A compact round button
-in the main action row shows the whole days remaining from `7` to `0` since the
-last operationally passed audible test; `0` flashes as a due indication. The
+in the main action row shows the whole days remaining from the configured
+interval to `0` since the last operationally passed audible test; `0` flashes
+as a due indication. The
 button opens a separate process window but does not itself emit sound, avoiding
 an accidental audible test. The window contains the explicit start action,
 live playback/feedback state, the 15-second counter-report window, and the last

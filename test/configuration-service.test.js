@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict')
 const test = require('node:test')
-const { ConfigurationService, normalizeClearPath, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('../lib/configuration-service')
+const { ConfigurationService, normalizeAlarmTestInterval, normalizeClearPath, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('../lib/configuration-service')
 const colors = require('../lib/visual-colors')
 
 const service = () => new ConfigurationService({ baseDirectory: '/plugin', visualColorPool: colors })
@@ -28,6 +28,11 @@ test('normalizes sounds and policies with explicit inactive audio intact', () =>
 })
 
 test('normalizes operational scalar and history settings', () => {
+  assert.equal(normalizeAlarmTestInterval(0), 0)
+  assert.equal(normalizeAlarmTestInterval(30), 30)
+  assert.equal(normalizeAlarmTestInterval(31), 7)
+  assert.equal(normalizeAlarmTestInterval(-1), 7)
+  assert.equal(normalizeAlarmTestInterval('0'), 7)
   assert.equal(normalizeInfoTimeout(9999), 3600)
   assert.equal(normalizeShortcut('I', 'x'), 'i')
   assert.equal(normalizeClearPath(' Notifications.GPS.* '), 'notifications.gps.')

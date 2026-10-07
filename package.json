@@ -1,6 +1,6 @@
 {
   "name": "signalk-notification-engine",
-  "version": "0.1.45",
+  "version": "0.1.46",
   "description": "Signal K notification automation engine with visual flows.",
   "author": "haipule",
   "repository": {

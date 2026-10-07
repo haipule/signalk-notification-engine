@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.46 - 2026-10-07
+
+- Add a configurable 0-to-30-day Alarm Sound Test interval; zero disables its
+  WebApp controls and server-side start action.
+- Rename the separate Plugin Config playback action to `Sound Test` and clarify
+  that it checks the audio connection without completing the scheduled,
+  operator-confirmed Alarm Sound Test.
+
 ## 0.1.45 - 2026-10-07
 
 - Add an explicit `Alarm heard` confirmation to the alarm sound test and audit

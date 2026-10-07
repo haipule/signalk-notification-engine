@@ -153,6 +153,11 @@ GPS source.
   latches the audio-system warning, and no selection yields only
   `technically played - no counter-report`. Confirm audit fields for actor,
   device, file, exit code, signal, feedback, and outcome.
+- Configure the Alarm Sound Test interval at `0`, `1`, `7`, and `30` days.
+  Zero must hide the WebApp button and make the start endpoint reject the
+  request; positive values must calculate from the retained last successful
+  test without resetting it. The separate Plugin Config `Sound Test` must not
+  update that audit result or its due date.
 - The UI clearly distinguishes active, silenced, and acknowledged.
 - Lifecycle-rule tests cover a producer that ends an alarm with a normal
   `Off` notification and then raises again with the same technical ID.
