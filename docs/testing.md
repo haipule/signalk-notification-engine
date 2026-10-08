@@ -50,6 +50,10 @@
 - WebApp connectivity: abort an unreachable poll at its deadline, clear the
   deadline after success, and coalesce overlapping interval/reconnect refreshes
   into one serialized follow-up request.
+- WebApp transient polling: a single failed or navigation-aborted request does
+  not replace a still-fresh authoritative view with the red stale banner;
+  native offline events and expiry of the normal freshness deadline still lock
+  actions.
 - WebApp global actions: show Silence only for unfinished local audio with
   current Signal K silence permission, never for emergency or completed finite
   playback; show Acknowledge only for an unacknowledged permitted target.

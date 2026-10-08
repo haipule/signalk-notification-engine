@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.59 - 2026-10-08
+
+- Keep the last authoritative WebApp snapshot through one transient or
+  navigation-aborted poll. The red stale banner now waits for the existing
+  freshness deadline, while a native browser offline event still locks actions
+  immediately.
+
 ## 0.1.58 - 2026-10-08
 
 - Show `Silence all` only while at least one Signal K-permitted notification

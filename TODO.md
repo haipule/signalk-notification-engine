@@ -783,6 +783,12 @@
 
 ## 6. UI-Aktionen und Piktogramme
 
+- [x] Den roten Verbindungsbalken gegen kurz abgebrochene Polls beim Browser-
+  Neuladen entprellen. Version `0.1.59` behält einen noch frischen Snapshot bei
+  einem einzelnen Fehler; echtes Browser-Offline sperrt weiterhin sofort und
+  die unveränderte 15-Sekunden-Grenze sperrt bei ausbleibendem Erfolg. Pi und
+  cache-busted WebApp sind gesund; der abschließende Wischtest erfolgt auf
+  Tab 3 durch den Bediener.
 - [x] Den Node-RED-Builder links neben „Ausgewählte Benachrichtigungen“
   platzieren, den redundanten manuellen Refresh entfernen und globale Aktionen
   nur bei einem aktuellen Ziel zeigen. Mit `0.1.58` live bestätigt: kein

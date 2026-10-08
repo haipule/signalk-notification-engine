@@ -242,6 +242,24 @@ unit-tested for running, repeat-waiting, and permission states; a fresh audible
 runtime notification was deliberately not raised without a separate acoustic
 test confirmation.
 
+Version `0.1.59` was deployed on 2026-10-08 within the same confirmed restart
+window from package SHA-256
+`57c5adfc16493967faa17fbb24a31e76ee6c63aa1381bd16029d59a7f41831b4`.
+The durable dependency is
+`file:plugin-packages/signalk-notification-engine-0.1.59.tgz`; the previous
+0.1.58 installation and package manifest are retained under
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.58-before-0.1.59-20261008T230141Z`
+and
+`/home/pi/.signalk/plugin-backups/signalk-package-before-notification-engine-0.1.59-20261008T230141Z.json`.
+Signal K and its health timer settled active, embedded Node-RED was ready,
+Android GPS was fresh, audio was idle and healthy, and `nodered.service`
+remained inactive. The Pi served the versioned 0.1.59 WebApp assets; a browser
+cache-busted load showed no stale banner. Unit coverage confirms that a failed
+or navigation-aborted poll retains a still-fresh snapshot but becomes stale at
+the unchanged fifteen-second deadline. The physical Tab 3 pull-to-refresh
+observation remains an operator check because browser chrome gestures cannot
+be reproduced by the WebApp test harness.
+
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
 Signal K Plugin Config. Operational fields including `audioPlayer`,

@@ -1,7 +1,7 @@
 'use strict'
 
 const pluginApi = '/plugins/signalk-notification-engine'
-const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = window.NotificationConnectivity
+const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale, shouldDisconnectAfterPollFailure } = window.NotificationConnectivity
 const { compareNotificationPaths } = window.NotificationTableSort
 const { historyForTableNotifications } = window.NotificationHistoryFilter
 const { hasGlobalActionTarget } = window.NotificationGlobalActions
@@ -700,11 +700,12 @@ async function refresh() {
     }
   } catch (error) {
     clientPollDiagnostics.lastError = { message: error.message, at: new Date().toISOString() }
-    isConnected = false
-    configurationReady = false
-    updateHealthBanner()
-    updateActions(activeNotifications.find(item => item.id === selectedId) || null)
-    updateGlobalActions()
+    const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
+    // A pull-to-refresh or page navigation can abort one otherwise healthy
+    // poll. Keep the last authoritative view until its normal freshness
+    // deadline expires; a native browser `offline` event still locks actions
+    // immediately through markDisconnected().
+    if (shouldDisconnectAfterPollFailure(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS)) markDisconnected()
   } finally {
     const completedMs = Date.now()
     clientPollDiagnostics.lastCompletedAt = new Date(completedMs).toISOString()

@@ -88,5 +88,22 @@
     return nowMs - reference >= staleAfterMs
   }
 
-  return { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale }
+  /**
+   * Decide whether a failed poll has exhausted the freshness allowance.
+   *
+   * Browser navigation and pull-to-refresh can abort an individual request.
+   * That transport event is not proof that the last rendered snapshot became
+   * stale; only its age determines when actions must be locked.
+   *
+   * @param {number|null} lastSuccessMs Last successful snapshot time.
+   * @param {number} nowMs Current time.
+   * @param {number} startedMs Time at which this page started polling.
+   * @param {number} staleAfterMs Maximum acceptable snapshot age.
+   * @returns {boolean} Whether the failed request must mark the view stale.
+   */
+  function shouldDisconnectAfterPollFailure(lastSuccessMs, nowMs, startedMs, staleAfterMs = DEFAULT_STALE_AFTER_MS) {
+    return isRefreshStale(lastSuccessMs, nowMs, startedMs, staleAfterMs, false)
+  }
+
+  return { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale, shouldDisconnectAfterPollFailure }
 })

@@ -87,8 +87,10 @@
   window open until it is closed manually.
 - The WebApp polls every five seconds, permits a bounded twelve-second
   notification response, and marks the view stale after fifteen seconds
-  without success. Native browser offline events still lock actions
-  immediately; connectivity presentation never changes Signal K state.
+  without success. One failed or navigation-aborted poll retains the last
+  authoritative view until that same freshness deadline expires. Native
+  browser offline events still lock actions immediately; connectivity
+  presentation never changes Signal K state.
 - History records now include `firstSeenAt` and a `historyKey` composed from
   path and source, so changing technical notification IDs can still be
   correlated in later history views.
