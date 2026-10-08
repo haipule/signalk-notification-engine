@@ -297,8 +297,13 @@
     hörte der Operator den zweiten Ton; nach dem vollständigen Fenster war der
     Test `passed_no_counter_report`, die Warnung `normal` und es blieben null
     Fehler-Latches, Prozesse, Retries oder offene Breaker.
-  - [ ] Echte Hoekens-Drag-/Re-Drop-/Aktiv-alarm-Neustarttests erst nach einer
+  - [x] Echte Hoekens-Drag-/Re-Drop-/Aktiv-alarm-Neustarttests erst nach einer
     ausdrücklichen Bestätigung eines sicheren Ankertestfensters ausführen.
+    Am 2026-10-07 im bestätigten Fenster durchgeführt. Drag, Acknowledge,
+    Raise, Re-Drop und die lokale Lifecycle-Grenze bestanden. Der aktive
+    Alarm kam nach dem Signal-K-Neustart visuell und akustisch korrekt zurück;
+    die dabei wechselnde Producer-ID, neue lokale Occurrence und fehlende
+    Anchor-History bleiben als eigener offener Neustartbefund unten erhalten.
 
 ### Prio 2 – End-to-End-Sicherheitsnachweis
 
@@ -307,27 +312,36 @@
   als alter manueller Startprozess seit 2026-09-16 auf Port 1880. Signal K,
   dessen Health-Timer und die eingebettete Node-RED-Instanz blieben aktiv;
   Flows unter `/home/pi/.node-red` bleiben für dieses Projekt tabu.
-- [ ] Dokumentierte Pi-Testmatrix für Hoekens `warn`, `alarm`, `normal` und
-  `null`, Android-UDP-Ausfall und -Wiederkehr, neue Ankervorgänge nach ACK,
-  wechselnde und wiederverwendete IDs sowie Neustarts während aktiver Alarme
-  erstellen und ausführen.
+- [ ] Verbleibende Pi-Testmatrix abschließen: Hoekens-History und Kontinuität
+  beim aktiven Alarm über einen vollständigen Signal-K-Neustart sowie reale
+  Android-UDP-Ausfall/-Wiederkehr und Bilge-Produzentenprüfung. Die normalen
+  Hoekens-Zustände `warn`, `alarm`, `normal` und `null`, neue Ankervorgänge nach
+  ACK sowie wiederverwendete IDs wurden bereits real geprüft.
   Complete the following release-acceptance sequence before creating the
   public repository, publishing npm artifacts, or claiming production safety:
-  - [ ] Inspect the installed Hoekens version/build read-only and establish
-    whether it contains merge commit
-    `75c05cc0d34718c1bd3fbf4cfbeb969103d278af`. Do not upgrade it merely because
-    the upstream pull request was merged.
+  - [x] Verify the installed Hoekens release containing the Raise fix without
+    upgrading merely because the upstream pull request was merged. Installed
+    version `2.13.1` was identified and its required behaviour was proved live:
+    Raise emitted `null`, and a later new drag reset the inherited ACK. The npm
+    package does not provide commit provenance, so this acceptance result is
+    behavioural rather than an unsupported claim about its exact Git SHA.
   - [x] Obtain an explicit safe anchor-test window. Record that the vessel is
     secure or ashore, no real watch depends on the test alarm, GPS is stable,
     audible output is permitted, and one controlled Signal K restart is safe.
     The operator confirmed the window on 2026-10-07 after disabling the anchor
     watch; fresh Android GPS, clean audio diagnostics, and the inactive anchor
     state were verified before Hoekens was re-enabled for the controlled test.
-  - [ ] With the identified Hoekens build, verify Raise -> notification `null`,
+  - [x] With the identified Hoekens build, verify Raise -> notification `null`,
     a fresh Drop/Watching lifecycle -> `normal`, Drag -> `alarm`, ACK, another
     Raise, then another Drop/Drag with `acknowledged: false`. Record reused or
     changed notification ids, permitted actions, audio, history transitions,
-    and absence of phantom notifications.
+    and absence of phantom notifications. Passed with Hoekens `2.13.1` on
+    2026-10-07: the real drag alarm was visible and audible, accepted ACK,
+    Raise emitted `null`, and the subsequent Drop/Drag started with
+    `acknowledged: false`. Version `0.1.47` then passed the corrected local
+    Raise/Re-Drop occurrence boundary with one reused technical ID and distinct
+    local occurrences. The separate full-server-restart/history defect remains
+    open in the next item.
   - [ ] During a controlled active test alarm, restart Signal K once and verify
     authoritative snapshot reconstruction, correct playback deduplication,
     no false new lifecycle or automatic clear/normal transition, healthy
@@ -745,16 +759,20 @@
   den erfolgreichen Recovery-Test dokumentieren.
   Erfolgreich mit `0.1.22` nach physischem Aus-/Einschalten des Lautsprechers;
   vollständiger Nachweis in `docs/e2e-safety-matrix.md`.
-- [ ] Reale Hoekens-, Bilge- und GPS-Tests bleiben bis zu einem ausdrücklich
-  bestätigten sicheren Betriebsfenster blockiert; die simulierten Runtime-Slots
-  sind kein Ersatz für diesen späteren Produzenten-Test.
+- Hinweis zum Handoff: Die noch offenen realen Bilge- und
+  Android-GPS-Unterbrechungstests sind ausschließlich in der
+  Prio-2-Testmatrix geführt und benötigen jeweils ein ausdrücklich bestätigtes
+  sicheres Betriebsfenster. Die simulierten Runtime-Slots ersetzen diese
+  Produzenten-Tests nicht. Die realen Hoekens-Tests sind bereits durchgeführt;
+  nur ihr Neustart-/History-Befund bleibt dort offen.
 
 - Dokumentation der neuen Einstellungen vervollständigen.
 - Aktuellen Stand auf dem Raspberry Pi installieren und testen.
 - Danach den getesteten Entwicklungsstand committen.
-- [ ] Nach erreichter Entwicklungsreife das Plugin in ein öffentliches Git-
-  Repository überführen und als npm-Paket veröffentlichen; anschließend die
-  Appstore-Metadaten und die Installationsdokumentation aktualisieren.
+- Veröffentlichungshinweis: Öffentliches Git-Repository, npm-Paket,
+  Appstore-Metadaten und Installationsdokumentation werden ausschließlich über
+  den offenen Punkt „Git-Remote, Release-Tags und unabhängige CI-Prüfungen“ in
+  Prio 5 verfolgt; hier wird dafür kein zweiter Aufgabenstatus geführt.
 
 ## 6. UI-Aktionen und Piktogramme
 
