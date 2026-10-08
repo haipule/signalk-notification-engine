@@ -59,6 +59,22 @@ test('retains a completed finite signature and does not replay a refresh', () =>
   assert.equal(system.successes.length, 1)
 })
 
+test('does not replay a restored completed finite signature', () => {
+  const { controller, callbacks } = fixture()
+  const notification = { path: 'notifications.engine', occurrenceId: 'one', state: 'warn' }
+  controller.restoreCompletedPlayback([{ key: 'one', signature: '/sounds/warn.wav|1|0', completed: true }])
+  controller.enable([notification])
+  assert.equal(callbacks.length, 0)
+})
+
+test('does not restore an interrupted loop', () => {
+  const { controller, callbacks } = fixture({ audio: 'on', soundConfig: { file: 'alarm.wav', count: 0 } })
+  const notification = { path: 'notifications.engine', occurrenceId: 'one', state: 'alarm' }
+  controller.restoreCompletedPlayback([{ key: 'one', signature: '/sounds/alarm.wav|0|0', completed: false }])
+  controller.enable([notification])
+  assert.equal(callbacks.length, 1)
+})
+
 test('optimistic silence can be rolled back without changing notification state', () => {
   const { controller, player } = fixture()
   const notification = { occurrenceId: 'one', state: 'alarm' }

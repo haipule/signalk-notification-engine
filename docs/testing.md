@@ -48,6 +48,11 @@
 - Playback recovery registry: a fail-closed configuration suspension retains
   completed finite signatures, discards interrupted loops and pending repeats,
   and still permits an actually changed sound signature.
+- Exact restart correlation: an unchanged authoritative ID, path, source,
+  state, content, creation time and status reuse the local occurrence and its
+  completed finite playback signature. A changed ID or any changed compared
+  field creates a new occurrence; interrupted finite playback and loops resume.
+  Malformed persisted restart state must fail empty without changing Signal K.
 - Plugin-option migration: remove only the allowlisted fields whose authority
   moved to embedded Node-RED, preserve operational and unknown fields, and
   apply the complete validated Node-RED configuration on initial startup as

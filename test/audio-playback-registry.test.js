@@ -44,3 +44,16 @@ test('configuration suspension retains only completed finite signatures', () => 
     { key: 'playing', signature: 'alarm.wav|0|0', completed: false }
   ])
 })
+
+test('restores only completed finite signatures after restart', () => {
+  const registry = new AudioPlaybackRegistry()
+  registry.restoreCompleted([
+    { key: 'finite', signature: 'warn.wav|1|0', completed: true },
+    { key: 'loop', signature: 'alarm.wav|0|0', completed: false },
+    { key: 42, signature: 'invalid', completed: true }
+  ])
+
+  assert.equal(registry.current('finite'), 'warn.wav|1|0')
+  assert.equal(registry.current('loop'), undefined)
+  assert.deepEqual(registry.toJSON(), [{ key: 'finite', signature: 'warn.wav|1|0', completed: true }])
+})

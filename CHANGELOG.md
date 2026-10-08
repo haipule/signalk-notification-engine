@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.49 - 2026-10-07
+
+- Preserve a local notification occurrence across a plugin restart only when
+  its authoritative ID, path, source, state, content, creation time and status
+  are exactly unchanged.
+- Restore completed finite playback for that exact occurrence so a settings
+  save does not replay an unchanged alarm; changed notifications, interrupted
+  playback and loop playback still start or resume for safety.
+- Persist restart correlation atomically and expose its write health through
+  read-only Diagnostics without changing Signal K notification authority.
+
 ## 0.1.48 - 2026-10-07
 
 - Remove known obsolete Node-RED-owned fields from persisted Signal K plugin

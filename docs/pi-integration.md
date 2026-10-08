@@ -117,6 +117,19 @@ and the durable dependency is
 retained under
 `/home/pi/.signalk/plugin-backups/notification-engine-0.1.47-before-0.1.48-20261007T2038-04`.
 
+Version `0.1.49` was deployed on 2026-10-07 from package SHA-256
+`170f6eee2aaf7a7c91843205b14f9dfb7f4e97a9aceffdf63b00079348b31590`.
+The previous plugin and configuration are retained in
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.48-before-0.1.49-20261008T005600Z`.
+Signal K became active, the embedded Node-RED configuration reported ready at
+revision `ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`,
+restart-state persistence reported no write error, and the Alarm Sound Test
+API reported the restored seven-day interval enabled. The full Signal K
+restart changed the active GNSS warning producer ID (`e11f…` to `df7a…`), so
+the finite warning replayed as a new lifecycle, as required by exact-ID
+variant 1. A plugin-only unchanged-ID restart remains required to prove the
+finite no-replay branch live.
+
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
 Signal K Plugin Config. Operational fields including `audioPlayer`,

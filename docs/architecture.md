@@ -47,6 +47,13 @@ not subscribe broadly, publish a notification, or affect alarm processing.
 Audio process diagnostics identify the affected local lifecycle key and expose
 player, device, file, PID, start/end time, duration, exit code, and signal; they
 observe playback without changing Signal K notification state.
+The local restart-state repository atomically retains the exact authoritative
+fields of active notifications and only their completed finite playback
+signatures. On restart, an exact field-for-field match may reuse the local
+occurrence and suppress an already completed finite sound. Any mismatch,
+interrupted playback, or loop playback is treated as work that must start or
+resume. This cache is not notification authority and cannot create or mutate a
+Signal K lifecycle; its persistence health is exposed through Diagnostics.
 The WebApp adds its own local poll start/end, duration, and network error so a
 slow client can be distinguished from a slow Signal K snapshot.
 

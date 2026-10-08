@@ -17,6 +17,7 @@ const { AudioCircuitBreaker } = require('./lib/audio-circuit-breaker')
 const AudioCircuitRepository = require('./lib/audio-circuit-repository')
 const { AudioSystemNotification, AUDIO_SYSTEM_PATH } = require('./lib/audio-system-notification')
 const AudioSystemRepository = require('./lib/audio-system-repository')
+const RestartStateRepository = require('./lib/restart-state-repository')
 const { AudioSelfTest, AUDIO_SELF_TEST_ORIGIN_PATH } = require('./lib/audio-self-test')
 const requestActor = require('./lib/request-actor')
 const Diagnostics = require('./lib/diagnostics')
@@ -51,6 +52,7 @@ module.exports = function createPlugin(app) {
   })
   let audioCircuitRepository = null
   let audioSystemRepository = null
+  let restartStateRepository = null
   let configuredClassifier = classify
   let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
   let stateColors = { emergency: visualColorPool.red, alarm: visualColorPool.darkRed, warn: visualColorPool.yellow, alert: visualColorPool.orange, nominal: visualColorPool.green, normal: visualColorPool.grey }
@@ -79,7 +81,10 @@ module.exports = function createPlugin(app) {
     onEvent: event => {
       historyService?.append(event)
     },
-    onChange: event => audioController?.apply(event)
+    onChange: event => {
+      audioController?.apply(event)
+      persistRestartState()
+    }
   })
   historyService = new HistoryService({
     // Signal K may not expose the plugin data directory until start().
@@ -121,7 +126,8 @@ module.exports = function createPlugin(app) {
     resolvePolicy: notification => policyResolver.resolve(notification),
     isEnabledState: state => isLocallyEnabledState(state),
     baseDirectory: __dirname,
-    logError: message => app.error?.(message)
+    logError: message => app.error?.(message),
+    onPlaybackRegistryChange: () => persistRestartState()
   })
   const audioSelfTestRecord = {
     id: 'notification-engine-audio-self-test',
@@ -416,6 +422,9 @@ module.exports = function createPlugin(app) {
       audioSystemRepository = new AudioSystemRepository(app.getDataDirPath?.(), {
         onError: message => app.error?.(message)
       })
+      restartStateRepository = new RestartStateRepository(app.getDataDirPath?.(), {
+        onError: message => app.error?.(message)
+      })
       runtime.subscribe()
       void initialize(token, flowOptions?.testNotif)
       if (options?.playTestTone === true) {
@@ -436,6 +445,11 @@ module.exports = function createPlugin(app) {
     },
 
     async stop() {
+      persistRestartState()
+      await restartStateRepository?.flush()
+      // Shutdown clears in-memory registries. Detach persistence first so the
+      // final exact restart snapshot is not overwritten with an empty state.
+      restartStateRepository = null
       runtime.stop()
       audioController.shutdown()
       audioSelfTest.stop()
@@ -501,6 +515,7 @@ module.exports = function createPlugin(app) {
           criticalInputs: inspectInputSources(criticalInputs, readSignalKLeaf),
           audio: {
             ...audioController.diagnostics(),
+            restartState: restartStateRepository?.status() || { available: false, lastWriteAt: null, lastError: null },
             circuitBreaker: { ...audioCircuitBreaker.toJSON(), persistence: audioCircuitRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
             systemNotification: { ...audioSystemNotification.toJSON(), persistence: audioSystemRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
             selfTest: audioSelfTest.toJSON()
@@ -559,13 +574,16 @@ module.exports = function createPlugin(app) {
 
   /** Read the authoritative current notification snapshot when available. */
   async function initialize(currentLifecycle, testNotificationConfiguration) {
-    const [historyState, circuitSnapshot, audioSystemSnapshot] = await Promise.all([
+    const [historyState, circuitSnapshot, audioSystemSnapshot, restartState] = await Promise.all([
       historyService.initialize(),
       audioCircuitRepository.load(),
-      audioSystemRepository.load()
+      audioSystemRepository.load(),
+      restartStateRepository.load()
     ])
     audioCircuitBreaker.restore(circuitSnapshot)
     audioSystemNotification.restore(audioSystemSnapshot)
+    store.restoreExactOccurrences(restartState.notifications)
+    audioController.restoreCompletedPlayback(restartState.completedPlayback)
     if (!runtime.isCurrent(currentLifecycle)) return
     await runtimeTests.clearStale()
     audioSelfTest.restore(historyState.lastAudioTest)
@@ -580,6 +598,14 @@ module.exports = function createPlugin(app) {
     void startTestNotification(testNotificationConfiguration)
     snapshotService.startPolling()
     app.debug?.(`Notification manager started with ${store.size} notification(s)`)
+  }
+
+  /** Persist only local correlation and completed finite playback state. */
+  function persistRestartState() {
+    restartStateRepository?.save({
+      notifications: store.restartSnapshot(),
+      completedPlayback: audioController?.completedPlayback() || []
+    })
   }
 
   /** Create and later clear only the manager-owned, explicitly configured test alarm. */

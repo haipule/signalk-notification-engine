@@ -255,3 +255,65 @@ test('does not record an initially hidden normal occurrence', () => {
 
   assert.equal(store.history().length, 0)
 })
+
+test('restores an occurrence only for an exactly identical notification', () => {
+  const original = {
+    id: 'same-id', path: 'notifications.navigation.heading', source: { label: 'gnss' },
+    state: 'warn', message: 'Heading unavailable', method: ['visual'], createdAt: null,
+    data: { reason: 'missing' }, status: { acknowledged: false },
+    occurrenceId: 'occurrence-before-restart', firstSeenAt: '2026-10-07T00:00:00.000Z'
+  }
+  const store = new NotificationStore({ classify })
+  store.restoreExactOccurrences([original])
+  store.applyDelta({ updates: [{ source: { label: 'gnss' }, values: [{
+    path: original.path,
+    value: {
+      id: original.id, state: original.state, message: original.message,
+      method: original.method, data: original.data, status: original.status
+    }
+  }] }] })
+
+  assert.equal(store.list()[0].occurrenceId, original.occurrenceId)
+  assert.equal(store.history().length, 0)
+})
+
+test('treats reordered authoritative object keys as the same exact notification', () => {
+  const original = new NotificationStore({ classify })
+  original.applyDelta({ updates: [{ source: { label: 'gnss' }, values: [{
+    path: 'notifications.navigation.heading',
+    value: {
+      id: 'stable-id', state: 'alarm', message: 'Heading unavailable',
+      data: { latitude: 12, longitude: -61 },
+      status: { canClear: true, canSilence: false }
+    }
+  }] }] })
+  const saved = original.restartSnapshot()
+  const restored = new NotificationStore({ classify })
+  restored.restoreExactOccurrences(saved)
+  restored.applyDelta({ updates: [{ source: { label: 'gnss' }, values: [{
+    path: 'notifications.navigation.heading',
+    value: {
+      id: 'stable-id', state: 'alarm', message: 'Heading unavailable',
+      data: { longitude: -61, latitude: 12 },
+      status: { canSilence: false, canClear: true }
+    }
+  }] }] })
+  assert.equal(restored.list()[0].occurrenceId, saved[0].occurrenceId)
+})
+
+test('does not restore an occurrence when producer id or content changed', () => {
+  const original = {
+    id: 'old-id', path: 'notifications.navigation.heading', source: { label: 'gnss' },
+    state: 'warn', message: 'Heading unavailable', method: ['visual'], createdAt: null,
+    data: null, status: null, occurrenceId: 'occurrence-before-restart'
+  }
+  const store = new NotificationStore({ classify })
+  store.restoreExactOccurrences([original])
+  store.applyDelta({ updates: [{ source: { label: 'gnss' }, values: [{
+    path: original.path,
+    value: { id: 'new-id', state: 'warn', message: 'Heading unavailable', method: ['visual'] }
+  }] }] })
+
+  assert.notEqual(store.list()[0].occurrenceId, original.occurrenceId)
+  assert.equal(store.history()[0].type, 'raised')
+})
