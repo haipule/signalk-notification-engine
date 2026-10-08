@@ -1,5 +1,26 @@
 # Raspberry Pi deployment and rollback
 
+## Signal K 2.33.0 baseline
+
+The live server was upgraded from Signal K `2.32.0` to `2.33.0` on
+2026-10-07 before continuing restart-correlation diagnosis. The prior global
+server package, `settings.json`, local package manifest, and plugin
+configuration data are retained under
+`/home/pi/.signalk/server-backups/signalk-server-2.32.0-before-2.33.0-20261008T012221Z`;
+the server archive SHA-256 is
+`e1489efe1597252677f01ca2a9a529413da6633e8f5e49d38f273cb20670c866`.
+
+Post-update checks passed for Signal K and WebApp HTTP 200, embedded Node-RED
+ready at revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`,
+fresh `navigation.position` from `android_udp.gps`, Notification Engine's
+seven-day maintenance interval, native SerialPort and CANboat module loading,
+and passive ALSA backend/device health. The separate `nodered.service` remained
+inactive. A new GNSS producer ID was expected after the full server restart and
+its finite warning completed once; no audio process remained active. A focused
+2.33.0 escalation-status test is still required before deploying Notification
+Engine `0.1.50`.
+
 ## Current installation boundary
 
 The boat Raspberry Pi is reached as `pi@192.168.100.10` (normally through the

@@ -1,5 +1,19 @@
 # TODO
 
+- [x] Upgrade the live Signal K baseline from `2.32.0` to `2.33.0` before
+  continuing restart-correlation diagnosis. The 2026-10-07 update retained
+  HTTP/WebApp availability, embedded Node-RED revision and readiness, fresh
+  `android_udp.gps`, the seven-day Alarm Sound Test interval, healthy ALSA
+  diagnostics, and an inactive external `nodered.service`. The expected new
+  GNSS producer ID replayed the finite warning once. Rollback data is stored at
+  `/home/pi/.signalk/server-backups/signalk-server-2.32.0-before-2.33.0-20261008T012221Z`.
+- [ ] Verify Signal K `2.33.0` notification escalation semantics before
+  deploying Notification Engine `0.1.50`: after acknowledge/silence at a lower
+  level, a transition to a higher severity must reset those status fields; a
+  de-escalation must not be misreported as the same reset rule. Confirm the
+  Notification Engine keeps one authoritative lifecycle, visibly reflects the
+  new status, and plays the higher-severity policy.
+
 ## Arbeitsstand zum Feierabend – 2026-09-28
 
 - [x] Source-Reparatur live abgenommen: Der aktuelle Snapshot und zwei neue
