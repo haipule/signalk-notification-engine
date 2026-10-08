@@ -260,6 +260,28 @@ the unchanged fifteen-second deadline. The physical Tab 3 pull-to-refresh
 observation remains an operator check because browser chrome gestures cannot
 be reproduced by the WebApp test harness.
 
+Versions `0.1.60` through `0.1.64` were deployed during the same confirmed
+restart window to diagnose and remove the physical Tab 3 pull-to-refresh
+disconnect flash. Full-frame Android recordings showed that the remaining red
+banner was not a server outage: slow localization startup delayed the first
+authoritative notification poll until after the fifteen-second freshness
+boundary. Version `0.1.64` starts Signal K polling independently and stores its
+authoritative result while localization finishes in parallel. The operator
+confirmed the gesture no longer showed the banner, and the 39.966-second
+control recording contained zero red-banner regions. The final package
+SHA-256 is
+`65ffe3d50a965dd1675cf84a51d182dc0d18b1229db5f9fa2c92e4fba43791dc`;
+the durable dependency is
+`file:plugin-packages/signalk-notification-engine-0.1.64.tgz`. The immediately
+previous installation and package manifest are retained under
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.63-before-0.1.64-20261009T001500Z`
+and
+`/home/pi/.signalk/plugin-backups/signalk-package-before-notification-engine-0.1.64-20261009T001500Z.json`.
+Final diagnostics reported embedded Node-RED `ready`, fresh Android GPS,
+healthy idle audio with no retries, open breakers, or unresolved failures, and
+healthy bounded history. Signal K and `signalk-health.timer` were active and
+the separate `nodered.service` remained inactive.
+
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
 Signal K Plugin Config. Operational fields including `audioPlayer`,

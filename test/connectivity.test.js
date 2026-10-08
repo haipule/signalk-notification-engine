@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict')
 const test = require('node:test')
-const { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale, shouldDisconnectAfterPollFailure } = require('../public/connectivity')
+const { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, createOfflineDebouncer, fetchJsonWithTimeout, isRefreshStale, shouldApplyDisconnect, shouldDisconnectAfterPollFailure } = require('../public/connectivity')
 
 test('uses Pi-tolerant connectivity deadlines', () => {
   assert.equal(DEFAULT_FETCH_TIMEOUT_MS, 12000)
@@ -72,4 +72,42 @@ test('keeps a still-fresh snapshot through one failed or aborted poll', () => {
   assert.equal(shouldDisconnectAfterPollFailure(10000, 25000, 0), true)
   assert.equal(shouldDisconnectAfterPollFailure(null, 14999, 0), false)
   assert.equal(shouldDisconnectAfterPollFailure(null, 15000, 0), true)
+})
+
+test('does not paint a disconnect after page replacement has started', () => {
+  assert.equal(shouldApplyDisconnect(false, true), true)
+  assert.equal(shouldApplyDisconnect(false, false), false)
+  assert.equal(shouldApplyDisconnect(true, true), false)
+})
+
+test('ignores a transient native offline event that recovers before its debounce', () => {
+  let disconnected = 0
+  let callback
+  let cleared = 0
+  let online = false
+  const guard = createOfflineDebouncer(() => { disconnected += 1 }, {
+    isOnline: () => online,
+    setTimer: fn => { callback = fn; return 42 },
+    clearTimer: timer => { if (timer === 42) cleared += 1 }
+  })
+
+  guard.offline()
+  online = true
+  guard.online()
+  callback()
+  assert.equal(cleared, 1)
+  assert.equal(disconnected, 0)
+})
+
+test('locks the view after a sustained native offline event', () => {
+  let disconnected = 0
+  let callback
+  const guard = createOfflineDebouncer(() => { disconnected += 1 }, {
+    isOnline: () => false,
+    setTimer: fn => { callback = fn; return 42 }
+  })
+
+  guard.offline()
+  callback()
+  assert.equal(disconnected, 1)
 })

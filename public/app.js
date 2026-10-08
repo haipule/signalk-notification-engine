@@ -1,7 +1,7 @@
 'use strict'
 
 const pluginApi = '/plugins/signalk-notification-engine'
-const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale, shouldDisconnectAfterPollFailure } = window.NotificationConnectivity
+const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, createOfflineDebouncer, fetchJsonWithTimeout, isRefreshStale, shouldApplyDisconnect, shouldDisconnectAfterPollFailure } = window.NotificationConnectivity
 const { compareNotificationPaths } = window.NotificationTableSort
 const { historyForTableNotifications } = window.NotificationHistoryFilter
 const { hasGlobalActionTarget } = window.NotificationGlobalActions
@@ -28,7 +28,9 @@ let configurationReady = true
 let currentConfigurationStatus = null
 let lastSuccessfulRefreshAt = null
 const pollingStartedAt = Date.now()
+let pageIsUnloading = false
 let refreshInProgress = false
+let localizationReady = false
 const clientPollDiagnostics = { lastStartedAt: null, lastCompletedAt: null, durationMs: null, lastError: null }
 let selectedId = null
 let activeNotifications = []
@@ -679,18 +681,24 @@ async function refresh() {
     stateColors = notifications.stateColors || stateColors
     visualRules = notifications.visualRules || visualRules
     activeRules = Array.isArray(notifications.rules) ? notifications.rules : activeRules
-    renderAudioTest(notifications.audioTest)
+    currentAudioTest = notifications.audioTest || currentAudioTest
     for (const [state, color] of Object.entries(stateColors)) document.documentElement.style.setProperty(`--state-${state}`, color)
     infoAutoCloseSeconds = Number.isInteger(notifications.infoAutoCloseSeconds) ? notifications.infoAutoCloseSeconds : 0
     shortcutInfo = typeof notifications.shortcutInfo === 'string' ? notifications.shortcutInfo : shortcutInfo
     shortcutHistory = typeof notifications.shortcutHistory === 'string' ? notifications.shortcutHistory : shortcutHistory
     knownNotifications = Array.isArray(notifications.notifications) ? notifications.notifications : []
-    renderNotifications(knownNotifications)
-    updateGlobalActions()
+    if (localizationReady) {
+      renderAudioTest(currentAudioTest)
+      renderNotifications(knownNotifications)
+      updateGlobalActions()
+    }
     const history = await historyPromise
     if (history) {
       window.notificationHistory = history.events || []
-      if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'table') {
+      if (!localizationReady) {
+        // The localization event renders the stored authoritative data once
+        // presentation strings are ready.
+      } else if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'table') {
         renderTableHistory()
       } else if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyPath) {
         renderSelectedHistory()
@@ -703,9 +711,10 @@ async function refresh() {
     const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
     // A pull-to-refresh or page navigation can abort one otherwise healthy
     // poll. Keep the last authoritative view until its normal freshness
-    // deadline expires; a native browser `offline` event still locks actions
-    // immediately through markDisconnected().
-    if (shouldDisconnectAfterPollFailure(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS)) markDisconnected()
+    // deadline expires; a sustained native browser `offline` event locks
+    // actions after its short confirmation delay through markDisconnected().
+    const pollIsStale = shouldDisconnectAfterPollFailure(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS)
+    if (shouldApplyDisconnect(pageIsUnloading, pollIsStale)) markDisconnected()
   } finally {
     const completedMs = Date.now()
     clientPollDiagnostics.lastCompletedAt = new Date(completedMs).toISOString()
@@ -852,9 +861,22 @@ async function runAudioTestRequest(route) {
 }
 
 const scheduleRefresh = createRefreshScheduler(refresh)
-window.addEventListener('offline', markDisconnected)
-window.addEventListener('online', scheduleRefresh)
+const confirmOfflineDisconnect = () => {
+  const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
+  const offlineIsStale = isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS, refreshInProgress)
+  if (shouldApplyDisconnect(pageIsUnloading, offlineIsStale)) markDisconnected()
+}
+const offlineDebouncer = createOfflineDebouncer(confirmOfflineDisconnect)
+const beginPageUnload = () => { pageIsUnloading = true }
+window.addEventListener('beforeunload', beginPageUnload)
+window.addEventListener('pagehide', beginPageUnload)
+window.addEventListener('offline', offlineDebouncer.offline)
+window.addEventListener('online', () => {
+  offlineDebouncer.online()
+  scheduleRefresh()
+})
 window.addEventListener('notification-language-changed', () => {
+  localizationReady = true
   renderNotifications(activeNotifications)
   renderAudioTest(currentAudioTest)
   updateHealthBanner(currentConfigurationStatus)
@@ -868,13 +890,24 @@ window.addEventListener('notification-language-changed', () => {
   }
 })
 
+// Connectivity is an operational concern and must not wait for the optional
+// presentation catalog. This also prevents a slow locale request from looking
+// like a Signal K outage during Android Chrome renderer replacement.
+scheduleRefresh()
+setInterval(scheduleRefresh, 5000)
+setInterval(() => {
+  const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
+  const pollIsStale = isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS, refreshInProgress)
+  if (shouldApplyDisconnect(pageIsUnloading, pollIsStale)) markDisconnected()
+}, 1000)
+setInterval(() => {
+  if (localizationReady) renderAudioTest(currentAudioTest)
+}, 1000)
+
 void i18n.initialize().then(() => {
-  scheduleRefresh()
+  localizationReady = true
+  renderNotifications(knownNotifications)
+  renderAudioTest(currentAudioTest)
+  updateHealthBanner(currentConfigurationStatus)
   updateGlobalActions()
-  setInterval(scheduleRefresh, 5000)
-  setInterval(() => {
-    const lastSuccessMs = lastSuccessfulRefreshAt?.getTime() ?? null
-    if (isRefreshStale(lastSuccessMs, Date.now(), pollingStartedAt, DEFAULT_STALE_AFTER_MS, refreshInProgress)) markDisconnected()
-  }, 1000)
-  setInterval(() => renderAudioTest(currentAudioTest), 1000)
 })

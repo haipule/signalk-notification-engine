@@ -52,8 +52,15 @@
   into one serialized follow-up request.
 - WebApp transient polling: a single failed or navigation-aborted request does
   not replace a still-fresh authoritative view with the red stale banner;
-  native offline events and expiry of the normal freshness deadline still lock
-  actions.
+  a native offline event is provisionally confirmed after two seconds but must
+  not lock the view before the normal fifteen-second freshness deadline. A
+  sustained browser-offline state locks actions once that deadline expires.
+  The offline deadline must not paint a warning while an authoritative refresh
+  is in progress; a failed refresh applies the stale decision itself.
+  Signal K polling must start without waiting for localization requests; delay
+  or failure in the presentation catalog must not create a connectivity alarm.
+  After `beforeunload` or `pagehide`, the outgoing page must not paint a
+  disconnect from its aborted final poll.
 - WebApp global actions: show Silence only for unfinished local audio with
   current Signal K silence permission, never for emergency or completed finite
   playback; show Acknowledge only for an unacknowledged permitted target.

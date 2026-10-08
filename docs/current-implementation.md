@@ -89,7 +89,16 @@
   notification response, and marks the view stale after fifteen seconds
   without success. One failed or navigation-aborted poll retains the last
   authoritative view until that same freshness deadline expires. Native
-  browser offline events still lock actions immediately; connectivity
+  browser offline events are confirmed for two seconds, but lock actions only
+  after the same fifteen-second server freshness boundary has expired. This
+  filters slow Android Chrome renderer replacement without weakening the
+  authoritative freshness decision. A refresh already in progress owns the
+  decision until it succeeds or fails, so the offline deadline cannot paint a
+  warning milliseconds before a successful first response. Authoritative
+  polling starts independently and in parallel with localization; presentation
+  catalogs never gate connectivity or notification data. Once page replacement begins, the
+  outgoing document ignores its navigation-aborted final poll and leaves the
+  next connectivity decision to the incoming document. Connectivity
   presentation never changes Signal K state.
 - History records now include `firstSeenAt` and a `historyKey` composed from
   path and source, so changing technical notification IDs can still be

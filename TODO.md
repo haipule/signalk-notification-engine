@@ -1,5 +1,13 @@
 # TODO
 
+- [x] Remove the false disconnected-banner flash during Tab 3 pull-to-refresh.
+  Full-frame Android recordings identified the final cause: authoritative
+  polling waited for slow localization startup, allowing the freshness timer
+  to expire before the first notification request existed. Version `0.1.64`
+  starts Signal K polling independently of localization. The operator repeated
+  the gesture successfully, and a 39.966-second control recording contained no
+  red banner frame. A real failed refresh still locks actions after the
+  unchanged fifteen-second freshness boundary.
 - [x] Upgrade the live Signal K baseline from `2.32.0` to `2.33.0` before
   continuing restart-correlation diagnosis. The 2026-10-07 update retained
   HTTP/WebApp availability, embedded Node-RED revision and readiness, fresh

@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.1.64 - 2026-10-08
+
+- Start authoritative Signal K polling independently of localization loading.
+  Slow locale requests can no longer make an otherwise healthy first refresh
+  appear disconnected during Android Chrome renderer replacement.
+
+## 0.1.63 - 2026-10-08
+
+- Do not paint the disconnected banner while the first authoritative refresh
+  is still in progress. Its success clears the provisional offline state; its
+  failure remains responsible for applying the stale lock.
+
+## 0.1.62 - 2026-10-08
+
+- Apply the normal fifteen-second server freshness boundary to confirmed
+  browser-offline signals. Slow Android Chrome renderer replacement no longer
+  reports a disconnect merely because its network transition exceeds two
+  seconds.
+
+## 0.1.61 - 2026-10-08
+
+- Prevent an outgoing WebApp document from flashing the disconnected banner
+  when Chrome aborts its final poll during pull-to-refresh navigation.
+
+## 0.1.60 - 2026-10-08
+
+- Debounce Chrome's native offline event for two seconds so a transient
+  pull-to-refresh signal cannot flash the red stale banner. Sustained browser
+  offline state still locks actions promptly.
+
 ## 0.1.59 - 2026-10-08
 
 - Keep the last authoritative WebApp snapshot through one transient or

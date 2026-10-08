@@ -105,5 +105,47 @@
     return isRefreshStale(lastSuccessMs, nowMs, startedMs, staleAfterMs, false)
   }
 
-  return { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale, shouldDisconnectAfterPollFailure }
+  /**
+   * Prevent a page that is already being replaced from painting a stale state.
+   *
+   * @param {boolean} isUnloading Whether page replacement has started.
+   * @param {boolean} isStale Whether the normal connectivity deadline expired.
+   * @returns {boolean} True only when the current live page should disconnect.
+   */
+  function shouldApplyDisconnect(isUnloading, isStale) {
+    return isUnloading !== true && isStale === true
+  }
+
+  /**
+   * Debounce native browser offline events that may flicker during navigation.
+   *
+   * A sustained offline state still locks actions promptly, while an `online`
+   * event or restored `navigator.onLine` state cancels the provisional signal.
+   *
+   * @param {() => void} disconnect Apply the stale/offline presentation lock.
+   * @param {{delayMs?: number, isOnline?: () => boolean, setTimer?: Function, clearTimer?: Function}} options Runtime dependencies.
+   * @returns {{offline: () => void, online: () => void}} Event handlers.
+   */
+  function createOfflineDebouncer(disconnect, options = {}) {
+    const delayMs = Number.isFinite(options.delayMs) ? options.delayMs : 2000
+    const isOnline = options.isOnline || (() => navigator.onLine)
+    const setTimer = options.setTimer || setTimeout
+    const clearTimer = options.clearTimer || clearTimeout
+    let timer = null
+    return {
+      offline() {
+        if (timer !== null) clearTimer(timer)
+        timer = setTimer(() => {
+          timer = null
+          if (!isOnline()) disconnect()
+        }, delayMs)
+      },
+      online() {
+        if (timer !== null) clearTimer(timer)
+        timer = null
+      }
+    }
+  }
+
+  return { DEFAULT_FETCH_TIMEOUT_MS, DEFAULT_STALE_AFTER_MS, createRefreshScheduler, createOfflineDebouncer, fetchJsonWithTimeout, isRefreshStale, shouldApplyDisconnect, shouldDisconnectAfterPollFailure }
 })
