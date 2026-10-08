@@ -170,6 +170,30 @@ still unchanged, but occurrence became
 `2026-10-08T01:09:21.621Z`. The value-30 boundary passed and the interval was
 restored to seven, but exact-ID finite no-replay remains a failed live test.
 
+Version `0.1.50` was deployed on 2026-10-07 under an explicitly approved
+Signal K restart window from package SHA-256
+`939f5593a388682ba645e5bc9c5ea3c2331fccae25dd3a4da77bed65e3aaf9ba`.
+The previous 0.1.49 package and configuration are retained under
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.49-before-0.1.50-20261008T020246Z`.
+Signal K performed a second automatic start during initialization and then
+settled active. HTTP `/signalk`, the WebApp, and Diagnostics returned 200;
+embedded Node-RED reported `ready` at revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`,
+Android GPS was fresh, audio was ready, and the external `nodered.service`
+remained inactive. The full server restart assigned new producer IDs and
+correctly played the new GNSS warning lifecycle once.
+
+An authenticated unchanged Plugin Config save then restarted only the plugin.
+The 0.1.50 diagnostics staged 15 prior records and reported 15 exact matches.
+In particular, GNSS retained producer ID
+`567159aa-b1ad-4feb-8fe8-2fd3f61617d0` and occurrence
+`occurrence-1791425139847-mjviiitnqxf`, with an empty `mismatchedFields` list.
+The prior completed playback remained the last audio result; no process or
+retry started either immediately or after the delayed reconstruction window.
+This passes exact-ID finite no-replay on the Signal K 2.33.0 baseline. It does
+not establish why the earlier 0.1.49 run failed, so that contrary observation
+is retained above without assigning an unproved cause.
+
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
 Signal K Plugin Config. Operational fields including `audioPlayer`,

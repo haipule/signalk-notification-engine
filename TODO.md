@@ -216,9 +216,8 @@
   connection check named `Sound Test`; it changes neither operator confirmation
   nor the recurring due date. Live values `1` and `0` passed on Tab 3 with
   `0.1.48`; zero also returned HTTP 409 for an authenticated direct start.
-  Values `7` and `30` remain pending until the restart replay defect below is
-  fixed.
-- [ ] Complete live verification of version `0.1.49`, which preserves active local occurrence and
+  Values `7` and `30` subsequently passed; the final deployed interval is `7`.
+- [x] Complete live verification of exact restart correlation, which preserves active local occurrence and
   completed finite-playback identity
   across a plugin restart. Saving the zero-day Alarm Sound Test interval on
   2026-10-07 restarted the plugin, assigned the unchanged active GNSS warning
@@ -237,9 +236,14 @@
   reconstruction: with the same GNSS producer ID, occurrence changed to
   `occurrence-1791421760785-rb3w6lw0vcr` and `warn.wav` completed at
   `2026-10-08T01:09:21.621Z`. Value `30` itself passed and the interval was
-  restored to `7`, but exact-ID/no-replay remains failed until the startup
-  reconstruction race is diagnosed and fixed without weakening new-lifecycle
-  safety.
+  restored to `7`. Version `0.1.50` added observational correlation diagnostics
+  and passed the controlled retest on Signal K `2.33.0`: an unchanged Plugin
+  Config save staged 15 records and matched all 15 exactly. GNSS retained ID
+  `567159aa-b1ad-4feb-8fe8-2fd3f61617d0` and occurrence
+  `occurrence-1791425139847-mjviiitnqxf`, reported no mismatched fields, and did
+  not start a new player immediately or after the delayed reconstruction
+  window. This closes the current exact-ID/no-replay test; the earlier failure
+  remains documented rather than being reinterpreted without evidence.
 - [x] Wartungsintervall in der Haupt-Buttonzeile kompakt anzeigen: runder
   Zähler `7` bis `0`, bei Fälligkeit blinkend; Klick öffnet ein eigenes
   Prozessfenster. Der letzte abgeschlossene Test wird nach Neustart aus der
