@@ -195,7 +195,7 @@
   `0.1.48`; zero also returned HTTP 409 for an authenticated direct start.
   Values `7` and `30` remain pending until the restart replay defect below is
   fixed.
-- [ ] Live-verify version `0.1.49`, which preserves active local occurrence and
+- [x] Live-verify version `0.1.49`, which preserves active local occurrence and
   completed finite-playback identity
   across a plugin restart. Saving the zero-day Alarm Sound Test interval on
   2026-10-07 restarted the plugin, assigned the unchanged active GNSS warning
@@ -207,8 +207,11 @@
   first Pi deployment and value `7` passed with `0.1.49` on 2026-10-07.
   A full Signal K restart changed the GNSS producer ID from `e11f…` to
   `df7a…`, so the finite warning replayed as the intentionally new lifecycle.
-  The live exact-ID/no-replay case and value `30` remain pending; they require
-  a plugin-only restart that leaves the producer ID unchanged.
+  A subsequent plugin-only restart retained GNSS ID `df7a…`, occurrence ID
+  `occurrence-1791421090340-y268c33l42`, and the prior playback completion at
+  `2026-10-08T00:58:11.229Z`; no new `aplay` process appeared and the operator
+  confirmed no audible tone. Exact-ID/no-replay therefore passed. Value `30`
+  remains pending as a separate configuration-boundary test.
 - [x] Wartungsintervall in der Haupt-Buttonzeile kompakt anzeigen: runder
   Zähler `7` bis `0`, bei Fälligkeit blinkend; Klick öffnet ein eigenes
   Prozessfenster. Der letzte abgeschlossene Test wird nach Neustart aus der

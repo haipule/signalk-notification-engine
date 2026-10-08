@@ -127,8 +127,13 @@ restart-state persistence reported no write error, and the Alarm Sound Test
 API reported the restored seven-day interval enabled. The full Signal K
 restart changed the active GNSS warning producer ID (`e11f…` to `df7a…`), so
 the finite warning replayed as a new lifecycle, as required by exact-ID
-variant 1. A plugin-only unchanged-ID restart remains required to prove the
-finite no-replay branch live.
+variant 1. The plugin-only unchanged-ID follow-up then passed: an authenticated
+unchanged configuration save restarted only Notification Engine, retained GNSS
+ID `df7af341-8cad-4873-8674-706a0c02c052` and occurrence ID
+`occurrence-1791421090340-y268c33l42`, left the last completed playback at
+`2026-10-08T00:58:11.229Z`, started no `aplay` process, and produced no tone
+according to the operator. The runtime remained ready with the seven-day
+interval.
 
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
@@ -143,9 +148,9 @@ direct start returned HTTP 409 with the expected disabled message.
 That second save restarted the plugin and replayed the already-active GNSS
 warning's finite `warn.wav` once under a new local occurrence. It was not the
 maintenance test (`playTestTone` remained false and the retained self-test did
-not change). This is a separate restart-continuity defect and must be fixed
-before restoring the configured interval to seven, because another save would
-deliberately reproduce the unwanted warning tone. Final live state had Node-RED
+not change). Version `0.1.49` subsequently fixed exact restart correlation,
+restored the configured interval to seven, and passed the unchanged-ID
+no-replay test described above. The final live state had Node-RED
 revision `ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`
 ready, fresh Android GPS, HTTP 200 for Signal K and the WebApp, healthy audio
 and history persistence, zero processes/retries/open breakers/failures, active
