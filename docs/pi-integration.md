@@ -194,6 +194,30 @@ This passes exact-ID finite no-replay on the Signal K 2.33.0 baseline. It does
 not establish why the earlier 0.1.49 run failed, so that contrary observation
 is retained above without assigning an unproved cause.
 
+Version `0.1.57` was deployed and verified on 2026-10-08 under the approved
+restart window from package SHA-256
+`7d89e79f27daa976332484991f80284cac45890258794da7089459cd8bf7fd6e`.
+The durable dependency is
+`file:plugin-packages/signalk-notification-engine-0.1.57.tgz`; the immediately
+preceding 0.1.56 installation and package manifest are retained under
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.56-before-0.1.57-20261008T185400Z`
+and
+`/home/pi/.signalk/plugin-backups/signalk-package-before-notification-engine-0.1.57-20261008T185400Z.json`.
+Signal K and its health timer settled active, the separate `nodered.service`
+remained inactive, embedded Node-RED reported `ready` at revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`,
+Android GPS was fresh, and audio settled with no active process, retry, open
+circuit, or unresolved failure. The served WebApp loaded versioned 0.1.57 CSS
+and JavaScript and rendered the German title `Benachrichtigungszentrale`.
+
+The combined table-history view was then verified in the live WebApp. It
+contained 494 grouped retained events and included both the Hoekens warning
+`No position data received for 15 seconds.` at 07:13:44 local time and its
+authoritative return to `normal` at 07:19:42. The combined view's local-history
+delete button had both `hidden: true` and computed `display: none`; deletion
+therefore remains available only after selecting one occurrence and never
+changes Signal K state.
+
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
 Signal K Plugin Config. Operational fields including `audioPlayer`,

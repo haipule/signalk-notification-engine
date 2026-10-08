@@ -89,6 +89,15 @@
   correlated in later history views.
 - History records also include a local `occurrenceId`; the WebApp uses it to
   keep one alarm lifecycle together when the technical Signal K ID changes.
+- The global History control evaluates retained events with the current table
+  rules. If one event is table-visible, the complete retained occurrence is
+  shown, including its later authoritative return to `normal`. It does not
+  apply a 24-hour filter. Occurrences with no qualifying event remain in the
+  audit repository but are not mixed into this table-scoped view. Matching
+  events are sorted by audit timestamp so reconstruction after a restart cannot
+  place an older occurrence ahead of a newer one. The combined view has no
+  delete action; cleanup remains scoped to one selected local occurrence and
+  never changes the Signal K notification lifecycle.
 - The local `occurrenceId` is shown in notification details and can be entered
   in `Clear History Occurrence ID` for configuration-based cleanup.
 - A rule with `visibleInTable: true` records history by default. An explicit
@@ -170,7 +179,7 @@ so a server restart is not required. Removing the file restores an empty
 custom-rule set. The built-in anchor-state boundary is not configured through
 this file because it observes an authoritative non-notification Signal K path.
 
-An explicit `Show in Alarm Centre: false` hides a matching notification from
+An explicit `Show in Notification Centre: false` hides a matching notification from
 the active view, but does not delete it, silence it, or change its Signal K
 state. Unknown notifications have no matching rule and therefore remain
 visible by default.

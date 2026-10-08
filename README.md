@@ -53,7 +53,10 @@ tracked with a local `occurrenceId`, and producer-specific end markers can be
 configured in `lifecycle-rules.json`.
 
 The WebApp supports permitted per-notification actions, global silence and
-acknowledge actions, history inspection, and confirmed local-history cleanup.
+acknowledge actions, per-notification history inspection, a combined retained
+history of complete occurrences containing a table-visible event, and confirmed
+occurrence-scoped local-history cleanup. The combined view has no bulk-delete
+action and local cleanup never changes the authoritative Signal K notification.
 Audio uses one playback count: `0` loops, `1` plays once, and `2` through `99`
 play exactly that many times. Optional `payload.sound.pauseSeconds` accepts
 only whole seconds from `0` through `5` and delays playback only between
@@ -92,7 +95,7 @@ backend/PCM availability and then run the authenticated bounded
 `Test alarm sound` action. Only the operator's audible confirmation verifies
 the amplifier, volume, cabling, and loudspeaker; exit code zero alone does not.
 
-The Alarm Centre polls every five seconds. A notification request may take up
+The Notification Centre polls every five seconds. A notification request may take up
 to twelve seconds and the displayed snapshot becomes stale after fifteen
 seconds without a successful refresh. A browser-reported offline event still
 disables actions immediately; these presentation limits never alter Signal K
@@ -100,7 +103,7 @@ notification state or server-side audio.
 
 ## WebApp language files
 
-The Alarm Centre ships complete English and German catalogs and selects an
+The Notification Centre ships complete English and German catalogs and selects an
 initial locale from the browser. The compact language button stores an
 explicit choice only in that browser. English is always the fallback.
 

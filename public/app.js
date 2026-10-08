@@ -3,6 +3,7 @@
 const pluginApi = '/plugins/signalk-notification-engine'
 const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = window.NotificationConnectivity
 const { compareNotificationPaths } = window.NotificationTableSort
+const { historyForTableNotifications } = window.NotificationHistoryFilter
 const i18n = window.NotificationI18n
 const t = (key, parameters) => i18n.t(key, parameters)
 const notificationContainer = document.querySelector('#notifications')
@@ -55,7 +56,7 @@ for (const button of actionBar.querySelectorAll('[data-global-action]')) {
 }
 document.querySelector('#close-detail').addEventListener('click', closeDetails)
 document.querySelector('#show-history').addEventListener('click', () => showSelectedHistory())
-document.querySelector('#show-alarm-history').addEventListener('click', showAlarmHistory)
+document.querySelector('#show-table-history').addEventListener('click', showTableHistory)
 document.querySelector('#show-rules').addEventListener('click', () => showSelectedRules())
 document.querySelector('#close-history').addEventListener('click', closeHistory)
 document.querySelector('#close-rules').addEventListener('click', closeRules)
@@ -69,7 +70,11 @@ audioTestHeard.addEventListener('click', reportAudioTestHeard)
 audioTestNotHeard.addEventListener('click', reportAudioTestNotHeard)
 detailSheet.addEventListener('pointerdown', () => { detailSheet.style.zIndex = '12' })
 document.querySelector('#history-sheet').addEventListener('pointerdown', event => { event.currentTarget.style.zIndex = '12'; detailSheet.style.zIndex = '11' })
-document.querySelector('#history-more').addEventListener('click', () => { historyDisplayLimit += 20; renderSelectedHistory() })
+document.querySelector('#history-more').addEventListener('click', () => {
+  historyDisplayLimit += 20
+  if (historyMode === 'table') renderTableHistory()
+  else renderSelectedHistory()
+})
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     if (detailSheet.getAttribute('aria-hidden') === 'false') closeDetails()
@@ -303,7 +308,7 @@ function renderHistory(events) {
     const time = i18n.time(event.at)
     const message = notification.message ? ` · ${escapeHtml(notification.message)}` : ''
     item.innerHTML = `${datePrefix}<time class="history-time">${escapeHtml(time)}</time><span class="history-summary"><strong>${escapeHtml(label)}</strong> <span class="history-state state-label-${notification.state || 'unknown'}">${escapeHtml(state)}</span>${message}${repetition}${escapeHtml(durationLabel)}</span>`
-    if (historyMode === 'critical') {
+    if (historyMode === 'table') {
       item.classList.add('history-selectable')
       item.tabIndex = 0
       item.setAttribute('role', 'button')
@@ -338,15 +343,11 @@ function renderSelectedHistory() {
   renderHistory(historyForNotification(selected))
 }
 
-function renderCriticalHistory() {
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000
-  const events = (window.notificationHistory || []).filter(event => {
-    const at = Date.parse(event.at)
-    return Number.isFinite(at) && at >= cutoff && ['emergency', 'alarm'].includes(event.notification?.state)
-  })
+function renderTableHistory() {
+  const events = historyForTableNotifications(window.notificationHistory || [], isVisibleInTable)
   renderHistory(events)
-  document.querySelector('#history-title').textContent = t('history.criticalTitle')
-  document.querySelector('#history-key').textContent = t('history.criticalDescription')
+  document.querySelector('#history-title').textContent = t('history.tableTitle')
+  document.querySelector('#history-key').textContent = t('history.tableDescription')
   document.querySelector('#delete-history').hidden = true
 }
 
@@ -409,14 +410,14 @@ function showSelectedHistory(selected = activeNotifications.find(item => item.id
   document.querySelector('#history-sheet').style.zIndex = '12'
 }
 
-function showAlarmHistory() {
-  historyMode = 'critical'
+function showTableHistory() {
+  historyMode = 'table'
   historyFocusId = null
   historyFocusNotification = null
   historyPath = ''
   historyOccurrenceId = ''
   historyDisplayLimit = 20
-  renderCriticalHistory()
+  renderTableHistory()
   const sheet = document.querySelector('#history-sheet')
   sheet.setAttribute('aria-hidden', 'false')
   sheet.style.zIndex = '12'
@@ -687,8 +688,8 @@ async function refresh() {
     const history = await historyPromise
     if (history) {
       window.notificationHistory = history.events || []
-      if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'critical') {
-        renderCriticalHistory()
+      if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyMode === 'table') {
+        renderTableHistory()
       } else if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false' && historyPath) {
         renderSelectedHistory()
       } else {
@@ -857,7 +858,7 @@ window.addEventListener('notification-language-changed', () => {
     if (notification) renderDetails(notification)
   }
   if (document.querySelector('#history-sheet').getAttribute('aria-hidden') === 'false') {
-    if (historyMode === 'critical') renderCriticalHistory()
+    if (historyMode === 'table') renderTableHistory()
     else renderSelectedHistory()
   }
 })

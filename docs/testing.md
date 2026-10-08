@@ -42,6 +42,11 @@
 - WebApp table sorting: newest-first default, column A–Z/Z–A toggles, persisted
   sort selection, and segment-wise Signal K path grouping for the Notification
   column within each authoritative state hierarchy level.
+- WebApp table history: include a complete retained occurrence when any event
+  in it qualifies under the current table rules, include its later return to
+  `normal`, exclude occurrences with no qualifying event, keep fallback path
+  identities separated by producer, and sort globally by event time with the
+  newest first.
 - WebApp connectivity: abort an unreachable poll at its deadline, clear the
   deadline after success, and coalesce overlapping interval/reconnect refreshes
   into one serialized follow-up request.

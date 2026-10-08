@@ -231,7 +231,7 @@ module.exports = function createPlugin(app) {
                 file: { type: 'string', title: 'Sound file', default: '' },
                 count: { type: 'integer', title: 'Playback count (0 = loop)', minimum: 0, maximum: 99, default: 1 }
               } },
-              visible: { type: 'boolean', title: 'Show in Alarm Centre', default: true }
+              visible: { type: 'boolean', title: 'Show in Notification Centre', default: true }
             }
           }
         }
@@ -300,10 +300,10 @@ module.exports = function createPlugin(app) {
         ,
         alarmSoundTest: {
           type: 'object', title: 'Alarm Sound Test',
-          description: 'Scheduled audible safety check in the Alarm Centre with explicit operator feedback.',
+          description: 'Scheduled audible safety check in the Notification Centre with explicit operator feedback.',
           default: { intervalDays: 7 }, additionalProperties: false,
           properties: {
-            intervalDays: { type: 'integer', title: 'Test interval (days)', description: 'Days between confirmed alarm sound tests. Set to 0 to disable the test in the Alarm Centre.', minimum: 0, maximum: 30, default: 7 }
+            intervalDays: { type: 'integer', title: 'Test interval (days)', description: 'Days between confirmed alarm sound tests. Set to 0 to disable the test in the Notification Centre.', minimum: 0, maximum: 30, default: 7 }
           }
         }
         ,

@@ -41,7 +41,7 @@ test('rejects unsafe custom markup and falls back to the safe built-in locale', 
   const catalog = new TranslationCatalog({ builtInDirectory, customDirectory: directory })
   const german = catalog.get('de')
   assert.equal(german.locale, 'de')
-  assert.equal(german.messages['app.title'], 'Alarmzentrale')
+  assert.equal(german.messages['app.title'], 'Benachrichtigungszentrale')
   assert.match(catalog.errors[0].message, /HTML is not permitted/)
 })
 

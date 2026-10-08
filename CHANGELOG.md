@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.1.57 - 2026-10-08
+
+- Version the WebApp stylesheet URL so browsers cannot retain display rules
+  from an older installed package after an upgrade.
+
+## 0.1.56 - 2026-10-08
+
+- Ensure controls marked `hidden`, including the occurrence-delete action in
+  combined history, cannot be made visible by component display styles.
+- Rename the WebApp and related configuration wording from Alarm Centre to the
+  more accurate Notification Centre (`Benachrichtigungszentrale` in German).
+
+## 0.1.55 - 2026-10-08
+
+- Define combined table history by the events that qualify under the current
+  table rules. Once one event qualifies, show its complete retained occurrence,
+  including the authoritative return to `normal`.
+
+## 0.1.54 - 2026-10-08
+
+- Make `Show more` extend the combined table-history view as well as an
+  individual notification history.
+
+## 0.1.53 - 2026-10-08
+
+- Sort the combined table history explicitly by audit timestamp so events from
+  retained occurrences remain newest-first after full server reconstruction.
+
+## 0.1.52 - 2026-10-08
+
+- Expand table-scoped History across every retained occurrence matching each
+  currently visible notification's path and producer. This keeps a Hoekens
+  warning visible after a full Signal K restart assigns a new producer ID and
+  local occurrence.
+
+## 0.1.51 - 2026-10-08
+
+- Make the global History control show the current occurrence history of every
+  notification presently visible in the main table. The view no longer hides
+  `warn`, `alert`, or older-than-24-hour events merely because they are not
+  `alarm` or `emergency`; per-notification history and persisted audit data are
+  unchanged.
+
 ## 0.1.50 - 2026-10-07
 
 - Add read-only restart-correlation diagnostics that report exact matches,

@@ -445,6 +445,13 @@
 - [x] History-Reparatur live bestätigen: allgemeine `visibleInTable`-/History-
   Regeln werden von einer spezifischen Soundregel geerbt und derselbe
   Occurrence-Verlauf enthält nach Auflösung den finalen Zustand `normal`.
+- [x] Den globalen Verlauf auf alle nach den aktuellen Tabellenregeln sichtbaren
+  Ereignisse umstellen und jeweils den vollständigen lokalen Occurrence-Verlauf
+  einschließlich `normal` anzeigen. Mit `0.1.57` live bestätigt: Die Hoekens-
+  Warnung `No position data received for 15 seconds.` von 07:13:44 und ihre
+  Auflösung um 07:19:42 sind sichtbar. In der Gesamtansicht ist Löschen nicht
+  verfügbar; nach Auswahl bleibt es auf genau eine lokale `occurrenceId`
+  begrenzt und verändert Signal K nicht.
 
 ### Prio 3 – Betriebsdiagnose
 
@@ -548,7 +555,7 @@
   2026-10-04: Karten 0/1 sind HDMI, Karte 2 ist `bcm2835 Headphones`; das
   konfigurierte `plughw:2,0` ist passiv bereit und wurde im früheren physischen
   Lautsprecher-Aus-/Ein-Test technisch und hörbar bestätigt.
-- [ ] Mehrere UI-Designvarianten für die Alarmzentrale auswählen können, zum
+- [ ] Mehrere UI-Designvarianten für die Benachrichtigungszentrale auswählen können, zum
   Beispiel `color`, `contrast` und `night`.
 
 - [x] Stabile lokale `occurrenceId` für einen Alarm-Lebenszyklus einführen und
