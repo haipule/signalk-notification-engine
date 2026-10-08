@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.58 - 2026-10-08
+
+- Show `Silence all` only while at least one Signal K-permitted notification
+  has unfinished local audio work, and show `Acknowledge all` only while at
+  least one notification can still be acknowledged.
+- Remove the redundant manual data refresh control; the WebApp retains its
+  five-second polling and reconnect refresh.
+- Move the Node-RED builder menu beside the selected-notifications heading.
+
 ## 0.1.57 - 2026-10-08
 
 - Version the WebApp stylesheet URL so browsers cannot retain display rules

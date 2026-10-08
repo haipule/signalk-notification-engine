@@ -50,6 +50,9 @@
 - WebApp connectivity: abort an unreachable poll at its deadline, clear the
   deadline after success, and coalesce overlapping interval/reconnect refreshes
   into one serialized follow-up request.
+- WebApp global actions: show Silence only for unfinished local audio with
+  current Signal K silence permission, never for emergency or completed finite
+  playback; show Acknowledge only for an unacknowledged permitted target.
 - Playback recovery registry: a fail-closed configuration suspension retains
   completed finite signatures, discards interrupted loops and pending repeats,
   and still permits an actually changed sound signature.

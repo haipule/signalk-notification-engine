@@ -218,6 +218,30 @@ delete button had both `hidden: true` and computed `display: none`; deletion
 therefore remains available only after selecting one occurrence and never
 changes Signal K state.
 
+Version `0.1.58` was deployed on 2026-10-08 under an explicitly confirmed
+restart window from package SHA-256
+`c8a237c18a792337beb414aa84dbbe0342fec247cedaf1c1b9a89e9995df639c`.
+The durable dependency is
+`file:plugin-packages/signalk-notification-engine-0.1.58.tgz`; the complete
+0.1.57 installation and package manifest are retained under
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.57-before-0.1.58-20261008T191453Z`
+and
+`/home/pi/.signalk/plugin-backups/signalk-package-before-notification-engine-0.1.58-20261008T191453Z.json`.
+Signal K and its health timer settled active, embedded Node-RED reported
+`ready` with its unchanged verified revision, Android GPS was fresh, audio had
+no active process or retry, and the separate `nodered.service` remained
+inactive.
+
+The live WebApp loaded the 0.1.58 global-action helper. Its DOM order placed
+the Node-RED builder link immediately before the selected-notifications `h2`,
+and the obsolete manual Refresh element was absent. With no unfinished audio,
+global Silence had `hidden: true` and computed `display: none`. Global
+Acknowledge remained visible because the current GNSS warning was still
+Signal K-permitted and unacknowledged. The positive Silence-visible path is
+unit-tested for running, repeat-waiting, and permission states; a fresh audible
+runtime notification was deliberately not raised without a separate acoustic
+test confirmation.
+
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
 Signal K Plugin Config. Operational fields including `audioPlayer`,

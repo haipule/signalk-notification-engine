@@ -783,6 +783,12 @@
 
 ## 6. UI-Aktionen und Piktogramme
 
+- [x] Den Node-RED-Builder links neben „Ausgewählte Benachrichtigungen“
+  platzieren, den redundanten manuellen Refresh entfernen und globale Aktionen
+  nur bei einem aktuellen Ziel zeigen. Mit `0.1.58` live bestätigt: kein
+  unfertiges Audio blendet `Silence all` aus; die noch quittierbare GNSS-Warnung
+  hält `Acknowledge all` sichtbar. Der positive hörbare Silence-Gegenfall
+  benötigt noch ein ausdrücklich bestätigtes akustisches Runtime-Testfenster.
 - [x] Im History-Fenster den Lösch-Button nach erfolgreichem Löschen der
   Historie ausblenden.
 - [x] Buttons im Infofenster und für „Delete this history“ deutlich auffälliger

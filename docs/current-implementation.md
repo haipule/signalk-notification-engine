@@ -10,6 +10,11 @@
   subscription manager.
 - The WebApp is served from `/signalk-notification-engine/` and reads active
   notifications and a bounded local audit history from plugin routes.
+- The Node-RED builder control is grouped with the selected-notifications
+  heading. Global Silence and Acknowledge controls are present only while their
+  respective action has a current eligible target; Silence additionally
+  requires unfinished local audio work. The five-second poll and reconnect
+  refresh remain automatic, with no duplicate manual refresh control.
 - `silence`, `acknowledge`, and `clear` are requested only via the Signal K
   Notification API after server-side capability checks.
 - An action request is appended to the local audit trail without claiming that

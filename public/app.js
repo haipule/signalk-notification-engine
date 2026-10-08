@@ -4,6 +4,7 @@ const pluginApi = '/plugins/signalk-notification-engine'
 const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, fetchJsonWithTimeout, isRefreshStale } = window.NotificationConnectivity
 const { compareNotificationPaths } = window.NotificationTableSort
 const { historyForTableNotifications } = window.NotificationHistoryFilter
+const { hasGlobalActionTarget } = window.NotificationGlobalActions
 const i18n = window.NotificationI18n
 const t = (key, parameters) => i18n.t(key, parameters)
 const notificationContainer = document.querySelector('#notifications')
@@ -31,6 +32,7 @@ let refreshInProgress = false
 const clientPollDiagnostics = { lastStartedAt: null, lastCompletedAt: null, durationMs: null, lastError: null }
 let selectedId = null
 let activeNotifications = []
+let knownNotifications = []
 let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
 let stateColors = {}
 let visualRules = {}
@@ -50,7 +52,6 @@ let currentAudioTest = { state: 'idle', statement: 'No alarm sound test has been
 const sortStorageKey = 'notification-engine.table-sort'
 let tableSort = loadTableSort()
 
-document.querySelector('#refresh').addEventListener('click', refresh)
 for (const button of actionBar.querySelectorAll('[data-global-action]')) {
   button.addEventListener('click', () => runGlobalAction(button.dataset.globalAction))
 }
@@ -683,7 +684,8 @@ async function refresh() {
     infoAutoCloseSeconds = Number.isInteger(notifications.infoAutoCloseSeconds) ? notifications.infoAutoCloseSeconds : 0
     shortcutInfo = typeof notifications.shortcutInfo === 'string' ? notifications.shortcutInfo : shortcutInfo
     shortcutHistory = typeof notifications.shortcutHistory === 'string' ? notifications.shortcutHistory : shortcutHistory
-    renderNotifications(notifications.notifications)
+    knownNotifications = Array.isArray(notifications.notifications) ? notifications.notifications : []
+    renderNotifications(knownNotifications)
     updateGlobalActions()
     const history = await historyPromise
     if (history) {
@@ -772,6 +774,8 @@ function markDisconnected() {
 
 function updateGlobalActions() {
   for (const button of actionBar.querySelectorAll('[data-global-action]')) {
+    const action = button.dataset.globalAction
+    button.hidden = !hasGlobalActionTarget(knownNotifications, action)
     button.disabled = !isConnected || !configurationReady
     button.title = button.disabled ? t('actions.unavailable') : button.getAttribute('aria-label')
   }

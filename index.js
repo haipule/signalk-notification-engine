@@ -473,6 +473,7 @@ module.exports = function createPlugin(app) {
     getNotifications() {
       return store.list().map(notification => ({
         ...notification,
+        audioActionable: audioController?.isAudioActionable(notification.occurrenceId) === true,
         policy: notification.path === AUDIO_SYSTEM_PATH
           ? { ...policyResolver.resolve(notification), visible: true, audio: 'off', soundConfig: null }
           : policyResolver.resolve(notification)

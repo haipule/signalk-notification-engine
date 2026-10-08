@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Notification Engine</title>
-    <link rel="stylesheet" href="style.css?v=0.1.57">
+    <link rel="stylesheet" href="style.css?v=0.1.58">
   </head>
   <body>
     <header>
@@ -16,12 +16,11 @@
       <div id="visual-alerts" aria-live="assertive"></div>
       <div class="alarm-layout">
         <section aria-labelledby="active-title">
-          <div class="section-title"><h2 id="active-title" data-i18n="app.selectedNotifications">Selected notifications</h2><div class="main-header-actions"><div id="actions" class="actions" aria-label="Selected notification actions" data-i18n-aria-label="actions.selected">
-            <a class="config-link" href="/redAdmin" target="signalk-node-red-builder" rel="noopener" title="Open Node-RED Rule Builder" aria-label="Open Node-RED Rule Builder" data-i18n-title="builder.open" data-i18n-aria-label="builder.open">☰</a>
+          <div class="section-title"><div class="section-heading"><a class="config-link" href="/redAdmin" target="signalk-node-red-builder" rel="noopener" title="Open Node-RED Rule Builder" aria-label="Open Node-RED Rule Builder" data-i18n-title="builder.open" data-i18n-aria-label="builder.open">☰</a><h2 id="active-title" data-i18n="app.selectedNotifications">Selected notifications</h2></div><div class="main-header-actions"><div id="actions" class="actions" aria-label="Selected notification actions" data-i18n-aria-label="actions.selected">
             <button data-global-action="silence" title="Silence all" aria-label="Silence all" data-i18n-title="actions.silenceAll" data-i18n-aria-label="actions.silenceAll">🔇<span data-i18n="actions.all">all</span></button>
             <button data-global-action="acknowledge" title="Acknowledge all" aria-label="Acknowledge all" data-i18n-title="actions.acknowledgeAll" data-i18n-aria-label="actions.acknowledgeAll">✓<span data-i18n="actions.all">all</span></button>
             <button id="show-table-history" type="button" title="History of table notifications" aria-label="History of table notifications" data-i18n-title="history.tableButton" data-i18n-aria-label="history.tableButton">🕘<span data-i18n="actions.history">history</span></button>
-          </div><button id="show-audio-test" class="audio-test-due" type="button" title="Alarm sound test: due" aria-label="Open alarm sound test" data-i18n-aria-label="audioTest.open"><span id="audio-test-days">0</span></button><button id="language-button" class="language-button" type="button" title="Language" aria-label="Language">EN</button><button id="show-diagnostics" title="Diagnostics" aria-label="Open diagnostics" data-i18n-title="diagnostics.title" data-i18n-aria-label="diagnostics.open">⚙</button><button id="refresh" title="Refresh" aria-label="Refresh" data-i18n-title="actions.refresh" data-i18n-aria-label="actions.refresh">↻</button></div></div>
+          </div><button id="show-audio-test" class="audio-test-due" type="button" title="Alarm sound test: due" aria-label="Open alarm sound test" data-i18n-aria-label="audioTest.open"><span id="audio-test-days">0</span></button><button id="language-button" class="language-button" type="button" title="Language" aria-label="Language">EN</button><button id="show-diagnostics" title="Diagnostics" aria-label="Open diagnostics" data-i18n-title="diagnostics.title" data-i18n-aria-label="diagnostics.open">⚙</button></div></div>
           <div id="notifications" class="notification-table-wrap"></div>
         </section>
         <aside id="detail-sheet" class="detail-sheet" tabindex="-1" aria-label="Selected notification details" data-i18n-aria-label="notification.details" aria-hidden="true">
@@ -82,8 +81,9 @@
     </template>
     <script src="connectivity.js?v=0.1.34"></script>
     <script src="table-sort.js?v=0.1.34"></script>
-    <script src="history-filter.js?v=0.1.57"></script>
+    <script src="history-filter.js?v=0.1.58"></script>
+    <script src="global-actions.js?v=0.1.58"></script>
     <script src="localization.js?v=0.1.34"></script>
-    <script src="app.js?v=0.1.57"></script>
+    <script src="app.js?v=0.1.58"></script>
   </body>
 </html>

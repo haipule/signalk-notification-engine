@@ -57,6 +57,10 @@ acknowledge actions, per-notification history inspection, a combined retained
 history of complete occurrences containing a table-visible event, and confirmed
 occurrence-scoped local-history cleanup. The combined view has no bulk-delete
 action and local cleanup never changes the authoritative Signal K notification.
+Global Silence is shown only for unfinished local audio whose Signal K source
+permits silence; global Acknowledge is shown only while an unacknowledged,
+permitted target exists. Data refreshes automatically every five seconds and
+after browser reconnect, so there is no separate in-app refresh control.
 Audio uses one playback count: `0` loops, `1` plays once, and `2` through `99`
 play exactly that many times. Optional `payload.sound.pauseSeconds` accepts
 only whole seconds from `0` through `5` and delays playback only between

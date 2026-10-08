@@ -53,10 +53,23 @@ test('retains a completed finite signature and does not replay a refresh', () =>
   const notification = { path: 'notifications.engine', occurrenceId: 'one', state: 'warn' }
   controller.enable([notification])
   assert.equal(callbacks.length, 1)
+  assert.equal(controller.isAudioActionable('one'), true)
   callbacks[0].callback({ ok: true })
+  assert.equal(controller.isAudioActionable('one'), false)
   controller.apply({ type: 'updated', notification })
   assert.equal(callbacks.length, 1)
   assert.equal(system.successes.length, 1)
+})
+
+test('keeps silence actionable while a repeat waits for its next attempt', () => {
+  const timers = []
+  const { controller, callbacks } = fixture({ audio: 'on', soundConfig: { file: 'warn.wav', count: 2, pauseSeconds: 1 } })
+  controller.setTimeout = (callback, delay) => { timers.push({ callback, delay }); return timers.length }
+  controller.enable([{ path: 'notifications.engine', occurrenceId: 'repeat', state: 'warn' }])
+  callbacks[0].callback({ ok: true })
+
+  assert.equal(timers.length, 1)
+  assert.equal(controller.isAudioActionable('repeat'), true)
 })
 
 test('does not replay a restored completed finite signature', () => {
