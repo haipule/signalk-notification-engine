@@ -265,9 +265,12 @@
     whether it contains merge commit
     `75c05cc0d34718c1bd3fbf4cfbeb969103d278af`. Do not upgrade it merely because
     the upstream pull request was merged.
-  - [ ] Obtain an explicit safe anchor-test window. Record that the vessel is
+  - [x] Obtain an explicit safe anchor-test window. Record that the vessel is
     secure or ashore, no real watch depends on the test alarm, GPS is stable,
     audible output is permitted, and one controlled Signal K restart is safe.
+    The operator confirmed the window on 2026-10-07 after disabling the anchor
+    watch; fresh Android GPS, clean audio diagnostics, and the inactive anchor
+    state were verified before Hoekens was re-enabled for the controlled test.
   - [ ] With the identified Hoekens build, verify Raise -> notification `null`,
     a fresh Drop/Watching lifecycle -> `normal`, Drag -> `alarm`, ACK, another
     Raise, then another Drop/Drag with `acknowledged: false`. Record reused or
@@ -277,6 +280,12 @@
     authoritative snapshot reconstruction, correct playback deduplication,
     no false new lifecycle or automatic clear/normal transition, healthy
     services, and successful WebApp recovery.
+    Executed on 2026-10-07 with a real Hoekens drag alarm. Visual and audible
+    presentation recovered and exactly one anchor audio process remained, but
+    Hoekens issued a new producer id and Notification Engine issued a new local
+    occurrence id for the continuing alarm. Anchor history was also absent.
+    Keep this item open until restart continuity and history are fixed and
+    retested. The original position and 50 m circle were restored afterward.
   - [ ] In a separate safe window, disconnect and restore the real Android GPS
     producer. Record producer-delta, notification, snapshot, stale-diagnostics,
     and recovery timestamps separately so detection latency can be compared
@@ -284,10 +293,14 @@
   - [ ] Using only an approved safe input/simulation method at the real bilge
     producer, verify alarm presentation, audio, history, permitted actions,
     producer-authoritative return to normal, and absence of a phantom alarm.
-  - [ ] Perform the final release smoke test on Tab 3: active view, History,
+  - [x] Perform the final release smoke test on Tab 3: active view, History,
     Diagnostics, English/German selection, permitted individual/global
     actions, audible self-test, network loss/recovery, valid Node-RED status,
     and zero unexpected processes, retries, breakers, or persistence errors.
+    Passed with `0.1.47` on 2026-10-07. The current page recovered from WLAN
+    loss without reload, restored only permitted actions, and the audible test
+    was explicitly confirmed as heard. A stale `?v=0.1.34` tab had to be
+    replaced with a fresh current page before the final checks.
   - [ ] Record every result in `docs/e2e-safety-matrix.md`. Any unexecuted real
     producer case must be stated as a release limitation rather than marked
     passed from a simulated runtime slot.
