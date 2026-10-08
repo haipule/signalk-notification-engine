@@ -53,6 +53,9 @@
   completed finite playback signature. A changed ID or any changed compared
   field creates a new occurrence; interrupted finite playback and loops resume.
   Malformed persisted restart state must fail empty without changing Signal K.
+  Read-only diagnostics must distinguish an exact match, the names of differing
+  authoritative fields, and a later removal without logging field values or
+  changing the correlation outcome.
 - Plugin-option migration: remove only the allowlisted fields whose authority
   moved to embedded Node-RED, preserve operational and unknown fields, and
   apply the complete validated Node-RED configuration on initial startup as

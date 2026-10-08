@@ -512,6 +512,7 @@ module.exports = function createPlugin(app) {
         const locales = translationCatalog.list()
         return diagnostics.toJSON({
           nodeRed: { revision: runtime.checksum, configurationStatus: configurationStatus(), runtimeDeployEventsAvailable: runtime.eventsAvailable() },
+          restartCorrelation: store.restartCorrelationDiagnostics(),
           criticalInputs: inspectInputSources(criticalInputs, readSignalKLeaf),
           audio: {
             ...audioController.diagnostics(),

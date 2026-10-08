@@ -54,6 +54,9 @@ occurrence and suppress an already completed finite sound. Any mismatch,
 interrupted playback, or loop playback is treated as work that must start or
 resume. This cache is not notification authority and cannot create or mutate a
 Signal K lifecycle; its persistence health is exposed through Diagnostics.
+Restart-correlation Diagnostics retain only bounded match outcomes, identity,
+source label and mismatched field names. They never expose compared field
+values and do not alter whether an occurrence or playback signature is reused.
 The WebApp adds its own local poll start/end, duration, and network error so a
 slow client can be distinguished from a slow Signal K snapshot.
 

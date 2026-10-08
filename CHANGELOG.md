@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.50 - 2026-10-07
+
+- Add read-only restart-correlation diagnostics that report exact matches,
+  candidate field mismatches, and removals during asynchronous startup
+  reconstruction without changing notification or audio decisions.
+
 ## 0.1.49 - 2026-10-07
 
 - Preserve a local notification occurrence across a plugin restart only when

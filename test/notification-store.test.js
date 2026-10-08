@@ -317,3 +317,29 @@ test('does not restore an occurrence when producer id or content changed', () =>
   assert.notEqual(store.list()[0].occurrenceId, original.occurrenceId)
   assert.equal(store.history()[0].type, 'raised')
 })
+
+test('diagnoses exact restart matches, field mismatches, and later removal', () => {
+  const original = {
+    id: 'stable-id', path: 'notifications.navigation.heading', source: { label: 'gnss' },
+    state: 'warn', message: 'Heading unavailable', method: ['visual'], createdAt: null,
+    data: null, status: { canClear: false }, occurrenceId: 'occurrence-before-restart'
+  }
+  const store = new NotificationStore({ classify })
+  store.restoreExactOccurrences([original])
+  store.upsert({ path: original.path, source: original.source, value: {
+    id: original.id, state: original.state, message: original.message,
+    method: original.method, status: original.status
+  } })
+  store.removeByPath(original.path)
+  store.upsert({ path: original.path, source: original.source, value: {
+    id: original.id, state: original.state, message: 'Different message',
+    method: original.method, status: original.status
+  } })
+
+  const diagnostics = store.restartCorrelationDiagnostics()
+  assert.equal(diagnostics.stagedCount, 1)
+  assert.equal(diagnostics.attempts[0].result, 'matched')
+  assert.equal(diagnostics.attempts[1].result, 'removed')
+  assert.equal(diagnostics.attempts[2].result, 'not_matched')
+  assert.deepEqual(diagnostics.attempts[2].mismatchedFields, ['message'])
+})
