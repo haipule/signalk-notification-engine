@@ -286,6 +286,12 @@
     occurrence id for the continuing alarm. Anchor history was also absent.
     Keep this item open until restart continuity and history are fixed and
     retested. The original position and 50 m circle were restored afterward.
+  - [ ] Inform the Hoekens Anchor Alarm maintainer that version `2.13.1`
+    assigned a new notification id to the same continuing drag alarm after a
+    Signal K restart (`88045cb2-52e3-4d65-ba4f-8d78a86fc5ae` before restart,
+    `ea3e98ab-fa3e-4018-80e2-8d3d190d6dce` afterward). Include the controlled
+    test conditions and explain that downstream clients cannot use the
+    producer id alone to preserve lifecycle continuity across a restart.
   - [ ] In a separate safe window, disconnect and restore the real Android GPS
     producer. Record producer-delta, notification, snapshot, stale-diagnostics,
     and recovery timestamps separately so detection latency can be compared
