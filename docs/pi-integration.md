@@ -127,13 +127,15 @@ restart-state persistence reported no write error, and the Alarm Sound Test
 API reported the restored seven-day interval enabled. The full Signal K
 restart changed the active GNSS warning producer ID (`e11f…` to `df7a…`), so
 the finite warning replayed as a new lifecycle, as required by exact-ID
-variant 1. The plugin-only unchanged-ID follow-up then passed: an authenticated
-unchanged configuration save restarted only Notification Engine, retained GNSS
-ID `df7af341-8cad-4873-8674-706a0c02c052` and occurrence ID
-`occurrence-1791421090340-y268c33l42`, left the last completed playback at
-`2026-10-08T00:58:11.229Z`, started no `aplay` process, and produced no tone
-according to the operator. The runtime remained ready with the seven-day
-interval.
+variant 1. An immediate check after an authenticated plugin-only restart
+appeared to retain GNSS ID `df7af341-8cad-4873-8674-706a0c02c052`, occurrence
+ID `occurrence-1791421090340-y268c33l42`, and the prior playback result, and the
+operator heard no tone. A later interval change to `30` disproved that early
+conclusion after asynchronous reconstruction settled: the GNSS producer ID was
+still unchanged, but occurrence became
+`occurrence-1791421760785-rb3w6lw0vcr` and `warn.wav` completed at
+`2026-10-08T01:09:21.621Z`. The value-30 boundary passed and the interval was
+restored to seven, but exact-ID finite no-replay remains a failed live test.
 
 After the mandatory embedded Node-RED configuration reached `ready`, the
 one-time migration removed the known Node-RED-owned legacy duplicates from
@@ -148,9 +150,9 @@ direct start returned HTTP 409 with the expected disabled message.
 That second save restarted the plugin and replayed the already-active GNSS
 warning's finite `warn.wav` once under a new local occurrence. It was not the
 maintenance test (`playTestTone` remained false and the retained self-test did
-not change). Version `0.1.49` subsequently fixed exact restart correlation,
-restored the configured interval to seven, and passed the unchanged-ID
-no-replay test described above. The final live state had Node-RED
+not change). Version `0.1.49` subsequently added exact restart correlation and
+restored the configured interval to seven, but the delayed live result above
+exposed an unresolved startup reconstruction race. The final live state had Node-RED
 revision `ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`
 ready, fresh Android GPS, HTTP 200 for Signal K and the WebApp, healthy audio
 and history persistence, zero processes/retries/open breakers/failures, active
