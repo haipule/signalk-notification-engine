@@ -7,12 +7,21 @@
   diagnostics, and an inactive external `nodered.service`. The expected new
   GNSS producer ID replayed the finite warning once. Rollback data is stored at
   `/home/pi/.signalk/server-backups/signalk-server-2.32.0-before-2.33.0-20261008T012221Z`.
-- [ ] Verify Signal K `2.33.0` notification escalation semantics before
+- [x] Verify Signal K `2.33.0` notification escalation semantics before
   deploying Notification Engine `0.1.50`: after acknowledge/silence at a lower
   level, a transition to a higher severity must reset those status fields; a
   de-escalation must not be misreported as the same reset rule. Confirm the
   Notification Engine keeps one authoritative lifecycle, visibly reflects the
-  new status, and plays the higher-severity policy.
+  new status, and plays the higher-severity policy. Two isolated runtime slots
+  passed on 2026-10-07: `acknowledged: true` and `silenced: true` each reset to
+  false on `warn` to `alarm`, Signal K ID and local occurrence stayed stable,
+  the alarm policy/loop started, and the operator confirmed both warn and alarm
+  sounds audible. Both loops were silenced and both owned slots cleared.
+- [ ] Report the Signal K `2.33.0` Notification API inconsistency upstream:
+  `notifications.update()` resets `acknowledged` on a state change but leaves
+  the old `acknowledgedAt` timestamp. Keep the raw external status visible for
+  diagnosis; do not let Notification Engine reinterpret or repair Signal K's
+  authoritative fields locally.
 
 ## Arbeitsstand zum Feierabend – 2026-09-28
 

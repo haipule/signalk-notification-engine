@@ -21,6 +21,18 @@ its finite warning completed once; no audio process remained active. A focused
 2.33.0 escalation-status test is still required before deploying Notification
 Engine `0.1.50`.
 
+The focused escalation test subsequently passed with two bounded,
+plugin-owned runtime slots. In separate runs, an acknowledged warn and a
+silenced warn were updated to alarm. Signal K retained each notification ID,
+Notification Engine retained each local occurrence, both status booleans reset
+to false, and the alarm loop started under the configured alarm policy. The
+operator confirmed both warn and alarm sounds were audible. Each loop was then
+silenced and its exact owned test slot cleared; no player process or retry
+remained. Signal K `2.33.0` did retain a stale `acknowledgedAt` timestamp after
+resetting `acknowledged` to false through `notifications.update()`. This is an
+upstream status inconsistency to report; Notification Engine continues to
+preserve the authoritative raw status rather than repairing it locally.
+
 ## Current installation boundary
 
 The boat Raspberry Pi is reached as `pi@192.168.100.10` (normally through the
