@@ -191,7 +191,17 @@
   days from `0` through `30`, retaining `7` as the default. Zero hides the App
   button and blocks start requests server-side. Keep the separate one-shot
   connection check named `Sound Test`; it changes neither operator confirmation
-  nor the recurring due date.
+  nor the recurring due date. Live values `1` and `0` passed on Tab 3 with
+  `0.1.48`; zero also returned HTTP 409 for an authenticated direct start.
+  Values `7` and `30` remain pending until the restart replay defect below is
+  fixed.
+- [ ] Preserve active local occurrence and completed finite-playback identity
+  across a plugin restart. Saving the zero-day Alarm Sound Test interval on
+  2026-10-07 restarted the plugin, assigned the unchanged active GNSS warning
+  a new local occurrence, and replayed `warn.wav` once even though
+  `playTestTone` was false. Persisted correlation must suppress this false
+  finite replay while allowing an interrupted loop for a still-active alarm to
+  resume.
 - [x] Wartungsintervall in der Haupt-Buttonzeile kompakt anzeigen: runder
   Zähler `7` bis `0`, bei Fälligkeit blinkend; Klick öffnet ein eigenes
   Prozessfenster. Der letzte abgeschlossene Test wird nach Neustart aus der

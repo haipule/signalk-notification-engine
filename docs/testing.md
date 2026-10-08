@@ -48,6 +48,10 @@
 - Playback recovery registry: a fail-closed configuration suspension retains
   completed finite signatures, discards interrupted loops and pending repeats,
   and still permits an actually changed sound signature.
+- Plugin-option migration: remove only the allowlisted fields whose authority
+  moved to embedded Node-RED, preserve operational and unknown fields, and
+  apply the complete validated Node-RED configuration on initial startup as
+  well as on later runtime deploys.
 - Diagnostics: snapshot duration/error recovery, delta counters, Node-RED
   configuration state, audio process/result and playback-registry state,
   history persistence health, critical-input source freshness and current-

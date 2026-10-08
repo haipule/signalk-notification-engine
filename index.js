@@ -26,6 +26,7 @@ const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catal
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
 const { ConfigurationService, normalizeAlarmTestInterval, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
+const { migratePluginOptions } = require('./lib/plugin-options-migration')
 const registerHttpRoutes = require('./lib/http-routes')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
@@ -397,7 +398,9 @@ module.exports = function createPlugin(app) {
     async start(options) {
       stopSubscriptions()
       void stopTestNotification()
-      const { token, flowOptions } = await runtime.start(options)
+      const optionMigration = migratePluginOptions(options)
+      const effectiveOptions = optionMigration.options
+      const { token, flowOptions } = await runtime.start(effectiveOptions)
       applyRuntimeConfiguration(flowOptions)
       lifecycleRules = loadLifecycleRules(app.getDataDirPath?.(), message => app.error?.(message))
       store.lifecycleRules = lifecycleRules
@@ -415,17 +418,19 @@ module.exports = function createPlugin(app) {
       })
       runtime.subscribe()
       void initialize(token, flowOptions?.testNotif)
-      if (options?.playTestTone === true && typeof app.savePluginOptions === 'function') {
-        app.savePluginOptions({ ...options, playTestTone: false }, error => {
-          if (error) app.error?.(`Unable to reset audio test configuration: ${error.message}`)
-        })
-      }
       if (options?.playTestTone === true) {
         void playTestTone(token, options?.testTonePath)
       }
-      if (options?.testNotif?.enabled === true && typeof app.savePluginOptions === 'function') {
-        app.savePluginOptions({ ...options, testNotif: { ...options.testNotif, enabled: false } }, error => {
-          if (error) app.error?.(`Unable to reset TestNotif configuration: ${error.message}`)
+      const persistedOptions = {
+        ...effectiveOptions,
+        ...(options?.playTestTone === true ? { playTestTone: false } : {}),
+        ...(options?.testNotif?.enabled === true ? { testNotif: { ...options.testNotif, enabled: false } } : {})
+      }
+      const shouldPersistOptions = optionMigration.changed || options?.playTestTone === true || options?.testNotif?.enabled === true
+      if (shouldPersistOptions && typeof app.savePluginOptions === 'function') {
+        app.savePluginOptions(persistedOptions, error => {
+          if (error) app.error?.(`Unable to migrate plugin configuration: ${error.message}`)
+          else if (optionMigration.changed) app.debug?.(`Removed legacy Node-RED-owned plugin settings: ${optionMigration.removedFields.join(', ')}`)
         })
       }
     },

@@ -108,7 +108,39 @@ not transfer ownership of service state to Notification Engine.
 
 ## Latest verified deployment
 
-Version `0.1.47` was deployed and verified on 2026-10-07 while the anchor watch
+Version `0.1.48` was deployed and verified on 2026-10-07 after an explicitly
+approved controlled restart. Package SHA-256 is
+`95149362922a163baae3752b4fc4e4d8b05538070e167c50179088fcf4968e29`,
+and the durable dependency is
+`file:plugin-packages/signalk-notification-engine-0.1.48.tgz`. The complete
+0.1.47 plugin, Signal K package manifest, and pre-migration plugin options are
+retained under
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.47-before-0.1.48-20261007T2038-04`.
+
+After the mandatory embedded Node-RED configuration reached `ready`, the
+one-time migration removed the known Node-RED-owned legacy duplicates from
+Signal K Plugin Config. Operational fields including `audioPlayer`,
+`audioDevice`, history limits, shortcuts, maintenance-test file, and
+administrative history controls remained. The formerly blocked Plugin Config
+save then accepted `alarmSoundTest.intervalDays: 1`; API and Tab 3 both showed
+one remaining day without starting the maintenance test. A second save with
+zero hid the Tab 3 button, exposed `enabled: false`, and an authenticated
+direct start returned HTTP 409 with the expected disabled message.
+
+That second save restarted the plugin and replayed the already-active GNSS
+warning's finite `warn.wav` once under a new local occurrence. It was not the
+maintenance test (`playTestTone` remained false and the retained self-test did
+not change). This is a separate restart-continuity defect and must be fixed
+before restoring the configured interval to seven, because another save would
+deliberately reproduce the unwanted warning tone. Final live state had Node-RED
+revision `ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`
+ready, fresh Android GPS, HTTP 200 for Signal K and the WebApp, healthy audio
+and history persistence, zero processes/retries/open breakers/failures, active
+`signalk-health.timer`, and inactive external `nodered.service`. Source/live
+hashes for `index.js`, `package.json`, `lib/plugin-runtime.js`, and
+`lib/plugin-options-migration.js` matched.
+
+Version `0.1.47` was previously deployed and verified on 2026-10-07 while the anchor watch
 was explicitly disabled. Hoekens 2.13.1 represented the inactive
 `navigation.anchor.state` by removing the value: the leaf first contained only
 metadata and returned HTTP 404 after the controlled Signal K restart. The

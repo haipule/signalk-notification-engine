@@ -5,7 +5,7 @@ const test = require('node:test')
 const PluginRuntime = require('../lib/plugin-runtime')
 
 function config(checksum = 'one') {
-  return { checksum, rules: [{ name: checksum }], config: { notificationEngine: { stateOrder: ['warn'] } } }
+  return { checksum, rules: [{ name: checksum }], config: { notificationEngine: { stateOrder: ['warn'], visibleStates: ['warn'], visualRules: { warn: { display: 'banner' } } } } }
 }
 
 test('loads mandatory Node-RED configuration before returning a lifecycle token', async () => {
@@ -17,6 +17,7 @@ test('loads mandatory Node-RED configuration before returning a lifecycle token'
   const started = await runtime.start({ audioDevice: 'default' })
   assert.equal(runtime.isCurrent(started.token), true)
   assert.equal(started.flowOptions.audioDevice, 'default')
+  assert.deepEqual(started.flowOptions.visualRules, { warn: { display: 'banner' } })
   assert.deepEqual(written[0], [[{ name: 'one' }], 'one'])
 })
 

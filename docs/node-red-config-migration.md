@@ -34,6 +34,15 @@ successful deploy, the engine reads the `Notification Engine config` node and
 applies its complete `notificationEngine` object. Signal K Plugin Config is
 used only for the host boundary and local persistence settings listed above.
 
+Starting with version `0.1.48`, a successful validated startup also removes
+known obsolete Node-RED-owned duplicates from the persisted Signal K plugin
+options. This one-time cleanup is deliberately allowlisted; unknown fields are
+not silently discarded. The cleanup is not attempted when the embedded
+Node-RED configuration is missing or invalid, and operational Signal K fields
+remain byte-for-byte unchanged. This prevents pre-migration options from
+causing strict Plugin Config saves to fail with `must NOT have additional
+properties`.
+
 ## Startup contract
 
 Signal K starts the plugin with only the required technical options. Before

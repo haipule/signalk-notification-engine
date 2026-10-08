@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.48 - 2026-10-07
+
+- Remove known obsolete Node-RED-owned fields from persisted Signal K plugin
+  options after a successful validated Node-RED startup, while retaining every
+  operational host, persistence, diagnostic, and maintenance-test setting.
+- Apply the complete authoritative Node-RED configuration during initial
+  startup as well as runtime deploys, preventing stale plugin-option
+  duplicates from blocking strict Plugin Config validation.
+
 ## 0.1.47 - 2026-10-07
 
 - Use authoritative inactive `navigation.anchor.state` input (`off` or the
