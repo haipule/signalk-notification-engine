@@ -325,8 +325,20 @@
   Android-UDP-Ausfall/-Wiederkehr und Bilge-Produzentenprüfung. Die normalen
   Hoekens-Zustände `warn`, `alarm`, `normal` und `null`, neue Ankervorgänge nach
   ACK sowie wiederverwendete IDs wurden bereits real geprüft.
-  Complete the following release-acceptance sequence before creating the
-  public repository, publishing npm artifacts, or claiming production safety:
+  The `0.1.64` release audit now separates historical failures from current
+  evidence. Complete or explicitly accept the following real-producer gaps
+  before publishing npm artifacts or claiming complete production coverage;
+  repository and CI preparation may proceed without implying release:
+  - [ ] Repeat the bounded current-version regression for simulated `warn`,
+    `alarm`, `emergency`, and Hoekens-path notifications. Verify complete
+    raised/update/action/final-normal history, current display mode, sound,
+    and permitted actions. These runtime slots do not require a Signal K
+    restart, but audible output still requires an approved acoustic window.
+  - [ ] Resolve the release presentation decisions exposed by the historical
+    matrix: builder `display: banner` versus rendered overlay; whether an
+    acknowledged active emergency may lose its overlay; and how a read-only
+    browser communicates unavailable write authorization before a click.
+    Record the decisions before changing code or declaring release acceptance.
   - [x] Verify the installed Hoekens release containing the Raise fix without
     upgrading merely because the upstream pull request was merged. Installed
     version `2.13.1` was identified and its required behaviour was proved live:
@@ -380,10 +392,15 @@
     Passed with `0.1.47` on 2026-10-07. The current page recovered from WLAN
     loss without reload, restored only permitted actions, and the audible test
     was explicitly confirmed as heard. A stale `?v=0.1.34` tab had to be
-    replaced with a fresh current page before the final checks.
-  - [ ] Record every result in `docs/e2e-safety-matrix.md`. Any unexecuted real
-    producer case must be stated as a release limitation rather than marked
-    passed from a simulated runtime slot.
+    replaced with a fresh current page before the final checks. Extended with
+    `0.1.64` on 2026-10-08: pull-to-refresh no longer produced the false
+    disconnected banner; operator observation and a 39.966-second full-frame
+    recording both passed with healthy final diagnostics.
+  - [x] Record every current result in `docs/e2e-safety-matrix.md`. The
+    `0.1.64` audit retains historical PARTIAL/FAIL evidence, identifies later
+    complete retests, and states Android UDP, real bilge, and active-Hoekens
+    restart continuity as explicit release decisions rather than simulated
+    passes.
 - [x] Erwartete Anzeige, Audioaktion, Historienereignisse und erlaubte Actions
   für jeden End-to-End-Fall festhalten.
 - [x] Ungültigen Node-RED-Deploy, fehlendes Audio-Gerät, geschlossene WebApp,
