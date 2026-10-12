@@ -1,0 +1,1076 @@
+[
+  {
+    "id": "notification-engine-release-flow",
+    "type": "tab",
+    "label": "Notification Engine - Release Flow",
+    "disabled": false,
+    "info": "# Notification Engine release reference flow\n\nThis tab is a safe, copyable catalog for authoring Notification Engine rules in the Node-RED instance embedded in Signal K.\n\n**No rule in this imported tab is active by default.** A rule exists only when one uninterrupted wire starts at a notification-state node, passes through the desired match/action nodes, and ends at a debug node named exactly `Activate`.\n\nThe Quick Start example deliberately stops one wire short of Activate. Connect that final wire only when you want the example to affect live notifications. Sound and Execute examples are also disconnected and must never be enabled merely to inspect this tab.\n\nSignal K and the notification producer remain authoritative. Rules control local presentation, history, audio, and bounded task delivery; they do not create a competing notification lifecycle."
+  },
+  {
+    "id": "ne-note-quick",
+    "type": "comment",
+    "z": "notification-engine-release-flow",
+    "name": "1. QUICK START",
+    "info": "The example below makes `alert` notifications visible in the table. It intentionally stops before Activate. Connect `Quick Start: show in table` to the supplied Activate node to enable it, then verify the generated rule in Notification Engine before relying on it.",
+    "x": 140,
+    "y": 40,
+    "wires": [],
+    "g": "ne-group-instructions"
+  },
+  {
+    "id": "ne-quick-alert",
+    "type": "inject",
+    "z": "notification-engine-release-flow",
+    "name": "Quick Start: alert",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"state\":\"alert\"}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 145,
+    "wires": [
+      [
+        "ne-quick-table"
+      ]
+    ],
+    "info": "Purpose: begin a rule matching Signal K notifications in state `alert`.\n\nExample: connect this node through `Quick Start: show in table` and finally to `Activate`.\n\nSafety: the node has no effect unless the complete wire reaches a node named exactly `Activate`.",
+    "g": "ne-group-quick"
+  },
+  {
+    "id": "ne-quick-table",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Quick Start: show in table",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.visibleInTable",
+        "pt": "msg",
+        "to": "true",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 470,
+    "y": 145,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: show matching notifications in the active notification table.\n\nAccepted value: boolean. This example sets `true`.\n\nHistory interaction: visible notifications inherit local history recording unless a later connected History node explicitly overrides it.\n\nThe final wire to Activate is intentionally missing.",
+    "g": "ne-group-quick"
+  },
+  {
+    "id": "ne-activate",
+    "type": "debug",
+    "z": "notification-engine-release-flow",
+    "name": "Activate",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "payload",
+    "statusType": "auto",
+    "x": 780,
+    "y": 145,
+    "wires": [],
+    "info": "Purpose: terminate and activate one complete rule branch. The name must remain exactly `Activate`.\n\nA rule is ignored unless an uninterrupted wire reaches this node. Keep the final wire disconnected while inspecting or copying examples.",
+    "g": "ne-group-quick"
+  },
+  {
+    "id": "ne-note-states",
+    "type": "comment",
+    "z": "notification-engine-release-flow",
+    "name": "2. STATES",
+    "info": "Choose exactly one state source for each rule branch. These are match sources, not buttons that raise real notifications. Supported canonical states are emergency, alarm, warn, alert, nominal, and normal.",
+    "x": 370,
+    "y": 40,
+    "wires": [],
+    "g": "ne-group-instructions"
+  },
+  {
+    "id": "ne-state-emergency",
+    "type": "inject",
+    "z": "notification-engine-release-flow",
+    "name": "State: emergency",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"state\":\"emergency\"}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 240,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: start an `emergency` rule. Example: connect to Overlay, a siren Sound File, Sound Loop, and Activate. Safety: emergency is always treated as non-silenceable by Notification Engine even if stale source data says otherwise.",
+    "g": "ne-group-states"
+  },
+  {
+    "id": "ne-state-alarm",
+    "type": "inject",
+    "z": "notification-engine-release-flow",
+    "name": "State: alarm",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"state\":\"alarm\"}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 290,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: start an `alarm` rule. Example: connect to Banner, Show in table, History enabled, and Activate. Signal K capability flags still control Silence, Acknowledge, and Clear.",
+    "g": "ne-group-states"
+  },
+  {
+    "id": "ne-state-warn",
+    "type": "inject",
+    "z": "notification-engine-release-flow",
+    "name": "State: warn",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"state\":\"warn\"}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 340,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: start a `warn` rule. Example: connect to Show in table and Activate for a general warning policy, or add an exact Path before the actions for a specific override.",
+    "g": "ne-group-states"
+  },
+  {
+    "id": "ne-state-alert",
+    "type": "inject",
+    "z": "notification-engine-release-flow",
+    "name": "State: alert",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"state\":\"alert\"}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 390,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: start an `alert` rule. Example: connect through Show in table to Activate. The state value is canonical machine data and is never localized.",
+    "g": "ne-group-states"
+  },
+  {
+    "id": "ne-state-nominal",
+    "type": "inject",
+    "z": "notification-engine-release-flow",
+    "name": "State: nominal",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"state\":\"nominal\"}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 440,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: start a `nominal` rule. Example: use it only when producers publish `nominal`. Acknowledge remains available whenever Signal K reports `canAcknowledge: true`; state alone does not ban it.",
+    "g": "ne-group-states"
+  },
+  {
+    "id": "ne-state-normal",
+    "type": "inject",
+    "z": "notification-engine-release-flow",
+    "name": "State: normal",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{\"state\":\"normal\"}",
+    "payloadType": "json",
+    "x": 150,
+    "y": 490,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: start a `normal` rule. Example: use a path-specific normal rule only for an explicitly intended recovery action. Normal-state external execution additionally requires per-file permission in Plugin Config.",
+    "g": "ne-group-states"
+  },
+  {
+    "id": "ne-note-match",
+    "type": "comment",
+    "z": "notification-engine-release-flow",
+    "name": "3. MATCH SCOPE",
+    "info": "Add match nodes immediately after a state source. An exact path is more specific than a wildcard path, and a matching path-specific rule overrides corresponding general-state values. Conditions are ANDed and read current Signal K values.",
+    "x": 610,
+    "y": 40,
+    "wires": [],
+    "g": "ne-group-instructions"
+  },
+  {
+    "id": "ne-match-exact",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Match: exact notification path",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.match.path",
+        "pt": "msg",
+        "to": "notifications.navigation.anchor",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 500,
+    "y": 240,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: restrict the branch to one exact Signal K notification path.\n\nAccepted value: one non-empty string. Example: `notifications.navigation.anchor`.\n\nSpecificity: an exact path takes priority over wildcard and state-only defaults for properties it supplies.",
+    "g": "ne-group-match"
+  },
+  {
+    "id": "ne-match-wildcard",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Match: wildcard notification path",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.match.path",
+        "pt": "msg",
+        "to": "notifications.propulsion.*",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 500,
+    "y": 290,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: restrict the branch to a notification path family.\n\nAccepted value: a string using `*` as the wildcard. Example: `notifications.propulsion.*`.\n\nUse an exact path for a single producer path.",
+    "g": "ne-group-match"
+  },
+  {
+    "id": "ne-condition-string",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Condition: engine is started",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.match.conditions",
+        "pt": "msg",
+        "to": "propulsion.stbdEngine.state ===\"started\"",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 500,
+    "y": 340,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: apply the rule only while another Signal K value matches.\n\nAccepted operators: `===`, `!==`, `==`, `!=`, `>`, `>=`, `<`, `<=`. Example: `propulsion.stbdEngine.state ===\"started\"`.\n\nMultiple connected condition nodes form one AND condition set on the same branch.",
+    "g": "ne-group-match"
+  },
+  {
+    "id": "ne-condition-number",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Condition: voltage below 12",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.match.conditions",
+        "pt": "msg",
+        "to": "electrical.batteries.house.voltage < 12",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 500,
+    "y": 390,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: demonstrate a numeric condition. Example: `electrical.batteries.house.voltage < 12`.\n\nThe path is a Signal K data path, not a notification path. Missing or non-matching data makes the condition false.",
+    "g": "ne-group-match"
+  },
+  {
+    "id": "ne-note-display",
+    "type": "comment",
+    "z": "notification-engine-release-flow",
+    "name": "4. DISPLAY / HISTORY",
+    "info": "These nodes affect Notification Engine presentation and local audit retention only. They never change the authoritative Signal K notification state.",
+    "x": 860,
+    "y": 40,
+    "wires": [],
+    "g": "ne-group-instructions"
+  },
+  {
+    "id": "ne-visible-true",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Table: visible",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.visibleInTable",
+        "pt": "msg",
+        "to": "true",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 240,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: show matching notifications in the active table. Accepted value: boolean; this node sets `true`. Visible notifications record local history by default unless History disabled is connected on the same rule.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-visible-false",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Table: hidden",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.visibleInTable",
+        "pt": "msg",
+        "to": "false",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 290,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: hide matching notifications from the table. Accepted value: boolean; this node sets `false`. Safety: hiding does not clear, normalize, acknowledge, or silence Signal K. Use sparingly because hidden active alarms reduce operator visibility.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-display-banner",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Display: banner",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.display",
+        "pt": "msg",
+        "to": "banner",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 340,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: render a fixed strip inside the Notification Centre. Accepted value: `banner`. It is not the full attention overlay and may be used together with table visibility.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-display-overlay",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Display: overlay",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.display",
+        "pt": "msg",
+        "to": "overlay",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 390,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: render the full attention overlay. Accepted value: `overlay`. For emergency, Acknowledge calms/removes this overlay but does not change the emergency state or stop independent audio.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-color-red",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Marker color: red",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.color",
+        "pt": "msg",
+        "to": "red",
+        "tot": "str"
+      },
+      {
+        "t": "set",
+        "p": "payload.hex",
+        "pt": "msg",
+        "to": "#d32f2f",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 440,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: set readable presentation marker colors. Example values: name `red`, hex `#d32f2f`. The color is display metadata only; it does not assign a category or severity.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-flash-true",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Flash: enabled",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.flash",
+        "pt": "msg",
+        "to": "true",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 490,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: enable flashing presentation for the matching rule. Accepted value: boolean; this node sets `true`. Flash is visual only and never changes Signal K state.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-flash-false",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Flash: disabled",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.flash",
+        "pt": "msg",
+        "to": "false",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 540,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: explicitly disable inherited flashing for a more specific branch. Accepted value: boolean; this node sets `false`.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-history-true",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "History: enabled",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.history",
+        "pt": "msg",
+        "to": "true",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 590,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: record the complete local occurrence history even when the notification is hidden. Accepted value: boolean; this node sets `true`. History is a local audit trail and never owns the Signal K lifecycle.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-history-false",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "History: disabled",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.history",
+        "pt": "msg",
+        "to": "false",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 800,
+    "y": 640,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: suppress new local history for the complete matching occurrence. Accepted value: boolean; this node sets `false`. Existing audit entries are not deleted retroactively.",
+    "g": "ne-group-display"
+  },
+  {
+    "id": "ne-note-sound",
+    "type": "comment",
+    "z": "notification-engine-release-flow",
+    "name": "5. SOUND",
+    "info": "Sound is server-side on the Raspberry Pi. Connect Sound active, a file, a count, and optionally a pause on one uninterrupted branch. Importing this tab never enables sound because no example reaches Activate.",
+    "x": 1110,
+    "y": 40,
+    "wires": [],
+    "g": "ne-group-instructions"
+  },
+  {
+    "id": "ne-sound-active",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Sound: active",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.sound.active",
+        "pt": "msg",
+        "to": "true",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1100,
+    "y": 240,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: explicitly enable sound on this rule. Accepted value: boolean; this node sets `true`. A valid sound file must also resolve from this branch or an inherited general rule.",
+    "g": "ne-group-sound"
+  },
+  {
+    "id": "ne-sound-inactive",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Sound: inactive",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.sound.active",
+        "pt": "msg",
+        "to": "false",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1100,
+    "y": 290,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: explicitly suppress inherited sound for a more specific rule without changing Signal K state. Accepted value: boolean; this node sets `false`. This is the supported silent-policy mechanism.",
+    "g": "ne-group-sound"
+  },
+  {
+    "id": "ne-sound-file",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Sound file: alarm.wav",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.soundFile",
+        "pt": "msg",
+        "to": "/home/pi/.signalk/sounds/alarm.wav",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1100,
+    "y": 340,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: select the WAV file played by the Pi audio backend. Accepted value: one non-empty path string. Example: `/home/pi/.signalk/sounds/alarm.wav`. Confirm the file and audio device through Plugin Config before operational use.",
+    "g": "ne-group-sound"
+  },
+  {
+    "id": "ne-sound-once",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Sound count: once",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.sound.count",
+        "pt": "msg",
+        "to": "1",
+        "tot": "num"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1100,
+    "y": 390,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: play the configured sound exactly once per local occurrence/signature. Accepted integer: `1`. Browser refreshes and unchanged deploys must not replay a completed finite sound.",
+    "g": "ne-group-sound"
+  },
+  {
+    "id": "ne-sound-loop",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Sound count: loop",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.sound.count",
+        "pt": "msg",
+        "to": "0",
+        "tot": "num"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1100,
+    "y": 440,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: loop the configured sound while the occurrence remains eligible. Accepted integer: `0`. Ensure the source permits an independent stop action or has a reliable authoritative recovery path.",
+    "g": "ne-group-sound"
+  },
+  {
+    "id": "ne-sound-repeat",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Sound count: repeat 3",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.sound.count",
+        "pt": "msg",
+        "to": "3",
+        "tot": "num"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1100,
+    "y": 490,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: play the configured sound a finite number of times. Accepted integers: `2` through `99`; this example uses `3`. Use `1` for once and `0` for loop.",
+    "g": "ne-group-sound"
+  },
+  {
+    "id": "ne-sound-pause",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Sound pause: 3 seconds",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.sound.pauseSeconds",
+        "pt": "msg",
+        "to": "3",
+        "tot": "num"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1100,
+    "y": 540,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: wait between completed finite playbacks. Accepted integers: `0` through `5`; this example uses `3`. The pause has no effect before the first playback and is meaningful only with a finite count greater than one.",
+    "g": "ne-group-sound"
+  },
+  {
+    "id": "ne-note-control",
+    "type": "comment",
+    "z": "notification-engine-release-flow",
+    "name": "6. CONTROL / EXECUTE",
+    "info": "Ignore and Execute are intentionally disconnected. Execute is only a bounded delivery request; Plugin Config must separately authorize the exact path.",
+    "x": 1380,
+    "y": 40,
+    "wires": [],
+    "g": "ne-group-instructions"
+  },
+  {
+    "id": "ne-ignore",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Ignore locally",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.ignore",
+        "pt": "msg",
+        "to": "true",
+        "tot": "bool"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1400,
+    "y": 240,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: suppress Notification Engine visibility and audio for the matching rule. Accepted value: boolean; this node sets `true`. Safety: the foreign Signal K notification is preserved unchanged and remains owned by its producer.",
+    "g": "ne-group-control"
+  },
+  {
+    "id": "ne-execute",
+    "type": "change",
+    "z": "notification-engine-release-flow",
+    "name": "Execute: exact file",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload.execute",
+        "pt": "msg",
+        "to": "/home/pi/scripts/notification-example.sh",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1400,
+    "y": 290,
+    "wires": [
+      []
+    ],
+    "info": "Purpose: request one bounded external task delivery for a new live occurrence. Accepted value: one exact absolute executable path; no shell and no notification-derived arguments are added.\n\nAuthorization: the identical path must exist as an enabled per-file entry in Signal K Plugin Config. Wiring to Activate is the only flow-side activation signal. There is no `execute_task` flag.\n\nSafety: execution never changes, clears, acknowledges, silences, or normalizes the originating notification.",
+    "g": "ne-group-control"
+  },
+  {
+    "id": "ne-group-instructions",
+    "type": "group",
+    "z": "notification-engine-release-flow",
+    "name": "Instructions - open each comment for details",
+    "style": {
+      "stroke": "#eeeeee",
+      "fill": "#eeeeee",
+      "fill-opacity": 0.18,
+      "label": true,
+      "label-position": "n",
+      "color": "#202020"
+    },
+    "nodes": [
+      "ne-note-quick",
+      "ne-note-states",
+      "ne-note-match",
+      "ne-note-display",
+      "ne-note-sound",
+      "ne-note-control"
+    ],
+    "x": 20,
+    "y": 15,
+    "w": 1510,
+    "h": 65
+  },
+  {
+    "id": "ne-group-quick",
+    "type": "group",
+    "z": "notification-engine-release-flow",
+    "name": "Quick Start - connect the final wire deliberately",
+    "style": {
+      "stroke": "#90caf9",
+      "fill": "#90caf9",
+      "fill-opacity": 0.18,
+      "label": true,
+      "label-position": "n",
+      "color": "#202020"
+    },
+    "nodes": [
+      "ne-quick-alert",
+      "ne-quick-table",
+      "ne-activate"
+    ],
+    "x": 20,
+    "y": 95,
+    "w": 850,
+    "h": 100
+  },
+  {
+    "id": "ne-group-states",
+    "type": "group",
+    "z": "notification-engine-release-flow",
+    "name": "Notification States",
+    "style": {
+      "stroke": "#fff59d",
+      "fill": "#fff59d",
+      "fill-opacity": 0.18,
+      "label": true,
+      "label-position": "n",
+      "color": "#202020"
+    },
+    "nodes": [
+      "ne-state-emergency",
+      "ne-state-alarm",
+      "ne-state-warn",
+      "ne-state-alert",
+      "ne-state-nominal",
+      "ne-state-normal"
+    ],
+    "x": 20,
+    "y": 205,
+    "w": 260,
+    "h": 320
+  },
+  {
+    "id": "ne-group-match",
+    "type": "group",
+    "z": "notification-engine-release-flow",
+    "name": "Match Scope",
+    "style": {
+      "stroke": "#b3e5fc",
+      "fill": "#b3e5fc",
+      "fill-opacity": 0.18,
+      "label": true,
+      "label-position": "n",
+      "color": "#202020"
+    },
+    "nodes": [
+      "ne-match-exact",
+      "ne-match-wildcard",
+      "ne-condition-string",
+      "ne-condition-number"
+    ],
+    "x": 300,
+    "y": 205,
+    "w": 400,
+    "h": 220
+  },
+  {
+    "id": "ne-group-display",
+    "type": "group",
+    "z": "notification-engine-release-flow",
+    "name": "Display and History",
+    "style": {
+      "stroke": "#c8e6c9",
+      "fill": "#c8e6c9",
+      "fill-opacity": 0.18,
+      "label": true,
+      "label-position": "n",
+      "color": "#202020"
+    },
+    "nodes": [
+      "ne-visible-true",
+      "ne-visible-false",
+      "ne-display-banner",
+      "ne-display-overlay",
+      "ne-color-red",
+      "ne-flash-true",
+      "ne-flash-false",
+      "ne-history-true",
+      "ne-history-false"
+    ],
+    "x": 710,
+    "y": 205,
+    "w": 300,
+    "h": 470
+  },
+  {
+    "id": "ne-group-sound",
+    "type": "group",
+    "z": "notification-engine-release-flow",
+    "name": "Sound - disconnected by default",
+    "style": {
+      "stroke": "#f8bbd0",
+      "fill": "#f8bbd0",
+      "fill-opacity": 0.18,
+      "label": true,
+      "label-position": "n",
+      "color": "#202020"
+    },
+    "nodes": [
+      "ne-sound-active",
+      "ne-sound-inactive",
+      "ne-sound-file",
+      "ne-sound-once",
+      "ne-sound-loop",
+      "ne-sound-repeat",
+      "ne-sound-pause"
+    ],
+    "x": 1020,
+    "y": 205,
+    "w": 290,
+    "h": 370
+  },
+  {
+    "id": "ne-group-control",
+    "type": "group",
+    "z": "notification-engine-release-flow",
+    "name": "Control and External Delivery",
+    "style": {
+      "stroke": "#e0e0e0",
+      "fill": "#e0e0e0",
+      "fill-opacity": 0.18,
+      "label": true,
+      "label-position": "n",
+      "color": "#202020"
+    },
+    "nodes": [
+      "ne-ignore",
+      "ne-execute"
+    ],
+    "x": 1320,
+    "y": 205,
+    "w": 300,
+    "h": 130
+  }
+]

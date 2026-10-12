@@ -4,7 +4,10 @@ const pluginApi = '/plugins/signalk-notification-engine'
 const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, createOfflineDebouncer, fetchJsonWithTimeout, isRefreshStale, shouldApplyDisconnect, shouldDisconnectAfterPollFailure } = window.NotificationConnectivity
 const { compareNotificationPaths } = window.NotificationTableSort
 const { historyForTableNotifications } = window.NotificationHistoryFilter
-const { hasGlobalActionTarget } = window.NotificationGlobalActions
+const { hasGlobalActionTarget, globalActionTargetIds } = window.NotificationGlobalActions
+const { buildDiagnosticsModel } = window.NotificationDiagnosticsView
+const { notificationActionState, sourceAllowsAction } = window.NotificationActionAvailability
+const { attentionPresentation } = window.NotificationVisualPresentation
 const i18n = window.NotificationI18n
 const t = (key, parameters) => i18n.t(key, parameters)
 const notificationContainer = document.querySelector('#notifications')
@@ -23,8 +26,10 @@ const audioTestStatus = document.querySelector('#audio-test-status')
 const audioTestSheet = document.querySelector('#audio-test-sheet')
 const audioTestDueButton = document.querySelector('#show-audio-test')
 const audioTestDays = document.querySelector('#audio-test-days')
+const webAppVersion = document.querySelector('meta[name="notification-engine-version"]')?.content || 'unknown'
 let isConnected = false
 let configurationReady = true
+let writeAuthorized = false
 let currentConfigurationStatus = null
 let lastSuccessfulRefreshAt = null
 const pollingStartedAt = Date.now()
@@ -234,13 +239,12 @@ function renderNotifications(notifications) {
 
 function renderVisualAlerts(notifications) {
   visualAlerts.replaceChildren()
-  const candidates = notifications.filter(item => ['emergency', 'alarm', 'warn', 'alert'].includes(item.state) && item.method?.includes('visual') && !isAcknowledged(item.status))
-  for (const notification of candidates) {
-    const tableRule = activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
+  for (const notification of notifications) {
     const rule = visualRules[notification.state] || { display: 'table' }
-    if (rule.display === 'table' || (tableRule && !['emergency', 'alarm'].includes(notification.state))) continue
+    const presentation = attentionPresentation(notification, rule)
+    if (!presentation) continue
     const alert = document.createElement('div')
-    alert.className = `visual-alert visual-${rule.display}${rule.flash ? ' visual-flash' : ''}`
+    alert.className = `visual-alert visual-${presentation}${rule.flash ? ' visual-flash' : ''}`
     alert.style.setProperty('--visual-alert-color', rule.color || stateColors[notification.state] || '#d32f2f')
     alert.textContent = `${formatState(notification.state)}: ${notification.message || t('notification.noMessage')}${rule.acknowledgeRequired ? ` · ${t('visual.acknowledgementRequired')}` : ''}`
     alert.addEventListener('click', () => {
@@ -257,10 +261,6 @@ function isVisibleInTable(notification) {
   return activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
 }
 
-function isAcknowledged(status) {
-  return status?.acknowledged === true || status?.acknowledged === 'true' || Boolean(status?.acknowledgedAt)
-}
-
 function isResolvedState(state) {
   return state === 'normal' || state === 'nominal'
 }
@@ -269,14 +269,17 @@ function updateActions(notification) {
   const actionLabels = { silence: t('actions.silence'), acknowledge: t('actions.acknowledge'), clear: t('actions.clear') }
   for (const button of document.querySelectorAll('#detail-actions [data-action]')) {
     const action = button.dataset.action
-    const allowed = isConnected && configurationReady && Boolean(notification) && actionAllowed(notification, action)
-    button.disabled = !allowed
-    button.title = allowed
+    const state = notificationActionState(notification, action, { connected: isConnected, configurationReady, writeAuthorized })
+    button.hidden = !state.applicable && state.reason === 'source'
+    button.disabled = !state.enabled
+    button.title = state.enabled
       ? button.getAttribute('aria-label')
-      : !isConnected || !configurationReady
+      : state.reason === 'write_permission'
+          ? t('actions.writePermissionRequired')
+          : state.reason === 'unavailable'
           ? t('actions.unavailable')
           : t('actions.notPermitted', { action: actionLabels[action] })
-    button.onclick = () => runAction(notification.id, action)
+    button.onclick = state.enabled ? () => runAction(notification.id, action) : null
   }
 }
 
@@ -549,12 +552,13 @@ function renderDetails(notification) {
   setText(document, '#detail-method', formatMethod(notification.method))
   setText(document, '#detail-policy', formatPolicy(notification.policy))
   updateActions(notification)
-  const unavailable = ['silence', 'acknowledge', 'clear'].filter(action => !actionAllowed(notification, action))
+  const unavailable = ['silence', 'acknowledge', 'clear'].filter(action => !sourceAllowsAction(notification, action))
   const notes = []
   if (notification.historyOnly) notes.push(t('detail.historical'))
   if (visualRules[notification.state]?.acknowledgeRequired && !notification.status?.acknowledged) notes.push(t('detail.acknowledgementRequired'))
-  if (notification.state === 'emergency' && !actionAllowed(notification, 'silence')) notes.push(t('detail.emergencyNoSilence'))
+  if (notification.state === 'emergency' && !sourceAllowsAction(notification, 'silence')) notes.push(t('detail.emergencyNoSilence'))
   if (unavailable.includes('clear')) notes.push(t('detail.clearNotPermitted'))
+  if (!notification.historyOnly && unavailable.length < 3 && !writeAuthorized) notes.push(t('actions.writePermissionRequired'))
   setText(document, '#detail-action-note', notes.join(' ') || t('detail.availableActions'))
   if (infoAutoCloseSeconds > 0) {
     infoCloseTimer = setTimeout(closeDetails, infoAutoCloseSeconds * 1000)
@@ -622,20 +626,11 @@ function bySeverity(left, right) {
   return String(right.lastUpdatedAt || '').localeCompare(String(left.lastUpdatedAt || ''))
 }
 
-function actionAllowed(notification, action) {
-  if (!isConnected || !configurationReady) return false
-  if (notification?.historyOnly) return false
-  const status = notification.status
-  if (!status) return false
-  if (action === 'silence') return notification.state !== 'emergency' && status.canSilence === true && status.silenced !== true
-  if (action === 'acknowledge') return status.canAcknowledge === true && status.acknowledged !== true
-  return !['normal', 'nominal'].includes(notification.state) && status.canClear === true
-}
-
 async function runAction(id, action, refreshAfter = true) {
   if (action === 'clear' && !window.confirm(t('actions.clearConfirm'))) return
   try {
     if (!isConnected || !configurationReady) throw new Error(t('actions.unavailable'))
+    if (!writeAuthorized) throw new Error(t('actions.writePermissionRequired'))
     const response = await fetch(`${pluginApi}/notifications/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -653,7 +648,14 @@ async function runAction(id, action, refreshAfter = true) {
 async function runGlobalAction(action) {
   try {
     if (!isConnected || !configurationReady) throw new Error(t('actions.unavailable'))
-    const response = await fetch(`${pluginApi}/notifications/action-all/${action}`, { method: 'POST' })
+    if (!writeAuthorized) throw new Error(t('actions.writePermissionRequired'))
+    const ids = globalActionTargetIds(activeNotifications, action)
+    if (ids.length === 0) return
+    const response = await fetch(`${pluginApi}/notifications/action-all/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    })
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
       throw new Error(body.message || response.statusText)
@@ -670,6 +672,7 @@ async function refresh() {
   clientPollDiagnostics.lastStartedAt = new Date(pollStartedMs).toISOString()
   try {
     const historyPromise = fetchJsonWithTimeout(`${pluginApi}/history`).catch(() => null)
+    const writeAccessPromise = probeWriteAccess()
     const notifications = await fetchJsonWithTimeout(`${pluginApi}/notifications`)
     isConnected = true
     clientPollDiagnostics.lastError = null
@@ -687,6 +690,7 @@ async function refresh() {
     shortcutInfo = typeof notifications.shortcutInfo === 'string' ? notifications.shortcutInfo : shortcutInfo
     shortcutHistory = typeof notifications.shortcutHistory === 'string' ? notifications.shortcutHistory : shortcutHistory
     knownNotifications = Array.isArray(notifications.notifications) ? notifications.notifications : []
+    writeAuthorized = await writeAccessPromise
     if (localizationReady) {
       renderAudioTest(currentAudioTest)
       renderNotifications(knownNotifications)
@@ -723,20 +727,84 @@ async function refresh() {
   }
 }
 
+/** Probe the readwrite middleware without changing notification state. */
+async function probeWriteAccess() {
+  try {
+    const response = await fetch(`${pluginApi}/write-access`, { cache: 'no-store' })
+    return response.ok
+  } catch (_error) {
+    return false
+  }
+}
+
 /** Show operational timings without changing any Signal K notification. */
 async function showDiagnostics() {
   const sheet = document.querySelector('#diagnostics-sheet')
   const content = document.querySelector('#diagnostics-content')
   sheet.setAttribute('aria-hidden', 'false')
   sheet.style.zIndex = '14'
-  content.textContent = t('diagnostics.loading')
+  content.replaceChildren(Object.assign(document.createElement('p'), { textContent: t('diagnostics.loading') }))
   try {
     const server = await fetchJsonWithTimeout(`${pluginApi}/diagnostics`)
-    content.textContent = JSON.stringify({ clientPoll: clientPollDiagnostics, server }, null, 2)
+    renderDiagnostics(content, buildDiagnosticsModel({ clientPoll: clientPollDiagnostics, server, webAppVersion, connected: isConnected }))
   } catch (error) {
-    content.textContent = JSON.stringify({ clientPoll: clientPollDiagnostics, diagnosticsError: error.message }, null, 2)
+    renderDiagnostics(content, buildDiagnosticsModel({ clientPoll: clientPollDiagnostics, webAppVersion, connected: isConnected, error }))
   }
   sheet.focus()
+}
+
+function renderDiagnostics(container, model) {
+  container.replaceChildren()
+  const summary = document.createElement('div')
+  summary.className = `diagnostics-summary diagnostics-status-${model.overall}`
+  summary.textContent = `${t('diagnostics.overall')}: ${t(`diagnostics.status.${model.overall}`)}`
+  container.append(summary)
+  if (model.reloadRequired) {
+    const warning = document.createElement('p')
+    warning.className = 'diagnostics-reload'
+    warning.textContent = t('diagnostics.reloadRequired')
+    container.append(warning)
+  }
+  for (const section of model.sections) {
+    const element = document.createElement('section')
+    element.className = `diagnostics-section diagnostics-status-${section.status}`
+    const heading = document.createElement('h3')
+    heading.textContent = t(`diagnostics.section.${section.key}`)
+    const list = document.createElement('dl')
+    list.className = 'diagnostics-list'
+    for (const entry of section.items) {
+      const row = document.createElement('div')
+      row.className = `diagnostics-row diagnostics-status-${entry.status}`
+      const term = document.createElement('dt')
+      term.textContent = t(`diagnostics.field.${entry.label}`)
+      const value = document.createElement('dd')
+      value.textContent = formatDiagnosticValue(entry.label, entry.value)
+      row.append(term, value)
+      list.append(row)
+    }
+    element.append(heading, list)
+    container.append(element)
+  }
+  const advanced = document.createElement('details')
+  advanced.className = 'diagnostics-advanced'
+  const advancedTitle = document.createElement('summary')
+  advancedTitle.textContent = t('diagnostics.advanced')
+  const raw = document.createElement('pre')
+  raw.className = 'detail-rules'
+  raw.textContent = JSON.stringify(model.raw, null, 2)
+  advanced.append(advancedTitle, raw)
+  container.append(advanced)
+}
+
+function formatDiagnosticValue(label, value) {
+  if (typeof value === 'boolean') return t(value ? 'diagnostics.value.yes' : 'diagnostics.value.no')
+  if (value === 'connected') return t('diagnostics.value.connected')
+  if (value === 'disconnected') return t('diagnostics.value.disconnected')
+  if (['healthy', 'warning', 'error', 'ready'].includes(value)) return t(`diagnostics.status.${value}`)
+  if (typeof value === 'string' && /At$|Started$|Completed$|Received$|LastWrite$/.test(label) && !Number.isNaN(Date.parse(value))) return i18n.dateTime(value)
+  if (typeof value === 'number' && /Duration$|Age$/.test(label)) return `${new Intl.NumberFormat(i18n.getLocale()).format(value)} ms`
+  if (typeof value === 'number') return new Intl.NumberFormat(i18n.getLocale()).format(value)
+  return String(value)
 }
 
 function closeDiagnostics() {
@@ -777,6 +845,7 @@ function markDisconnected() {
   if (!isConnected && healthBanner.hidden === false) return
   isConnected = false
   configurationReady = false
+  writeAuthorized = false
   updateHealthBanner()
   updateActions(activeNotifications.find(item => item.id === selectedId) || null)
   updateGlobalActions()
@@ -785,9 +854,13 @@ function markDisconnected() {
 function updateGlobalActions() {
   for (const button of actionBar.querySelectorAll('[data-global-action]')) {
     const action = button.dataset.globalAction
-    button.hidden = !hasGlobalActionTarget(knownNotifications, action)
-    button.disabled = !isConnected || !configurationReady
-    button.title = button.disabled ? t('actions.unavailable') : button.getAttribute('aria-label')
+    button.hidden = !hasGlobalActionTarget(activeNotifications, action)
+    button.disabled = !isConnected || !configurationReady || !writeAuthorized
+    button.title = !isConnected || !configurationReady
+      ? t('actions.unavailable')
+      : !writeAuthorized
+          ? t('actions.writePermissionRequired')
+          : button.getAttribute('aria-label')
   }
   const running = ['playing', 'awaiting_feedback'].includes(currentAudioTest.state)
   audioTestStart.disabled = !isConnected || !configurationReady || running

@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.1.76 - 2026-10-12
+
+- Make multiple Rule Builder `Activate` endpoints deterministic: independent
+  endpoints and duplicate fan-out are supported, complementary same-scope
+  branches merge recursively, and conflicting assignments fail the deploy
+  instead of depending on Node-RED JSON order.
+
+## 0.1.75 - 2026-10-12
+
+- Persist the last completed Alarm Sound Test in its own atomic data file so
+  its due date survives bounded History eviction, plugin updates, and Signal K
+  restarts. Retained legacy History state is migrated once when available.
+
+## 0.1.74 - 2026-10-12
+
+- Ship a safe, importable `Notification Engine - Release Flow` reference tab
+  for the embedded Signal K Node-RED editor. It documents every supported
+  Rule Builder option in grouped English examples while leaving every final
+  wire to `Activate` disconnected, so importing and deploying the tab does not
+  add a rule, start audio, or authorize external execution.
+
+## 0.1.73 - 2026-10-11
+
+- Keep the configured in-centre banner visible independently of table
+  visibility; `visibleInTable: true` no longer suppresses `display: banner`.
+
+## 0.1.72 - 2026-10-11
+
+- Render `display: banner` as a persistent strip in the Notification Centre;
+  only `display: overlay` uses the viewport attention layer.
+- Calm an acknowledged active emergency by removing its overlay while keeping
+  the authoritative emergency visible in the table and leaving audio under its
+  independent lifecycle and Silence controls.
+- Probe the Signal K readwrite boundary without mutation so a read-only browser
+  sees otherwise applicable actions disabled with a clear permission reason
+  before attempting them.
+
+## 0.1.71 - 2026-10-11
+
+- Resolve the local History decision once per occurrence and preserve it
+  through terminal transitions and exact restart correlation. A retained
+  occurrence keeps its final `normal` event; a suppressed occurrence no longer
+  creates an isolated terminal History fragment when its active-state rule
+  stops matching.
+
+## 0.1.70 - 2026-10-10
+
+- Hide the completed Plugin Config maintenance record from the active centre
+  after its exact-id clear, while preserving Signal K 2.33.0's authoritative
+  retained `normal` projection and the local audit history.
+
+## 0.1.69 - 2026-10-10
+
+- Make Signal K Plugin Config authoritative for the one-shot Test Notification
+  so an obsolete disabled Node-RED field cannot suppress the request.
+- Follow current Signal K `canAcknowledge` authority for visible `normal` and
+  `nominal` notifications instead of applying an additional local state ban.
+- Replace the Diagnostics JSON wall with localized Overview, Browser,
+  Server/Node-RED, Critical Inputs, Audio, External Tasks, History, and
+  Localization sections; retain complete raw data under Advanced and flag a
+  browser/server version mismatch as reload required.
+
+## 0.1.68 - 2026-10-10
+
+- Place the Sound Test file, one-shot Sound Test, and scheduled Alarm Sound
+  Test together beside the audio configuration.
+- Remove the four superseded Plugin Config history-cleanup fields; selected
+  local occurrences remain deletable in Notification Centre History.
+- Keep a Plugin Config test notification visible for its requested lifetime,
+  clear only its owned Signal K id, and reset the one-shot request only after
+  successful cleanup.
+
+## 0.1.67 - 2026-10-09
+
+- Clarify in the package and Signal K plugin descriptions that Node-RED nodes
+  are used to visually create and represent notification rules.
+- Show global acknowledge and silence controls only for eligible notifications
+  visible in the current table, and submit only those exact IDs for the bulk
+  action so hidden resolved records are not changed accidentally.
+
+## 0.1.66 - 2026-10-09
+
+- Add bounded external-task delivery for connected Rule Builder
+  `payload.execute` branches. Exact per-file Plugin Config grants, direct
+  no-shell spawn, once-per-occurrence restart persistence, concurrency,
+  timeout/process-group termination, bounded output, local audit and
+  Diagnostics keep task results separate from Signal K notification state.
+- Ship the updated Notification Engine application icon.
+
+## 0.1.65 - 2026-10-08
+
+- Record every notification resolved as visible in the active table by
+  default. Explicit `history: true` and `history: false` policy overrides keep
+  precedence, including for deliberately hidden notifications.
+
 ## 0.1.64 - 2026-10-08
 
 - Start authoritative Signal K polling independently of localization loading.

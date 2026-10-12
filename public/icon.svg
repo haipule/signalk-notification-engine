@@ -1,7 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Notification Engine">
-  <rect width="64" height="64" rx="12" fill="#101d2d"/>
-  <path d="M32 10c-9 0-16 7-16 16v12l-5 7v5h42v-5l-5-7V26c0-9-7-16-16-16Z" fill="#edaf40"/>
-  <circle cx="32" cy="55" r="4" fill="#e7eef8"/>
-  <path d="M32 17v15" stroke="#101d2d" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="32" cy="38" r="2.5" fill="#101d2d"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Notification Engine icon, proposal 1">
+  <defs>
+    <style>
+      .bg { fill: #0b1f36; }
+      .cyan-stroke { stroke: #35dbe8; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .cyan-fill { fill: #35dbe8; }
+      .navy-fill { fill: #0b1f36; }
+      .orange-fill { fill: #ff8f2c; }
+      .orange-stroke { stroke: #ff8f2c; stroke-linecap: round; fill: none; }
+      .blue-fill { fill: #0b49d6; }
+      .yellow-fill { fill: #f5cf14; }
+    </style>
+  </defs>
+
+  <!-- background -->
+  <rect class="bg" x="0" y="0" width="64" height="64" rx="12"/>
+
+  <!-- outer nodes -->
+  <g>
+    <circle cx="15" cy="15" r="3.4" fill="#0b1f36" stroke="#35dbe8" stroke-width="1.8"/>
+    <circle cx="49" cy="15" r="3.4" fill="#0b1f36" stroke="#35dbe8" stroke-width="1.8"/>
+    <circle cx="15" cy="49" r="3.4" fill="#0b1f36" stroke="#35dbe8" stroke-width="1.8"/>
+    <circle cx="49" cy="49" r="3.4" fill="#0b1f36" stroke="#35dbe8" stroke-width="1.8"/>
+    <circle class="cyan-fill" cx="15" cy="15" r="1.55"/>
+    <circle class="cyan-fill" cx="49" cy="15" r="1.55"/>
+    <circle class="cyan-fill" cx="15" cy="49" r="1.55"/>
+    <circle class="cyan-fill" cx="49" cy="49" r="1.55"/>
+  </g>
+
+  <!-- connector lines -->
+  <g class="cyan-stroke" stroke-width="1.8">
+    <path d="M15 18.4v5.8c0 0.9 0.7 1.6 1.6 1.6h7.9"/>
+    <path d="M49 18.4v5.8c0 0.9-0.7 1.6-1.6 1.6h-7.9"/>
+    <path d="M15 45.6v-5.8c0-0.9 0.7-1.6 1.6-1.6h7.9"/>
+    <path d="M49 45.6v-5.8c0-0.9-0.7-1.6-1.6-1.6h-7.9"/>
+  </g>
+
+  <!-- center hub -->
+  <g>
+    <circle cx="32" cy="32" r="12.7" fill="#0b1f36" stroke="#35dbe8" stroke-width="2.0"/>
+    <circle class="cyan-fill" cx="24.7" cy="25.8" r="1.25"/>
+    <circle class="cyan-fill" cx="39.3" cy="39.2" r="1.25"/>
+    <circle class="cyan-fill" cx="24.7" cy="39.2" r="1.25"/>
+    <circle class="cyan-fill" cx="39.3" cy="25.8" r="1.25"/>
+  </g>
+
+  <!-- alert dot and signal arcs -->
+  <g>
+    <circle class="orange-fill" cx="40.8" cy="24.6" r="2.35"/>
+    <path class="orange-stroke" stroke-width="1.6" d="M42.6 23.1c1.5 0.55 2.85 1.62 3.72 2.94"/>
+    <path class="orange-stroke" stroke-width="1.6" d="M43.1 20.9c2.24 0.82 4.22 2.42 5.53 4.47"/>
+  </g>
+
+  <!-- Signal K logo in center -->
+  <g transform="translate(32 33) rotate(-18) translate(-32 -33)">
+    <!-- blue bottle -->
+    <path class="blue-fill" d="M31.4 25.3h3.2c0.3 0 0.6 0.3 0.6 0.6v1.2c0 0.5 0.2 1 0.6 1.4l2.4 2.4c0.8 0.8 1.2 1.9 1.2 3v4.2c0 1.5-1.2 2.8-2.8 2.8h-9.3c-1.5 0-2.8-1.2-2.8-2.8V34c0-1.1 0.4-2.2 1.2-3l2.4-2.4c0.4-0.4 0.6-0.9 0.6-1.4v-1.2c0-0.3 0.3-0.6 0.6-0.6z"/>
+    <!-- yellow stripe -->
+    <path class="yellow-fill" d="M28.9 29.9h2.2c0.45 0 0.82 0.37 0.82 0.82v9.1c0 0.45-0.37 0.82-0.82 0.82h-2.2c-0.45 0-0.82-0.37-0.82-0.82v-9.1c0-0.45 0.37-0.82 0.82-0.82z"/>
+    <!-- wave -->
+    <path class="blue-fill" d="M23.8 38.9c2.2 1.15 4.2 1.62 6.1 1.62 3.0 0 5.77-1.18 8.9-3.07 0.35-0.21 0.8 0.21 0.56 0.55-2.16 3.02-5.51 4.95-9.4 4.95-2.65 0-5.03-0.89-7.03-2.43-0.44-0.34-0.18-0.9 0.37-1.62 0.14-0.18 0.3-0.16 0.5 0z"/>
+  </g>
 </svg>

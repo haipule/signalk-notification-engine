@@ -4,7 +4,7 @@ const assert = require('node:assert/strict')
 const test = require('node:test')
 const { migratePluginOptions } = require('../lib/plugin-options-migration')
 
-test('removes only known Node-RED-owned legacy plugin settings', () => {
+test('removes only known superseded legacy plugin settings', () => {
   const original = {
     audioPlayer: 'aplay',
     audioDevice: 'plughw:2,0',
@@ -14,7 +14,11 @@ test('removes only known Node-RED-owned legacy plugin settings', () => {
     historyStates: ['alarm'],
     stateOrder: ['warn', 'normal'],
     soundsByState: { alarm: { mode: 'loop', repeatCount: 1 } },
-    historyRules: [{ pathPrefix: 'notifications.' }]
+    historyRules: [{ pathPrefix: 'notifications.' }],
+    clearHistoryOnStart: false,
+    clearHistoryPath: 'notifications.engine',
+    clearHistoryPathOnSave: false,
+    clearHistoryOccurrenceId: 'old-occurrence'
   }
 
   const result = migratePluginOptions(original)
@@ -25,7 +29,17 @@ test('removes only known Node-RED-owned legacy plugin settings', () => {
     alarmSoundTest: { intervalDays: 1 },
     historyLimit: 500
   })
-  assert.deepEqual(result.removedFields.sort(), ['classificationRules', 'historyRules', 'historyStates', 'soundsByState', 'stateOrder'])
+  assert.deepEqual(result.removedFields.sort(), [
+    'classificationRules',
+    'clearHistoryOccurrenceId',
+    'clearHistoryOnStart',
+    'clearHistoryPath',
+    'clearHistoryPathOnSave',
+    'historyRules',
+    'historyStates',
+    'soundsByState',
+    'stateOrder'
+  ])
   assert.equal(result.changed, true)
   assert.ok(original.soundsByState)
 })

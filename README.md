@@ -18,7 +18,7 @@ The current Node-RED prototype is in [node-red/prototype](node-red/prototype/REA
 
 ## Current status
 
-The project is an active development build (`0.1.34`). The plugin currently
+The project is an active development build (`0.1.67`). The plugin currently
 provides an active-notification WebApp, snapshot/delta reconstruction,
 capability-checked Signal K actions, local lifecycle/history persistence,
 classification, presentation and audio policies, and the first Node-RED flow
@@ -32,8 +32,8 @@ contain changes that have not yet been deployed to the Raspberry Pi.
 
 - All notifications are visible, including unknown ones.
 - Signal K remains authoritative for notification state and lifecycle.
-- The manager applies local policies: display priority, audio,
-  repetition, retention, and later external actions.
+- The manager applies local policies: display priority, audio, repetition,
+  retention, and bounded per-file external task delivery.
 - `silence`, `acknowledge`, and `clear` are separate operations and only shown
   when Signal K permits them.
 - Existing alarm producers remain authoritative. The retained Node-RED
@@ -61,6 +61,15 @@ Global Silence is shown only for unfinished local audio whose Signal K source
 permits silence; global Acknowledge is shown only while an unacknowledged,
 permitted target exists. Data refreshes automatically every five seconds and
 after browser reconnect, so there is no separate in-app refresh control.
+
+The Plugin Config `Test Notification` is a one-shot maintenance aid. Saving
+with `Run Test Notification Once` enabled raises one clearly marked Signal K
+notification, keeps it visible for the configured duration, clears only the id
+returned for that test, and then turns the request off. Signal K may retain the
+cleared record as `normal`; the completed maintenance record is no longer shown
+in the active Notification Engine view. Interrupted or failed cleanup does not
+silently consume the request.
+
 Audio uses one playback count: `0` loops, `1` plays once, and `2` through `99`
 play exactly that many times. Optional `payload.sound.pauseSeconds` accepts
 only whole seconds from `0` through `5` and delays playback only between
@@ -81,6 +90,26 @@ the audio connection and never completes or reschedules the operator-confirmed
 Alarm Sound Test.
 Full automatic amplifier/loudspeaker verification requires hardware loopback
 or a microphone.
+
+### External tasks
+
+A connected Rule Builder branch may request one external task by setting
+`payload.execute` to an absolute path and reaching `Activate`. The branch does
+not need or accept a second activation flag. Signal K Plugin Config remains the
+authorization boundary: the exact same path must appear under `External Tasks`
+with its per-file `Enabled` switch on. Each entry also defines a timeout and
+whether an explicit `normal`-state recovery rule may use it; the section sets a
+global concurrency limit from one through four.
+
+The engine starts the path directly with no dynamic arguments and no additional
+command shell. Executable shell scripts work normally through their shebang,
+and files or symbolic links are left to normal operating-system resolution.
+The engine attempts an accepted path at most once per notification occurrence,
+does not retry, terminates its process group at timeout or plugin stop, and
+limits captured stdout and stderr. Start errors, exit status and timeout are
+local audit and Diagnostics results only. They never alter, silence,
+acknowledge, clear, or normalize the originating Signal K notification and do
+not create another alarm lifecycle.
 
 ### Audio device selection
 

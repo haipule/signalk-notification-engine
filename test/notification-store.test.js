@@ -256,6 +256,60 @@ test('does not record an initially hidden normal occurrence', () => {
   assert.equal(store.history().length, 0)
 })
 
+test('keeps an initially suppressed occurrence out of history through normal and clear', () => {
+  const store = new NotificationStore({
+    classify,
+    shouldRecord: notification => notification.state === 'normal'
+  })
+  const delta = value => ({ updates: [{ values: [{
+    path: 'notifications.custom.suppressed',
+    value
+  }] }] })
+
+  store.applyDelta(delta({ id: 'suppressed-1', state: 'alarm', message: 'Alarm' }))
+  store.applyDelta(delta({ id: 'suppressed-1', state: 'normal', message: 'OK' }))
+  store.applyDelta(delta(null))
+
+  assert.equal(store.history().length, 0)
+})
+
+test('re-evaluates history policy for a new occurrence after the prior one ends', () => {
+  let enabled = false
+  const store = new NotificationStore({ classify, shouldRecord: () => enabled })
+  const delta = value => ({ updates: [{ values: [{ path: 'notifications.custom.repeat', value }] }] })
+
+  store.applyDelta(delta({ id: 'repeat-1', state: 'alarm', message: 'First' }))
+  store.applyDelta(delta(null))
+  enabled = true
+  store.applyDelta(delta({ id: 'repeat-2', state: 'alarm', message: 'Second' }))
+
+  assert.equal(store.history().length, 1)
+  assert.equal(store.history()[0].notification.message, 'Second')
+})
+
+test('preserves a suppressed occurrence decision across exact restart correlation', () => {
+  const original = new NotificationStore({ classify, shouldRecord: () => false })
+  const active = { updates: [{ source: { label: 'sensor' }, values: [{
+    path: 'notifications.custom.restart-suppressed',
+    value: { id: 'restart-suppressed-1', state: 'alarm', message: 'Alarm' }
+  }] }] }
+  original.applyDelta(active)
+  const saved = original.restartSnapshot()
+  assert.equal(saved[0].historyRecording, false)
+
+  const restored = new NotificationStore({ classify, shouldRecord: () => true })
+  restored.restoreExactOccurrences(saved)
+  restored.applyDelta(active)
+  restored.applyDelta({ updates: [{ source: { label: 'sensor' }, values: [{
+    path: 'notifications.custom.restart-suppressed',
+    value: { id: 'restart-suppressed-1', state: 'normal', message: 'OK' }
+  }] }] })
+
+  assert.equal(restored.list()[0].occurrenceId, saved[0].occurrenceId)
+  assert.equal(restored.list()[0].historyRecording, false)
+  assert.equal(restored.history().length, 0)
+})
+
 test('restores an occurrence only for an exactly identical notification', () => {
   const original = {
     id: 'same-id', path: 'notifications.navigation.heading', source: { label: 'gnss' },

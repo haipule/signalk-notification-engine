@@ -26,6 +26,12 @@
 - Local policies match state, path prefix, source, and conditions. They affect
   presentation priority, visibility, and future audio behaviour; they never
   modify an alarm's Signal K `state` or manually assign a category.
+- `node-red/notification-engine-release-flow.json` is the publication reference
+  tab for the embedded Signal K Node-RED builder. Its examples are grouped by
+  purpose, but grouping has no rule semantics. As shipped, every final wire to
+  the single node named exactly `Activate` is disconnected, so importing and
+  deploying the tab creates no rule. The operator must deliberately connect a
+  complete branch to `Activate` before that branch can affect notifications.
 
 ## API routes
 
@@ -34,6 +40,7 @@
 | GET | `/plugins/signalk-notification-engine/notifications` | readonly | Active reconstructed notifications and effective policy. |
 | GET | `/plugins/signalk-notification-engine/history` | readonly | Bounded persistent local audit history (500 entries by default). |
 | GET | `/plugins/signalk-notification-engine/diagnostics` | readonly | Snapshot/delta timings, critical-input freshness, Node-RED configuration, audio process/result and playback signatures, and local-history persistence health. |
+| GET | `/plugins/signalk-notification-engine/write-access` | readwrite | Non-mutating browser authorization probe used to disable otherwise applicable actions before a click. |
 | POST | `/plugins/signalk-notification-engine/audio-test/start` | readwrite | Start one bounded audible maintenance tone and open the 15-second feedback window after technical success. |
 | POST | `/plugins/signalk-notification-engine/audio-test/heard` | readwrite | Record explicit human confirmation that the technically successful tone was heard. |
 | POST | `/plugins/signalk-notification-engine/audio-test/not-heard` | readwrite | Record explicit inaudible feedback while that feedback window is open. |
@@ -78,6 +85,9 @@
   offers explicit `Alarm heard` and `Sound not heard` choices for 15 seconds.
   Positive feedback records human audibility immediately. Silence after that
   window is an operational pass, not evidence that a human heard the tone.
+  The last terminal result is stored separately in atomic
+  `audio-self-test.json`, so bounded History eviction cannot reset its due
+  date. History remains the operator audit and is not the scheduling store.
   Its Plugin Config interval accepts zero through 30 days; zero hides the
   WebApp control and rejects direct start requests. The separate Plugin Config
   `Sound Test` is a one-shot audio-connection check and does not complete or
@@ -85,6 +95,12 @@
 - The Plugin Config also controls the combined state visibility/sort order, info-window auto-close
   timeout, and the `i`/`h` keyboard shortcuts. A zero timeout keeps the info
   window open until it is closed manually.
+- Diagnostics is a localized, read-only operator view with separate Overview,
+  Browser, Server/Node-RED, Critical Inputs, Audio, External Tasks, History,
+  and Localization sections. The browser-embedded WebApp version is compared
+  with the server plugin version and shows `Reload required` on a mismatch.
+  The complete unmodified diagnostic payload remains available only under the
+  collapsed Advanced section.
 - The WebApp polls every five seconds, permits a bounded twelve-second
   notification response, and marks the view stale after fifteen seconds
   without success. One failed or navigation-aborted poll retains the last
@@ -114,21 +130,19 @@
   place an older occurrence ahead of a newer one. The combined view has no
   delete action; cleanup remains scoped to one selected local occurrence and
   never changes the Signal K notification lifecycle.
-- The local `occurrenceId` is shown in notification details and can be entered
-  in `Clear History Occurrence ID` for configuration-based cleanup.
+- The local `occurrenceId` is shown in notification details and is the exact
+  scope used by the selected History entry's authenticated Delete action.
 - A rule with `visibleInTable: true` records history by default. An explicit
   `history: true` or `history: false` on the same Node-RED rule overrides that
   default. History is therefore no longer forced by notification state; a rule
-  can match a notification path, source label, or both.
-- `clearHistoryOnStart` is a one-shot cleanup switch in Plugin Config. Enable
-  it, restart the plugin, then disable it again; it removes the local history
-  file but does not alter Signal K notifications.
-- A safer targeted cleanup is available with `clearHistoryPath` and
-  `clearHistoryPathOnSave`. Saving the Plugin Config removes only non-critical
-  history events whose path starts with the configured prefix; `alarm` and
-  `emergency` entries are retained.
-- The WebApp can delete the complete local audit history after confirmation;
-  this does not call any Signal K notification action. `historyRetentionDays`
+  can match a notification path, source label, or both. The resolved decision
+  is retained for the complete local `occurrenceId`: retained occurrences keep
+  their final transition, while suppressed occurrences cannot create an
+  isolated `normal` fragment after their active-state rule stops matching.
+  Exact restart correlation preserves this local decision.
+- The four former Plugin Config cleanup fields have been removed. Manual
+  deletion belongs to the selected occurrence in Notification Centre History
+  and never calls a Signal K notification action. `historyRetentionDays`
   optionally removes old local audit events at startup; zero disables it.
 - The History window can delete only the selected notification lifecycle by
   its local `occurrenceId`.
@@ -211,3 +225,9 @@ selected-notification info window. Clear requires an explicit confirmation
 before the WebApp asks Signal K to change its authoritative state. Global
 `silence all` and `acknowledge all` actions remain below the table. History entries are
 grouped by day, with the date shown once per day.
+Signal K capability and browser authorization are evaluated independently: an
+otherwise applicable action stays visible but disabled when the current
+browser lacks readwrite permission, with a localized explanation. Banner
+presentation remains in the Centre layout; only overlays use the viewport
+attention layer. Acknowledging an emergency removes that overlay without
+changing state or stopping its independently managed audio.

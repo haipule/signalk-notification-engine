@@ -54,6 +54,16 @@ test('does not repeat an already acknowledged action', async () => {
   await assert.rejects(actions.execute(record({ status: { canAcknowledge: true, acknowledged: true } }), 'acknowledge'), /cannot be acknowledged/)
 })
 
+test('allows acknowledgement in normal and nominal state when Signal K permits it', async () => {
+  const acknowledged = []
+  const actions = new NotificationActions({ notifications: { acknowledge: id => acknowledged.push(id) } })
+
+  await actions.execute(record({ id: 'normal-1', state: 'normal' }), 'acknowledge')
+  await actions.execute(record({ id: 'nominal-1', state: 'nominal' }), 'acknowledge')
+
+  assert.deepEqual(acknowledged, ['normal-1', 'nominal-1'])
+})
+
 test('never applies operator lifecycle actions to the audio system notification', async () => {
   const actions = new NotificationActions({ notifications: { clear() { throw new Error('must not call') } } })
   const system = record({ path: 'notifications.system.notificationEngine.audio' })

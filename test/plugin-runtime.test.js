@@ -21,6 +21,20 @@ test('loads mandatory Node-RED configuration before returning a lifecycle token'
   assert.deepEqual(written[0], [[{ name: 'one' }], 'one'])
 })
 
+test('keeps the Plugin Config test request authoritative over an obsolete Node-RED value', async () => {
+  const runtime = new PluginRuntime({
+    getNodeRed: () => ({}),
+    readConfiguration: async () => ({
+      checksum: 'one', rules: [], config: { notificationEngine: { testNotif: { enabled: false } } }
+    }),
+    subscribeToDeploy: () => () => {}, applyConfiguration: () => {}, writeRules: () => {}, suspend: () => {}, resume: async () => {}
+  })
+
+  const started = await runtime.start({ testNotif: { enabled: true, state: 'alert' } })
+
+  assert.deepEqual(started.flowOptions.testNotif, { enabled: true, state: 'alert' })
+})
+
 test('latches invalid reload fail-closed and retries only on forced deploy', async () => {
   const reads = [config('one'), new Error('invalid flow'), config('two')]
   let suspended = 0

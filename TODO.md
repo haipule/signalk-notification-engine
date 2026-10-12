@@ -1,5 +1,210 @@
 # TODO
 
+## Prioritized open work
+
+This list is the authoritative execution order for the remaining work. Detailed
+evidence and older completed work remain below for traceability.
+
+### P0 — Complete before release preparation
+
+1. [x] Accept the deployed structured Diagnostics view on Tab 3. Verify the
+   Overview and Browser, Server/Node-RED, Critical Inputs, Audio, External
+   Tasks, History, and Localization sections, then confirm that Advanced still
+   exposes the unmodified raw diagnostics. Accepted by the operator on
+   2026-10-10; the structured view looks correct on Tab 3.
+2. [x] Verify the Rule Builder History branch with bounded synthetic
+   notifications: connected `history: true`, explicit `history: false`, and
+   the `visibleInTable` default. Confirm that alarm and emergency use the same
+   resolution rules and are not hard-coded retention exceptions. Run this
+   first, using dedicated test paths with sound explicitly disabled; do not
+   touch real Hoekens, GPS, or bilge producers. Paused on 2026-10-10 before a
+   valid deploy: the first import was rejected because its Node-RED 4 node
+   definitions omitted required editor defaults. The corrected local fixture
+   is `node-red/history-live-test.json`. No test notification was raised. The
+   Pi flow was restored byte-for-byte to the pre-test SHA-256
+   `5dd406112b94abe6f842382a5a4cdbf25e738dc3ef5b403ab0487cad16b5a004`;
+   configuration remained ready and audio remained idle. Resume by importing
+   the corrected fixture, checking for invalid nodes, and only then deploying.
+   The resumed live test on 2026-10-11 proved the initial decisions: visible
+   default `warn` and hidden `history: true` alert were recorded, while
+   `history: false` suppressed the active alarm and emergency events. It also
+   exposed isolated final `normal` entries after those state-specific rules no
+   longer matched. The agreed correction is occurrence-scoped history: resolve
+   once at the start of the local occurrence, retain the decision through its
+   terminal transition and across exact restart correlation. Version 0.1.71
+   implemented and unit-tested that correction. The clean 2026-10-11 live
+   retest used four new `hist2-*` paths: the visible default `warn` and hidden
+   explicit `history: true` alert each retained both `raised` and final
+   `updated/normal` under one occurrence ID; explicit `history: false`
+   suppressed the complete alarm and emergency occurrences, including their
+   final `normal`. All rules had `sound.active: false`; no test audio ran. The
+   temporary block was removed, and the productive flow returned byte-for-byte
+   to SHA-256
+   `5dd406112b94abe6f842382a5a4cdbf25e738dc3ef5b403ab0487cad16b5a004`
+   with ready revision
+   `ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`.
+3. [x] Verify the three agreed presentation rules against the current code and
+   add focused tests before the broader regression: `banner` is the fixed
+   in-centre strip, ACK calms an active emergency overlay without stopping its
+   audio, and missing browser write authorization leaves applicable actions
+   visible but disabled with a clear explanation. Version 0.1.73 is deployed:
+   the operator confirmed the real GNSS `warn` as an in-centre banner while it
+   remained in the table, without an overlay, and confirmed that Acknowledge
+   was available in the authenticated Tab 3 session. Focused tests prove that
+   acknowledging an emergency removes its overlay without stopping or
+   restarting audio. Separate action-availability tests distinguish Signal K
+   source denial from missing browser write permission and retain an otherwise
+   applicable action as visible but disabled. The non-mutating live readwrite
+   probe returned 401 without credentials; the authorized Tab 3 action was
+   enabled. All 238 tests passed.
+4. [x] Run one bounded current-version regression for synthetic `warn`,
+   `alarm`, `emergency`, and a Hoekens-compatible path. Verify table display,
+   complete raised/update/action/final-normal history, Signal K-permitted
+   actions, and audio. Audible cases require a confirmed safe acoustic window.
+   Passed with deployed `0.1.73` on 2026-10-11/12 in an explicitly confirmed
+   acoustic window. The operator confirmed expected visual and audible output
+   for all four cases. `warn` recorded Acknowledge and final `normal`; `alarm`
+   recorded Silence, Acknowledge, their authoritative status updates and final
+   `normal`; `emergency` exposed no Silence, Acknowledge removed only the
+   overlay while its siren continued, and the permitted German
+   `Zurücksetzen` action stopped presentation and audio. A temporary exact-path
+   rule applied the Hoekens `2bells.wav` loop semantics only to the isolated
+   `runtimeTest.release-anchor` slot; Silence, Acknowledge and final `normal`
+   all remained in one occurrence. The real anchor notification stayed
+   `normal`. After removal, the productive flow returned byte-for-byte to
+   SHA-256
+   `5dd406112b94abe6f842382a5a4cdbf25e738dc3ef5b403ab0487cad16b5a004`
+   and revision
+   `ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`.
+   The temporary access client and token file were removed; one approved
+   Signal K restart reloaded security and ended with zero test slots, audio
+   processes, retries, breakers or unresolved failures.
+5. [x] Decide the three remaining presentation rules before changing code:
+   Builder `display: banner` versus the rendered overlay, overlay behaviour for
+   an acknowledged active emergency, and the explanation shown to a read-only
+   browser when write authorization is unavailable. Decision on 2026-10-10:
+   `banner` is a fixed strip inside the Notification Centre. Acknowledging an
+   active emergency removes/calms the attention overlay but neither changes
+   the Signal K state nor stops its independent audio. A readable but
+   unauthorized action remains visible and disabled with a clear permission
+   explanation.
+6. [x] Replace the development prototype with a safe, importable Node-RED
+   reference flow for publication, delivered as a separate tab named
+   `Notification Engine - Release Flow` so importing it does not replace the
+   operator's existing production tab. It must include one node for every
+   supported Rule Builder option. Every node's Info/description must state its
+   purpose, accepted value or range, a concrete example, and any important
+   interaction or safety boundary. The flow-level description must explain the graphical
+   message-flow concept and prominently state that an uninterrupted wire from
+   the notification/state source through the selected option nodes to a node
+   named exactly `Activate` is required for any effect. Importing the reference
+   flow must not silently enable any rule, sound, or external-task action:
+   display one clearly marked minimal Quick Start and otherwise disconnected,
+   copyable examples, but leave every final wire to `Activate` disconnected by
+   default. Include examples for general state defaults, path-specific
+   overrides, conditions, table/banner/overlay presentation, history true and
+   false, sound active/file/count/pause, ignore, and exact-path external task
+   delivery. Keep protected authorization such as external-task grants in
+   Plugin Config, not in the flow. Completed in `0.1.74`: the 45-object
+   `Notification Engine - Release Flow` tab groups Instructions, Quick Start,
+   Notification States, Match Scope, Display and History, Sound, and Control
+   and External Delivery. Every instructional node has English Info text, and
+   every final wire to `Activate` is disconnected. Automated extraction
+   returns zero rules as shipped; connecting only the Quick Start final wire
+   produces exactly one table-visible `alert` rule. The operator imported and
+   deployed the complete inactive tab beside the existing production flow.
+   Live configuration remained ready with the same ten rules and revision,
+   zero release-flow rule references, zero runtime test notifications, and no
+   audio process, retry, breaker, or unresolved failure.
+7. [x] Verify and document multiple `Activate` endpoints. Multiple nodes named
+   exactly `Activate` are supported when each terminates a deliberate complete
+   branch. Add extractor coverage for separate endpoints and fan-out to more
+   than one endpoint. Reject or otherwise make deterministic any parallel
+   same-scope branches that assign conflicting values to the same action; do
+   not publish a reference flow whose result depends on Node-RED array order.
+   Completed in `0.1.76`: focused extractor tests cover independent endpoints,
+   duplicate fan-out, recursive merging of complementary nested sound fields,
+   reversed conflict order, and conflicting legacy/canonical sound aliases.
+   Conflicts now fail closed with the exact action path instead of allowing
+   serialized Node-RED order to choose a value. The deployed implementation
+   accepted the live 240-node embedded flow as the same ten production rules
+   and unchanged revision; Node-RED configuration and runtime deploy events
+   remained ready after restart.
+8. [ ] Replace global Node-RED scanning and the legacy `Notification Engine
+   config` inject node with one explicitly selected Rule Builder tab. Complete
+   the migration in this order:
+
+   1. [ ] Add a Plugin Config selector that lists only active tabs from the
+      embedded Signal K Node-RED instance by name, stores the stable tab ID,
+      and shows the selected ID read-only.
+   2. [ ] Restrict configuration and rule extraction to the selected tab ID.
+      Fail closed when the selection is missing, absent, or later disabled;
+      never fall back to a tab label and never scan other tabs for rules.
+   3. [ ] Remove configurable `stateOrder` and `visibleStates`. Use the fixed
+      Signal K descending severity order `emergency`, `alarm`, `warn`,
+      `alert`, `normal`, `nominal`, while keeping unknown states visible.
+   4. [ ] Pass all Rule Builder treatment fields through to their runtime
+      consumers and test them: display, color/hex, flash, visibility, history,
+      sound, ignore, and execute. Keep `acknowledgeRequired` as a display hint
+      only; Signal K remains authoritative for action permission.
+   5. [ ] Keep host, maintenance, persistence, browser, and exact external-task
+      authorization settings in Plugin Config. Remove obsolete classification,
+      history-state, and Node-RED test-notification configuration copies.
+   6. [ ] Migrate the current installation to tab ID
+      `tab-adjective-mapping` and demonstrate source, deployed-rule, runtime,
+      and WebApp parity while the legacy config node is still present. Only
+      after that proof may the old config node be removed and deployed.
+   7. [ ] Update the release flow and documentation so a new user selects the
+      intended active flow directly and does not import or depend on a hidden
+      configuration node or file.
+9. [ ] Rewrite the README as a short user entry point: purpose, requirements,
+   installation, five-minute Quick Start, Signal K authority/safety boundary,
+   and links to detailed documentation. Move the complete setup and operation
+   material to `docs/user-guide.md`, including Plugin Config, importing and
+   wiring the reference flow, the node catalog, deployed-rule verification,
+   Notification Centre actions, audio tests, history, external tasks,
+   Diagnostics, upgrades, troubleshooting, and rollback. Keep developer and
+   architecture detail in their existing dedicated documents.
+10. [ ] Reconcile the current safety matrix and release documentation with the
+   results above. Do not describe the real-producer gaps below as passed.
+
+### P1 — Explicit release-risk decisions
+
+1. [ ] Decide whether active Hoekens alarm continuity across a full Signal K
+   restart is a release blocker or a documented upstream limitation. If it is
+   a blocker, fix/retest it in a new safe anchor window; otherwise record the
+   accepted limitation precisely.
+2. [ ] Inform the Hoekens maintainer about the producer-ID change observed for
+   one continuing drag alarm across a Signal K restart.
+3. [ ] Perform the real Android GPS loss/recovery test in a separate safe
+   window, or explicitly accept it as an outstanding release limitation.
+4. [x] Perform the real bilge-producer test using an approved safe input method.
+   The operator physically triggered the starboard bilge input on 2026-10-11
+   and confirmed the expected visual and audible alarm behaviour. Persisted
+   History independently records
+   `notifications.environment.bilgeWater.stbd` from `engineroomStbd.XX` as
+   `alarm` with message `Bilge water detected in starboard engine room` at
+   12:39:16 UTC and its return to `normal`/`Watching` at 12:39:21 UTC under the
+   same occurrence ID `occurrence-1791677618190-pr539q0jyud`. The current live
+   projection is normal and audio diagnostics are idle and healthy.
+5. [ ] Report the Signal K 2.33.0 stale `acknowledgedAt` inconsistency upstream;
+   keep the raw authoritative fields unchanged locally.
+
+### P2 — Publication infrastructure
+
+1. [ ] Create the GitHub repository under user `haipule`, add the remote, push
+   the reviewed baseline, and require a successful independent CI run.
+2. [ ] Create the first release tag and publication artifact only after P0 is
+   complete and every P1 item is either passed or explicitly accepted and
+   documented.
+
+### P3 — After the first release
+
+- Evaluate ntfy/Gotify, alternative UI themes, history export, update-safe
+  Node-RED examples, system-wide desktop/kiosk alerts, additional audio
+  backends, and SQLite only as separate post-release work. Browser audio is not
+  a current safety channel and the Notification Centre remains display- and
+  Signal-K-action-oriented; administrative test triggers stay in Plugin Config.
 - [x] Remove the false disconnected-banner flash during Tab 3 pull-to-refresh.
   Full-frame Android recordings identified the final cause: authoritative
   polling waited for slow localization startup, allowing the freshness timer
@@ -322,23 +527,70 @@
   Flows unter `/home/pi/.node-red` bleiben für dieses Projekt tabu.
 - [ ] Verbleibende Pi-Testmatrix abschließen: Hoekens-History und Kontinuität
   beim aktiven Alarm über einen vollständigen Signal-K-Neustart sowie reale
-  Android-UDP-Ausfall/-Wiederkehr und Bilge-Produzentenprüfung. Die normalen
+  Android-UDP-Ausfall/-Wiederkehr. Die reale Bilge-Produzentenprüfung ist am
+  2026-10-11 bestanden. Die normalen
   Hoekens-Zustände `warn`, `alarm`, `normal` und `null`, neue Ankervorgänge nach
   ACK sowie wiederverwendete IDs wurden bereits real geprüft.
   The `0.1.64` release audit now separates historical failures from current
   evidence. Complete or explicitly accept the following real-producer gaps
   before publishing npm artifacts or claiming complete production coverage;
   repository and CI preparation may proceed without implying release:
-  - [ ] Repeat the bounded current-version regression for simulated `warn`,
+  - [x] Repeat the bounded current-version regression for simulated `warn`,
     `alarm`, `emergency`, and Hoekens-path notifications. Verify complete
     raised/update/action/final-normal history, current display mode, sound,
     and permitted actions. These runtime slots do not require a Signal K
     restart, but audible output still requires an approved acoustic window.
-  - [ ] Resolve the release presentation decisions exposed by the historical
+    Passed with deployed `0.1.73` on 2026-10-11/12; see prioritized P0 item 4
+    and `docs/e2e-safety-matrix.md` for the complete acceptance evidence.
+  - [ ] Verify the Rule Builder `History: enabled` branch with a bounded test
+    notification. Prove that an explicitly connected `payload.history: true`
+    branch is retained, while `history: false` overrides table visibility.
+    Alarm and emergency states must not receive hard-coded retention; they use
+    the same resolved visibility/history policy as every other notification.
+  - [x] Complete the live acceptance test for the implemented Rule Builder
+    `Execute: file` branch. Version `0.1.66` uses only a connected absolute
+    `payload.execute` path; no redundant activation flag exists. Signal K
+    Plugin Config authorizes the exact path with a per-file switch, timeout and
+    optional normal-state permission. The runner provides direct no-shell
+    delivery, at-most-once restart persistence, concurrency limits, bounded
+    output, local audit and Diagnostics without changing notification state or
+    creating another alarm. Test only the harmless executable Pi fixture
+    `/home/pi/scripts/SignalK/testscript_time.sh` in a separate approved
+    window. Live acceptance passed on 2026-10-10: with the `payload.execute`
+    branch connected through `Activate`, the configured script created the
+    expected Desktop file. After the wire to `Activate` was removed and the
+    test was repeated, no file was created. This proves that the message-flow
+    wiring remains the activation signal and that a disconnected execute node
+    is inert.
+  - [x] Resolve the release presentation decisions exposed by the historical
     matrix: builder `display: banner` versus rendered overlay; whether an
     acknowledged active emergency may lose its overlay; and how a read-only
     browser communicates unavailable write authorization before a click.
-    Record the decisions before changing code or declaring release acceptance.
+    Recorded on 2026-10-10: `banner` is the fixed in-centre strip; ACK calms an
+    active emergency overlay without changing its state or audio; missing write
+    authorization leaves the action visible but disabled with an explanation.
+  - [x] Deploy and verify the implemented restriction of global action
+    visibility and execution to notifications actually visible in the current
+    notification table. Live inspection
+    on 2026-10-09 found `Acknowledge all` visible with no apparent table
+    target because the WebApp evaluated all 15 known records. The hidden
+    `normal` records `notifications.environment.bilgeWater.port` and
+    `notifications.environment.bilgeWater.stbd` both reported
+    `canAcknowledge: true` and `acknowledged: false`. Fix both boundaries:
+    show the global control only when at least one table-visible record is an
+    eligible target, and constrain the submitted bulk action to those exact
+    visible IDs so hidden or resolved records cannot be changed accidentally.
+    Version `0.1.67` calculates both controls from current table rows, submits
+    only their exact eligible IDs, and rechecks Signal K permissions
+    server-side. The later local exclusion of `normal` and `nominal` was
+    incorrect: version `0.1.69` follows `canAcknowledge` for every visible
+    state while retaining the exact visible-ID boundary. `Silence all` retains
+    its additional unfinished-audio requirement. Version `0.1.67` was deployed
+    with `0.1.67` on 2026-10-10: the two hidden Bilge `normal` records were not
+    included, `Silence all` had no target, and the sole ACK target was the
+    visible GNSS warning republished by Signal K with a new ID and
+    `acknowledged: false` during the controlled restart. No bulk action was
+    invoked.
   - [x] Verify the installed Hoekens release containing the Raise fix without
     upgrading merely because the upstream pull request was merged. Installed
     version `2.13.1` was identified and its required behaviour was proved live:
@@ -485,6 +737,36 @@
   Audio-Prozesse, letzten Audio-Exitcode sowie Historien-Schreibstatus bauen.
   Version `0.1.11` ergänzt zusätzlich Poll-Start/-Ende, Dauer und letzten
   Netzwerkfehler des jeweiligen WebApp-Clients.
+- [ ] Replace the development-oriented Diagnostics JSON wall with a structured
+  operator view suitable for Tab 3. Start with an Overview that shows overall
+  health, installed server plugin version, WebApp version loaded by the current
+  browser, whether both versions match, connection state, and configuration
+  readiness. Separate the remaining information into Browser, Server/Node-RED,
+  Critical Inputs, Audio, External Tasks, History, and Localization sections
+  with readable labels and explicit Healthy/Warning/Error states. Keep the
+  complete unmodified diagnostics JSON available only in a collapsible
+  Advanced section for technical investigation. A version mismatch must show
+  a clear `Reload required` indication; localization remains presentation-only
+  and must not alter diagnostic values or notification processing.
+  Version `0.1.69` implements this structure and retains the untouched payload
+  under Advanced; Tab 3 live acceptance remains pending deployment.
+- [x] Verify the repaired Plugin Config `Test Notification` one-shot live.
+  Version `0.1.69` makes Signal K Plugin Config authoritative over the obsolete
+  Node-RED `testNotif.enabled: false` value. The failed 0.1.68 attempt remained
+  stored as enabled but produced no Signal K notification, History event, or
+  sound. On deployment it must remain visible for 60 seconds, clear only its
+  returned id, and reset the one-shot switch afterward.
+  Server-side acceptance passed with 0.1.69 on 2026-10-10: `my_alertTest`
+  remained `alert` for exactly 60 seconds, its returned id was cleared, History
+  retained raised/final-normal events, and the switch reset to false. Signal K
+  2.33.0 retained the cleared raw record as `normal`; 0.1.70 therefore hides
+  only the completed maintenance record from the active centre. A later Pi
+  check confirmed that `configuration.testNotif.enabled` was persisted as
+  `false` after completion. Signal K's already-open Plugin Config form does not
+  reactively replace its local form value; closing and reopening that form is
+  required to display the cleared checkbox. The administrative trigger remains
+  in Signal K Plugin Config; it must not be moved into the display-oriented
+  Notification Centre.
 - [x] Zustand und Alter kritischer Eingangsquellen sichtbar machen. Version
   `0.1.36` zeigt in Diagnostics für konfigurierbare Pfad-/Quellenpaare den
   Zustand, den Produzenten-Zeitstempel, das Alter und die erwartete sowie
@@ -610,12 +892,14 @@
 - `Visible Notification States` und `Notification Sort Order` wurden zu einer
   gemeinsamen Zustandsliste zusammengeführt.
 
-- Historienaufzeichnung wird aus den deployten Node-RED-Regeln abgeleitet.
-  `visibleInTable: true` aktiviert sie standardmäßig; `history: true` oder
+- Historienaufzeichnung wird aus der aufgelösten Tabellen-Sichtbarkeit und den
+  deployten Node-RED-Regeln abgeleitet. Jede tatsächlich tabellensichtbare
+  Meldung wird standardmäßig aufgezeichnet; `history: true` oder
   `history: false` überschreibt dieses Verhalten ausdrücklich. Spezifische
   Regeln erben nicht überschriebene Eigenschaften von allgemeineren Regeln.
-- Schalter `clearHistoryOnStart` für eine ausdrücklich ausgelöste Bereinigung
-  der lokalen Historie ist implementiert.
+- Die vier früheren `clearHistory*`-Einmalfelder wurden aus der Plugin Config
+  entfernt. Manuelles Löschen bleibt auf die ausgewählte lokale Occurrence in
+  der History-Ansicht beschränkt und ändert keine Signal-K-Benachrichtigung.
 - Shortcuts validieren: Konfliktbehandlung ist implementiert; mögliche
   Konflikte mit weiteren Eingabefeldern noch prüfen.
 - Kategorien werden ausschließlich automatisch klassifiziert. Node-RED bleibt

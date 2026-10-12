@@ -85,10 +85,18 @@ otherwise becomes authoritative for a Signal K notification.
 
 The history service owns the Notification Engine's local audit persistence
 lifecycle: recording policy, bounded repository creation, startup loading and
-retention, explicitly configured pruning, WebApp deletion, health reporting,
-and final write flushing. Its clear operations update only the local audit
+retention, occurrence-scoped WebApp deletion, health reporting, and final
+write flushing. Its clear operations update only the local audit
 store and repository; they never call a Signal K notification action or imply
 that an authoritative notification was removed.
+
+The resolved history policy is latched to the local `occurrenceId` when that
+occurrence first enters the store. A retained occurrence records its complete
+lifecycle, including a terminal state that would not independently be visible.
+A suppressed occurrence remains absent through its terminal transition,
+avoiding an isolated `normal` entry when the original state-specific rule no
+longer matches. Exact restart correlation carries this local decision; it never
+changes the authoritative Signal K state or producer lifecycle.
 
 The audio controller owns local playback presentation state: eligibility,
 finite/loop repetition, inter-play pauses, retry/probe timers, completed
@@ -213,6 +221,12 @@ operator identity and confirms human audibility immediately. Negative feedback
 latches the visual audio-system notification. With no selection, the test
 passes operationally only after the full window and is described as technically
 played without counter-report; it never claims that a person heard the sound.
+The last terminal Alarm Sound Test result is stored atomically in the plugin
+data directory as `audio-self-test.json`. This scheduling state is independent
+of the bounded local audit History; History still receives test events for
+operator review but may evict them without resetting the due date. On first
+start after upgrading, a retained terminal result from the legacy History is
+migrated when the dedicated file does not yet exist.
 Technical success alone still proves neither amplifier nor loudspeaker output.
 Automatic end-to-end proof requires a hardware loopback or microphone.
 
@@ -221,6 +235,13 @@ Zero disables both the WebApp control and its server-side start operation;
 existing audit evidence is retained. The separate one-shot Plugin Config
 `Sound Test` checks the configured audio connection but does not create
 operator feedback or change the recurring test schedule.
+
+The separate Plugin Config Test Notification is a one-shot maintenance helper.
+After normal plugin initialization it raises one clearly marked notification,
+retains only the Signal K id returned by that raise call, and clears that exact
+id after the configured lifetime. Only successful cleanup resets the request;
+plugin shutdown cancels the timer and clears the owned id without consuming an
+interrupted request.
 
 The self-test uses a private failure-origin path distinct from the published
 audio-system notification. This preserves the recursion guard on
@@ -257,7 +278,15 @@ interpret a server-version-specific source shape.
 
 Node-RED is a graphical policy authoring layer, not a second notification
 engine. The extractor reads the declarative `msg.payload` produced by any
-connected node. A chain ending at the `Activate` debug node becomes one policy;
+connected node. A chain ending at a debug node named exactly `Activate` becomes
+one policy. Multiple `Activate` endpoints are allowed: independent complete
+branches remain independent, while fan-out of the same complete branch is
+deduplicated. Complementary assignments with the same state, path, and
+conditions merge recursively, including separate `sound.file` and
+`sound.count` branches. If same-scope branches assign different values to the
+same action, validation fails closed instead of allowing Node-RED JSON order to
+choose a winner. Legacy and canonical aliases may coexist only when their
+semantic values agree. This wiring rule is independent of node grouping;
 `payload.match.path` and `payload.match.conditions` stay attached to that chain.
 Matching policies are composed property by property from general to specific.
 A path-specific sound rule can therefore inherit visibility and history from a
@@ -279,9 +308,9 @@ Every incoming notification is represented in the active view. The plugin first 
 base category from its path/source/data rules; unknown notifications become
 `OTHER`. The built-in classifier is display-only. Policies then match path or
 source and determine local presentation behaviour. No matching
-policy means visible and no custom audio; history is recorded only when the
-matching rule enables it through `visibleInTable` or an explicit `history`
-override.
+policy means visible and no custom audio. Local history follows the resolved
+table visibility by default; an explicit `history: true` or `history: false`
+overrides that default without changing presentation.
 
 This avoids an allow-list failure mode where a new notification is invisible.
 It also keeps complex policy configuration out of the immediate active-alarm
@@ -291,6 +320,17 @@ The local history is a notification audit trail, not Signal K's measurement
 History API. Signal K remains authoritative for current notification state;
 deleting this local history never changes Signal K notifications or provider
 measurement data.
+
+External task delivery is an independent side-effect boundary. Node-RED rules
+declare intent with one connected `payload.execute` absolute path; protected
+Signal K Plugin Config authorizes the exact path per file and supplies its
+timeout and optional normal-state permission. The runner consumes only new
+store transitions after startup reconstruction, persists accepted
+occurrence/path keys before spawn for at-most-once restart behaviour, starts
+the path directly without an extra shell, and bounds both concurrency and
+captured output. OS start failures, exit codes and timeouts are observational
+local audit/Diagnostics results. They never feed back into Signal K
+notification state or create a competing alarm lifecycle.
 
 ## Initial release boundary
 
@@ -304,6 +344,22 @@ The WebApp is an observation and action surface, not the authority for
 classification or configuration. It links to Signal K's Plugin Config for
 persistent rule changes. The compact-card and responsive detail-sheet design
 changes presentation only; all action capability checks remain server-side.
+`display: banner` is a fixed strip inside the Notification Centre and is
+distinct from the full attention overlay. Acknowledging an active `emergency`
+removes the attention overlay and returns the notification to its persistent
+in-centre presentation without changing its authoritative state. Acknowledge
+does not stop audio; playback continues until an independent permitted audio
+control or the authoritative lifecycle ends it. A read-capable browser without
+write authorization sees the applicable action disabled with a clear
+permission explanation rather than having it silently removed.
+The browser learns that capability through a non-mutating request behind the
+same Signal K readwrite middleware as notification actions. A failed probe
+changes only local button availability; it never weakens the server-side
+capability check or infers permission from a readable notification.
+Its Diagnostics renderer derives localized health sections and version-mismatch
+guidance from the read-only server payload while preserving that unmodified
+payload in a collapsed Advanced view. Rendering never feeds values back into
+notification processing or configuration.
 The WebApp treats connectivity as a safety boundary. Browser `offline` events,
 failed API polling, and an independent eight-second snapshot-age watchdog
 disable actions, every API request has a six-second deadline, and refreshes are

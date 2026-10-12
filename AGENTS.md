@@ -50,6 +50,39 @@ defaults. Always validate the generated rules against the live embedded
 Node-RED flow and the deployed-rules output, especially when sound paths or
 loop/repeat behaviour are involved.
 
+### Rule Builder flow selection and configuration ownership
+
+- Do not scan all Node-RED tabs for Notification Engine rules. Signal K Plugin
+  Config must list only active embedded Node-RED tabs by display name, persist
+  the selected stable tab ID, and show that ID read-only below the selection.
+  Rule extraction and validation are scoped exclusively to nodes whose `z`
+  equals that selected ID; all other tabs are ignored.
+- A missing selection, missing selected tab, or selected tab that later becomes
+  disabled must fail notification processing closed. Never switch to another
+  tab because its label matches. Renaming the selected tab is harmless because
+  its ID remains authoritative.
+- The legacy inject node named `Notification Engine config` is to be removed
+  after its remaining effective contents have been migrated and live parity
+  has been proved. Do not introduce a hidden configuration file as a third
+  source of truth.
+- Signal K Plugin Config owns the selected Rule Builder tab, audio hardware and
+  maintenance tests, local persistence limits, WebApp shortcuts/timeouts,
+  critical-input diagnostics, and exact external-task authorization. The
+  selected Rule Builder tab owns notification match, visibility, presentation,
+  history, sound, ignore, and execution-request rules.
+- Notification state ordering is not configurable. Use the Signal K alarm
+  states in fixed descending severity order for presentation:
+  `emergency`, `alarm`, `warn`, `alert`, `normal`, `nominal`. Unknown foreign
+  states remain visible and are not discarded merely because they are absent
+  from this known order.
+- Configuration schema versioning and non-negotiable safety rules belong in
+  plugin code. Obsolete `classificationRules`, `historyStates`, and the
+  Node-RED copy of `testNotif` are removed rather than migrated.
+- Before deleting the legacy config node, prove that rule-derived `display`,
+  `color`/`hex`, `flash`, visibility, history, sound, ignore, and execute values
+  reach their actual runtime consumers. Preserve Signal K capability checks;
+  a local acknowledgement-required display hint must never grant an action.
+
 ## Deployment requirement
 
 Every code change intended for testing or use must be packaged and deployed
@@ -80,6 +113,11 @@ compatibility; if it is unavailable, notification processing must not start.
 - Never clear a notification unless its current `status.canClear` is `true`.
 - Only offer or call silence and acknowledge when `canSilence` and
   `canAcknowledge` respectively are `true`.
+- Acknowledge capability is state-independent: if the current Signal K record
+  reports `status.canAcknowledge === true` and is not already acknowledged,
+  the action is available even for `normal` or `nominal`. Global acknowledge
+  remains scoped to the exact records visible in the current table. Never add
+  a local state ban that overrides Signal K permission.
 - Treat `emergency` as non-silenceable even if stale data claims otherwise.
 - Preserve unknown notifications and classify them as `OTHER`; do not hide
   them merely because no rule exists.
@@ -87,6 +125,36 @@ compatibility; if it is unavailable, notification processing must not start.
   suppression must not change a foreign notification to `normal`.
 - Do not take ownership of existing audio scripts until an explicit migration
   and stop/hand-off behaviour has been implemented and tested.
+
+## External task execution policy
+
+- A Rule Builder branch requests one external task by setting only
+  `payload.execute` to an absolute executable path and reaching `Activate`.
+  Do not add a redundant `execute_task` flag; the message-flow wiring is the
+  activation signal.
+- Signal K Plugin Config is the protected authorization boundary. Each exact
+  executable path has its own `enabled` switch and timeout. There is no global
+  execution switch. A request is accepted only when its path exactly matches
+  an enabled configuration entry.
+- Start the configured path directly without an additional command shell and
+  without dynamic arguments from notification data. Executable shell scripts
+  remain supported through their shebang; their content and effects are the
+  operator's responsibility. Files and symbolic links are both valid OS
+  targets, and normal OS start errors are delivery results rather than reasons
+  for the engine to inspect script content or intent.
+- External execution is a bounded delivery facility, not notification
+  authority. Attempt at most once per notification occurrence and executable,
+  enforce the configured timeout and global concurrency limit, do not retry,
+  and never change, silence, acknowledge, clear, or normalize the originating
+  Signal K notification because of a task result.
+- Record accepted, denied, start-failed, completed, and timed-out attempts in
+  local audit/diagnostics and normal Signal K logging. Do not create a second
+  alarm lifecycle for a user task failure. Limit captured output and terminate
+  the spawned process group at timeout or plugin stop.
+- Startup reconstruction, unchanged deltas, browser refreshes, and unchanged
+  Node-RED deploys must not execute a task. A valid new live occurrence may do
+  so. Explicit normal-state recovery execution requires the corresponding
+  per-file Plugin Config permission.
 
 ## History and configuration policy
 
@@ -98,6 +166,13 @@ compatibility; if it is unavailable, notification processing must not start.
 - A rule may explicitly override that default with `history: true` or
   `history: false`; visibility and retention remain related but are not
   inseparably coupled.
+- Resolve the history decision once when a new local `occurrenceId` begins and
+  retain that decision for the complete occurrence. An occurrence admitted to
+  History keeps its final `normal`/cleared transition even if that terminal
+  state is hidden; an occurrence suppressed with `history: false` must not
+  later create an isolated terminal entry merely because a different
+  state-level rule matches. Preserve this decision across exact restart
+  correlation.
 - `emergency` and `alarm` follow the same rule resolution as other
   notifications; they are not hard-coded as permanently retained exceptions.
 - Removing visibility stops new history recording for that notification, but
@@ -198,6 +273,16 @@ compatibility; if it is unavailable, notification processing must not start.
   allow configured per-state marker colors with readable text on white.
 - Show `silenced` and `acknowledged` as independent status indicators; a
   cleared notification belongs in history, not the active table.
+- `display: banner` means a fixed strip inside the Notification Centre; it is
+  not the full attention overlay.
+- Acknowledging an active `emergency` calms its visual presentation by removing
+  the attention overlay and returning it to the persistent in-centre
+  presentation. It does not change the authoritative `emergency` state and
+  does not stop or suppress audio; audio ends only through its independent
+  permitted control or the authoritative lifecycle transition.
+- When the current browser can read a notification but lacks write
+  authorization for an otherwise applicable action, keep the action visible
+  but disabled and explain that the current Signal K user lacks permission.
 - Individual actions belong in the selected info window; global actions are
   separate and clearly labelled. The current info window is not draggable;
   mobile may use the bottom-sheet presentation.

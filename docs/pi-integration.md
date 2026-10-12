@@ -1,5 +1,382 @@
 # Raspberry Pi deployment and rollback
 
+## Notification Engine 0.1.76 deterministic Activate endpoints
+
+Version `0.1.76` was deployed and verified on 2026-10-12. The package at
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.76.tgz` has
+SHA-256
+`954a433da1ce240d2c6d404d634a66596408d8513ce118c8ae88a44551ee78ab`.
+Complete `0.1.75` backups are retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.75-before-0.1.76-20261012`
+and
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.75-replaced-by-0.1.76-20261012`.
+
+Before deployment, the new extractor parsed the actual 240-node embedded flow
+as the expected ten rules without a same-scope conflict. After the approved
+restart, the installed plugin retained those ten rules and revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`;
+configuration was ready and runtime deploy events were available. Audio was
+ready with zero processes, retries, or unresolved failures. History was
+available at 500 entries, Android GPS was fresh, Signal K was active with zero
+unexpected restarts, and external `nodered.service` remained inactive. The
+independently persisted Alarm Sound Test retained its exact confirmed test id
+and timestamp with seven days remaining across this second upgrade restart.
+
+## Notification Engine 0.1.75 Alarm Sound Test persistence
+
+Version `0.1.75` was deployed and verified on 2026-10-12. The package at
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.75.tgz` has
+SHA-256
+`5cda8659c992467cb5a7fb85fc884a6f8cf87de444463974db9522a52521c7e5`.
+Complete `0.1.74` backups are retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.74-before-0.1.75-20261012`
+and
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.74-replaced-by-0.1.75-20261012`.
+
+The change separates the last terminal Alarm Sound Test result from the
+bounded 500-entry audit History. Before deployment, the configured interval
+was still seven days, but the previously in-memory `passed_heard` result had
+already been evicted from History; restart therefore restored no test and the
+WebApp correctly but misleadingly displayed zero days remaining. After
+deployment, the operator ran the test, heard the tone, and explicitly selected
+`Alarm heard`. Test `0f5b38dd-ade5-452e-89cd-610a1a21463a` completed as
+`passed_heard` at `2026-10-12T01:33:52.281Z`. The plugin atomically stored the
+same result in mode-0600 `audio-self-test.json` while retaining the ordinary
+three audit events in History.
+
+A separately approved Signal K restart proved restoration from the dedicated
+file: the API and Diagnostics returned the exact same test id and `passedAt`,
+the calculated button value remained seven days, and persistence reported no
+error. Node-RED retained revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`
+with runtime deploy events available. Audio was ready with zero processes,
+retries, or unresolved failures; History remained available at 500 entries,
+Android GPS was fresh, `signalk.service` was active with zero unexpected
+restarts, and the separate `nodered.service` remained inactive.
+
+## Notification Engine 0.1.74 baseline
+
+Version `0.1.74` was deployed and verified on 2026-10-12. The prior complete
+installation is retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.73-before-0.1.74-20261012`
+and the replaced directory at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.73-replaced-by-0.1.74-20261012`.
+The durable package is
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.74.tgz`
+with SHA-256
+`dcc2a47b45d8633a2d0b8f7da9988eb795951554bb1c731f0d7846898fbd1c5a`.
+
+All 243 tests, syntax checks, package dry-run, and package-content checks
+passed. The package includes the grouped, fully inactive
+`node-red/notification-engine-release-flow.json` reference tab. Source and
+installed hashes matched for `package.json`, the reference flow, and the
+versioned WebApp entry point. Both server Diagnostics and the WebApp report
+`0.1.74`.
+
+The operator imported and deployed the reference tab beside the existing
+production tab. Its stored embedded Node-RED flow SHA-256 is
+`3b3b187e4d98cb91b49e36ac884faa0b42425ae9ad1d61a3610bbf251a9fc395`.
+The release tab contains one `Activate` node but zero wires reaching it.
+Runtime extraction therefore retained exactly the same ten production rules
+and revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`,
+with zero reference-flow identifiers in the deployed-rules view. The exact
+pre-import production flow remains recoverable at
+`/home/pi/.signalk/red/flows_openplotter.before-release-anchor-test-20261012T0001Z.json`
+with SHA-256
+`5dd406112b94abe6f842382a5a4cdbf25e738dc3ef5b403ab0487cad16b5a004`.
+The additional pre-deploy editor-state backup at
+`/home/pi/.signalk/red/flows_openplotter.before-inactive-release-flow-20261012.json`
+already contains the imported but inactive release tab and has the deployed
+flow SHA-256 shown above.
+
+The ordinary root-level `npm install` attempt failed before replacing the
+plugin because the unrelated Signal K dependency `aisfleet` has no registry
+versions. The running `0.1.73` installation remained intact. Deployment then
+used the already verified package locally: extract into a temporary directory,
+verify version and reference-flow content, retain the complete old directory,
+move the staged package into the plugin path, and perform the separately
+approved Signal K restart. This avoided changing the Signal K root dependency
+tree or persistent plugin data.
+
+After restart, mandatory Node-RED configuration and runtime deploy events were
+ready. There were ten rules, zero runtime test notifications, and the real
+anchor notification remained `normal`. Android GPS was fresh, History was
+available, and audio ended ready with zero active processes, retries, open
+breakers, or unresolved failures. The existing GNSS warning was republished as
+a new occurrence and completed its configured one-shot `warn.wav` successfully
+in 775 ms; playback then remained idle. Signal K and `signalk-health.timer`
+were active, external `nodered.service` was inactive, and systemd reported zero
+unexpected service restarts.
+
+## Notification Engine 0.1.73 baseline
+
+The current-version severity regression passed on 2026-10-11/12 in an
+explicitly approved acoustic window. Plugin-owned bounded slots exercised
+`warn`, `alarm`, and `emergency`. The operator confirmed their expected table,
+banner/overlay, and audible presentation. History retained the complete
+occurrence sequences: warn Acknowledge and final `normal`; alarm Silence,
+Acknowledge, both authoritative updates, and final `normal`; emergency
+Acknowledge while the independent siren continued, followed by permitted
+Clear (`Zurücksetzen` in German) and audio termination. Emergency never
+offered Silence.
+
+A temporary exact-path Node-RED branch matched only
+`notifications.system.notificationEngine.runtimeTest.release-anchor` and
+selected the same looping `2bells.wav` treatment as the Hoekens alarm path.
+Its alarm passed visual/audio observation, Silence, Acknowledge, and final
+`normal` history under one occurrence. The real
+`notifications.navigation.anchor` record remained `normal`. The temporary
+branch was removed through a valid runtime deploy, returning the production
+flow byte-for-byte to SHA-256
+`5dd406112b94abe6f842382a5a4cdbf25e738dc3ef5b403ab0487cad16b5a004`
+and ready revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`.
+
+The temporary Signal K access client was removed from persistent security
+configuration and its local token file was deleted. Because Signal K retained
+the issued token in memory, a separately approved service restart was used to
+reload security. After restart, the temporary client count and runtime-slot
+count were both zero. Signal K and its health timer were active, external
+`nodered.service` was inactive, Android GPS was fresh, History was available,
+and audio was ready with zero active processes, pending retries, open
+breakers, or unresolved failures. Startup republished the existing GNSS warn
+as a new occurrence and completed its configured one-shot `warn.wav` playback
+successfully; playback then remained idle.
+
+Version `0.1.73` was deployed and verified on 2026-10-11. The brief 0.1.72
+installation is retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.72-before-0.1.73-20261011T234000Z`;
+the prior 0.1.71 installation remains at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.71-before-0.1.72-20261011T200000Z`.
+The durable package is
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.73.tgz` with
+SHA-256
+`8ae05508e5dc9e087b08847a80cf1f089700ff19adb6db7cbb2ed7a44ef0ccfe`.
+
+All 238 tests, syntax checks, package checks, and diff checks passed. Source
+and installed hashes matched for the package manifest, HTTP adapter, WebApp,
+style sheet, action-availability helper, visual-presentation helper, and HTML
+entry point. `/signalk`, notifications, rules, history, and Diagnostics
+returned HTTP 200. The new non-mutating endpoint behind Signal K's readwrite
+middleware returned the expected HTTP 401 without credentials. The installed
+WebApp and all changed asset cache keys report 0.1.73.
+
+Embedded Node-RED was ready at revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`
+with runtime deploy events available. The production flow remained
+byte-identical with SHA-256
+`5dd406112b94abe6f842382a5a4cdbf25e738dc3ef5b403ab0487cad16b5a004`.
+Signal K and `signalk-health.timer` were active with zero service restarts;
+external `nodered.service` remained inactive. Audio was ready with no active
+process, retry, breaker, or unresolved failure. The full restart republished
+the existing GNSS warning as a new occurrence and played `warn.wav` once in
+747 ms inside the approved safe window; playback then remained idle.
+
+After a full Tab 3 reload, the operator confirmed that the real GNSS `warn`
+appeared as a banner strip inside the Notification Centre while remaining in
+the table, without viewport overlay dimming. Its Signal K-permitted
+Acknowledge action was enabled in the authenticated browser. Focused automated
+coverage proves that emergency acknowledgement removes only its overlay and
+does not stop or restart its audio, and that an otherwise applicable action is
+retained visibly but disabled with an explicit explanation when the browser
+lacks write authorization.
+
+The same release-candidate evidence set includes a real physical starboard
+bilge-input test performed earlier on 2026-10-11. The operator confirmed the
+expected visual and audible alarm. Local History records
+`notifications.environment.bilgeWater.stbd` from `engineroomStbd.XX` changing
+to `alarm` at 12:39:16 UTC with `Bilge water detected in starboard engine
+room`, then returning to `normal`/`Watching` at 12:39:21 UTC under the same
+occurrence ID `occurrence-1791677618190-pr539q0jyud`. The current projection is
+normal and final audio diagnostics are idle and healthy.
+
+## Notification Engine 0.1.71 baseline
+
+Version `0.1.71` was packaged, deployed, and technically verified on
+2026-10-11. The complete prior 0.1.70 installation is retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.70-before-0.1.71-20261011T190000Z`.
+The durable package is
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.71.tgz` with
+SHA-256
+`32862e9752c300c6af1f19cee3ee3d8a2567e8390c9300e468badccd4d5e0324`.
+
+All 227 tests, syntax checks, package checks, and diff checks passed. Source
+and installed hashes matched for `package.json`, `lib/notification-store.js`,
+and `public/index.html`. `/signalk`, notifications, deployed rules, history,
+and Diagnostics returned HTTP 200; the unauthenticated WebApp request returned
+the expected HTTP 401. The installed WebApp declares version 0.1.71. Embedded
+Node-RED was ready at revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`
+with runtime deploy events available, and its production flow remained
+byte-identical with SHA-256
+`5dd406112b94abe6f842382a5a4cdbf25e738dc3ef5b403ab0487cad16b5a004`.
+Audio was ready with zero active processes, retries, open breakers, or
+unresolved failures; history was healthy at its 500-entry bound. Signal K and
+`signalk-health.timer` were active with zero service restarts, while the
+separate `nodered.service` remained inactive.
+
+The restart republished the existing GNSS warning with a new producer ID and
+changed method/status fields, so strict restart correlation correctly did not
+treat it as an exact match. It became a new local occurrence and produced one
+finite `warn.wav` playback, which completed successfully in 1080 ms. This is
+not evidence of a playback retry or loop. The 0.1.71 occurrence-scoped history
+decision has unit coverage and passed its operator-guided live Rule Builder
+acceptance check. Four new sound-disabled `hist2-*` paths began with no
+retained events. The visible default `warn` and hidden explicit `history: true`
+alert each retained `raised` and final `updated/normal` events under one
+occurrence ID. Explicit `history: false` suppressed the complete alarm and
+emergency occurrences, including their final `normal` transitions. The
+temporary 20-node test block was removed; the live flow returned byte-for-byte
+to the production hash and revision above. Final Diagnostics remained ready
+with zero active audio processes, pending retries, open breakers, or unresolved
+audio failures.
+
+## Notification Engine 0.1.70 baseline
+
+Version `0.1.70` was deployed and verified on 2026-10-10 after the controlled
+0.1.69 Test Notification run. The immediately preceding 0.1.69 installation is
+retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.69-before-0.1.70-20261011T002000Z`;
+the earlier 0.1.68 installation is retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.68-before-0.1.69-20261011T001000Z`.
+The durable package is
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.70.tgz` with
+SHA-256
+`4b83c7c0535b0412ec642885e172956eca59fe3c3e9cc16be7fb9b572a52567c`.
+
+All 224 tests, syntax checks, package checks, and diff checks passed. Signal K
+and its health timer were active, the plugin and browser-embedded WebApp both
+reported 0.1.70, the structured Diagnostics asset returned HTTP 200, and the
+separate `nodered.service` remained inactive. Configuration was ready, the
+one-shot test switch was false, no completed configuration test remained in
+the active Notification Engine view, and no audio process was running.
+
+The retained 0.1.68 test request was proved under 0.1.69. Node-RED's obsolete
+`testNotif.enabled: false` no longer overrode Signal K Plugin Config. Signal K
+raised `my_alertTest` at
+`notifications.notification-config.testx1` as `alert` with id
+`777488b5-2534-4137-a0a3-91eb20ec6afa`, retained it for exactly 60 seconds,
+and accepted the exact-id clear. Signal K 2.33.0 retained the authoritative
+record as `normal`; local History contains the `raised` and final `updated`
+events, and the Plugin Config one-shot reset to false. Version 0.1.70 hides
+only that completed maintenance record from the active centre while retaining
+both Signal K's raw projection and the local audit trail.
+
+The bounded external-task fixture also passed its first live wiring test. With
+the Rule Builder `payload.execute` branch connected to `Activate`,
+`/home/pi/scripts/SignalK/testscript_time.sh` created the expected Desktop
+file. After disconnecting that wire and repeating the trigger, no file was
+created. No second activation flag is involved. A subsequent read-only check
+also found the completed Plugin Config Test Notification persisted with
+`configuration.testNotif.enabled: false`. An already-open Signal K Plugin
+Config form can continue showing its pre-save local checkbox value until the
+form is closed and opened again; that stale form display is not a retained
+server-side request.
+
+## Notification Engine 0.1.68 baseline
+
+Version `0.1.68` was deployed and verified on 2026-10-10. The complete prior
+`0.1.67` plugin plus the preceding Signal K package manifests are retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.67-before-0.1.68-20261010T235729Z`.
+The durable package is
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.68.tgz` with
+SHA-256
+`4107860e5cd40a51269846feb9aaf10a727b5464859e1ed6637d2a30e25ac755`.
+
+All 217 tests, syntax checks, package dry-run, and selected source/live hash
+comparisons passed. Signal K and the WebApp returned HTTP 200; notifications,
+rules, history, translations, and Diagnostics also returned HTTP 200. Embedded
+Node-RED was ready at revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`
+with runtime deploy events available. Android GPS was fresh, local history was
+healthy at its configured 500-entry bound, and audio was ready with no active
+process, open breaker, or unresolved system warning. The separate
+`nodered.service` remained inactive.
+
+Startup migration removed all four superseded `clearHistory*` fields from the
+persisted Plugin Config. `playTestTone` and the one-shot Test Notification both
+remained disabled, so deployment started neither a sound test nor a test
+notification. The existing live GNSS warning was reconstructed with no
+actionable audio and no playback process. A deliberate Test Notification
+acceptance run remains separate from deployment.
+
+## Notification Engine 0.1.67 baseline
+
+Version `0.1.67` was deployed and verified on 2026-10-10. The complete prior
+`0.1.66` installation is retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.66-before-0.1.67-20261010T224804Z`,
+and the prior package manifest is retained as
+`signalk-package-before-notification-engine-0.1.67-20261010T224804Z.json`.
+The durable package is
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.67.tgz` with
+SHA-256
+`323d699c494ff30b500484a62b5b610507bb9ec8189264d6e689e6cef7f34ac5`.
+
+All 213 unit tests and package checks passed. Source/live hashes matched for
+the runtime, WebApp bulk-action code, and HTTP adapter. The package and Signal K
+plugin descriptions now state that Node-RED nodes visually create and
+represent notification rules. Signal K and its health timer were active with
+zero restarts after readiness, while the separate `nodered.service` remained
+inactive. Authenticated notifications, rules, history, translations, and
+Diagnostics returned HTTP 200. Embedded Node-RED and runtime deploy events
+were ready, Android GPS was fresh, local history was healthy, and audio ended
+with zero active processes, retries, breakers, or unresolved failures.
+
+The global-action live check used the current table rules and notifications.
+The two hidden Bilge `normal` records were excluded from bulk acknowledge,
+`Silence all` had no target, and only the visible GNSS warning qualified for
+`Acknowledge all`. Signal K had republished that warning with a new ID and
+`acknowledged: false` during the full restart, so the remaining button was
+correct rather than the former hidden-record defect. No bulk action was
+invoked. The restart produced one expected finite `warn.wav` playback for the
+new GNSS occurrence; it completed successfully in 976 ms.
+
+External-task configuration retained one enabled exact path, but the deployed
+rules contained no connected `execute` action. Diagnostics remained at zero
+active and zero attempted tasks with no last result; no external script ran.
+
+## Notification Engine 0.1.66 baseline
+
+Version `0.1.66` was deployed and verified on 2026-10-09. The complete prior
+`0.1.65` installation is retained at
+`/home/pi/.signalk/plugin-backups/notification-engine-0.1.65-before-0.1.66-20261010T011754Z`,
+and the previous local package manifest is retained beside it as
+`signalk-package-before-notification-engine-0.1.66-20261010T011754Z.json`.
+The durable package is
+`/home/pi/.signalk/plugin-packages/signalk-notification-engine-0.1.66.tgz` with
+SHA-256
+`975f25821f2068e8866982f283590bf65a2078a0b48b4a23ce10f95f4aacf971`.
+Selected source/live hashes matched for the package manifest, runtime,
+external-task runner, rule extractor, history service, notification store,
+restart-state repository, and WebApp icon.
+
+Signal K and `signalk-health.timer` returned active with zero service restarts;
+the separate `nodered.service` remained inactive. `/signalk` and the WebApp
+returned HTTP 200, and authenticated notifications, rules, history,
+translations, and Diagnostics endpoints returned HTTP 200. Embedded Node-RED
+was ready at revision
+`ec3ce1f77236f59b930f84d0b249ff83927245bd42d28e9c0689388bcd922c9a`,
+its runtime-deploy interface was available, Android GPS was fresh, local
+history was healthy at its 500-entry bound, and audio ended with zero active
+processes, retries, open breakers, or unresolved failures.
+
+External-task Diagnostics reported zero configured or enabled paths, zero
+active or attempted tasks, and no last result. The live deployed-rules output
+contained no `execute` action because the prototype branch is not connected.
+No external task acceptance run was performed while the test pause remained
+in force; the existing `/home/pi/scripts/SignalK/testscript_time.sh` was not
+started or modified.
+
+The full Signal K restart republished all 15 staged notifications with new
+producer IDs. The continuing GNSS warning also differed in `method` and
+`status`, so strict restart correlation correctly classified it as a new local
+occurrence and its configured finite `warn.wav` played once. This was ordinary
+notification audio, not the Alarm Sound Test and not an external task. It
+completed successfully in 795 ms and did not remain active. This full-server
+restart behaviour is distinct from the exact plugin-only restart continuity
+that passed with `0.1.50`.
+
 ## Signal K 2.33.0 baseline
 
 The live server was upgraded from Signal K `2.32.0` to `2.33.0` on

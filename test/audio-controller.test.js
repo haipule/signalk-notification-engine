@@ -61,6 +61,20 @@ test('retains a completed finite signature and does not replay a refresh', () =>
   assert.equal(system.successes.length, 1)
 })
 
+test('acknowledging an active emergency does not stop or restart its audio', () => {
+  const { controller, callbacks, player } = fixture({ audio: 'on', soundConfig: { file: 'emergency.wav', count: 0 } })
+  const notification = { path: 'notifications.engine', occurrenceId: 'emergency-one', state: 'emergency', status: { acknowledged: false } }
+  controller.enable([notification])
+  assert.equal(callbacks.length, 1)
+  const stopsBeforeAcknowledge = player.stopped.length
+
+  controller.apply({ type: 'updated', notification: { ...notification, status: { acknowledged: true } } })
+
+  assert.equal(callbacks.length, 1)
+  assert.equal(player.stopped.length, stopsBeforeAcknowledge)
+  assert.equal(controller.isAudioActionable('emergency-one'), true)
+})
+
 test('keeps silence actionable while a repeat waits for its next attempt', () => {
   const timers = []
   const { controller, callbacks } = fixture({ audio: 'on', soundConfig: { file: 'warn.wav', count: 2, pauseSeconds: 1 } })

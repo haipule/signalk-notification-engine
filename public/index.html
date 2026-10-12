@@ -3,8 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="notification-engine-version" content="0.1.76">
     <title>Notification Engine</title>
-    <link rel="stylesheet" href="style.css?v=0.1.64">
+    <link rel="stylesheet" href="style.css?v=0.1.76">
   </head>
   <body>
     <header>
@@ -65,7 +66,7 @@
       <aside id="diagnostics-sheet" class="detail-sheet diagnostics-sheet" tabindex="-1" aria-label="Diagnostics" data-i18n-aria-label="diagnostics.title" aria-hidden="true">
         <div class="detail-header"><strong data-i18n="diagnostics.title">Diagnostics</strong><div class="detail-window-actions"><button id="drag-diagnostics" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move" data-i18n-title="window.drag" data-i18n-aria-label="window.drag"></button><button id="close-diagnostics" class="close-detail" type="button" aria-label="Close diagnostics" data-i18n-aria-label="diagnostics.close">×</button></div></div>
         <p class="detail-note" data-i18n="diagnostics.description">Read-only operational state. Diagnostics never change a Signal K notification.</p>
-        <pre id="diagnostics-content" class="detail-rules" data-i18n="diagnostics.loading">Loading…</pre>
+        <div id="diagnostics-content" class="diagnostics-content"><p data-i18n="diagnostics.loading">Loading…</p></div>
       </aside>
       <aside id="history-sheet" class="detail-sheet history-sheet" tabindex="-1" aria-label="Notification history" data-i18n-aria-label="history.title" aria-hidden="true">
         <div class="detail-header"><div class="detail-header-actions"><strong id="history-title" data-i18n="history.title">Notification history</strong><div class="detail-window-actions history-actions"><button id="delete-history" class="history-delete-icon" type="button" title="Delete this history" aria-label="Delete this history" data-i18n-title="history.deleteThis" data-i18n-aria-label="history.deleteThis"><span aria-hidden="true">🗑</span><span data-i18n="history.delete">Delete</span></button><button id="drag-history" class="drag-detail" type="button" title="Hold and drag to move" aria-label="Hold and drag to move" data-i18n-title="window.drag" data-i18n-aria-label="window.drag"></button><button id="close-history" class="close-detail" aria-label="Close history" data-i18n-aria-label="history.close">×</button></div></div></div>
@@ -79,11 +80,14 @@
         <td class="state" aria-label="Notification state" data-i18n-aria-label="notification.state"></td><td class="message"></td><td class="category"></td><td class="source"></td><td class="status-badges"></td>
       </tr>
     </template>
-    <script src="connectivity.js?v=0.1.64"></script>
-    <script src="table-sort.js?v=0.1.34"></script>
-    <script src="history-filter.js?v=0.1.64"></script>
-    <script src="global-actions.js?v=0.1.64"></script>
-    <script src="localization.js?v=0.1.34"></script>
-    <script src="app.js?v=0.1.64"></script>
+    <script src="connectivity.js?v=0.1.76"></script>
+    <script src="table-sort.js?v=0.1.76"></script>
+    <script src="history-filter.js?v=0.1.76"></script>
+    <script src="global-actions.js?v=0.1.76"></script>
+    <script src="localization.js?v=0.1.76"></script>
+    <script src="diagnostics-view.js?v=0.1.76"></script>
+    <script src="action-availability.js?v=0.1.76"></script>
+    <script src="visual-presentation.js?v=0.1.76"></script>
+    <script src="app.js?v=0.1.76"></script>
   </body>
 </html>

@@ -23,6 +23,27 @@ test('does not force history for emergency and alarm', () => {
   assert.equal(extractActiveRules(flow)[0].actions.history, undefined)
 })
 
+test('extracts one connected execute path without a redundant activation flag', () => {
+  const flow = [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: '{"state":"alarm"}', wires: [['execute']] },
+    { id: 'execute', type: 'change', rules: [{ t: 'set', p: 'payload.execute', pt: 'msg', to: '/home/pi/scripts/SignalK/testscript_time.sh', tot: 'str' }, { t: 'set', p: 'payload.execute_task', pt: 'msg', to: 'true', tot: 'bool' }], wires: [['activate']] },
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] },
+    { id: 'unused', type: 'change', rules: [{ t: 'set', p: 'payload.execute', pt: 'msg', to: '/opt/unused.sh', tot: 'str' }], wires: [[]] }
+  ]
+
+  assert.deepEqual(validateRules(extractActiveRules(flow)), [{
+    id: 'alarm-1', match: { state: 'alarm' }, actions: { execute: '/home/pi/scripts/SignalK/testscript_time.sh' }
+  }])
+})
+
+test('rejects execute values that are not one exact absolute path', () => {
+  const rule = execute => ({ id: 'alarm-1', match: { state: 'alarm' }, actions: { execute } })
+  assert.throws(() => validateRules([rule('relative.sh')]), /invalid execute path/)
+  assert.throws(() => validateRules([rule('/opt/task.sh ')]), /invalid execute path/)
+  assert.throws(() => validateRules([rule(true)]), /invalid execute path/)
+  assert.doesNotThrow(() => validateRules([rule('/opt/task.sh')]))
+})
+
 
 test('extracts sound and loop settings from connected function nodes', () => {
   const flow = [
@@ -220,6 +241,82 @@ test('does not merge properties from separate notification branches', () => {
     { id: 'alarm-1', match: { state: 'alarm' }, actions: { soundFile: 'alarm.wav' } },
     { id: 'normal-2', match: { state: 'normal' }, actions: { visibleInTable: true } }
   ])
+})
+
+test('supports separate rules ending at separate Activate nodes', () => {
+  const flow = [
+    { id: 'warn', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['warn-table']] },
+    { id: 'alarm', type: 'inject', payloadType: 'json', payload: '{"state":"alarm"}', wires: [['alarm-table']] },
+    { id: 'warn-table', type: 'change', rules: [{ t: 'set', p: 'payload.visibleInTable', pt: 'msg', to: 'true', tot: 'bool' }], wires: [['activate-warn']] },
+    { id: 'alarm-table', type: 'change', rules: [{ t: 'set', p: 'payload.visibleInTable', pt: 'msg', to: 'true', tot: 'bool' }], wires: [['activate-alarm']] },
+    { id: 'activate-warn', type: 'debug', name: 'Activate', wires: [[]] },
+    { id: 'activate-alarm', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  assert.deepEqual(extractActiveRules(flow), [
+    { id: 'warn-1', match: { state: 'warn' }, actions: { visibleInTable: true } },
+    { id: 'alarm-2', match: { state: 'alarm' }, actions: { visibleInTable: true } }
+  ])
+})
+
+test('deduplicates one complete branch fanned out to multiple Activate nodes', () => {
+  const flow = [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: '{"state":"alert"}', wires: [['table']] },
+    { id: 'table', type: 'change', rules: [{ t: 'set', p: 'payload.visibleInTable', pt: 'msg', to: 'true', tot: 'bool' }], wires: [['activate-a', 'activate-b']] },
+    { id: 'activate-a', type: 'debug', name: 'Activate', wires: [[]] },
+    { id: 'activate-b', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  assert.deepEqual(extractActiveRules(flow), [
+    { id: 'alert-1', match: { state: 'alert' }, actions: { visibleInTable: true } }
+  ])
+})
+
+test('merges complementary same-scope branches including nested sound fields', () => {
+  const flow = [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: '{"state":"alarm"}', wires: [['sound-file'], ['sound-count'], ['history']] },
+    { id: 'sound-file', type: 'change', rules: [{ t: 'set', p: 'payload.sound.file', pt: 'msg', to: 'alarm.wav', tot: 'str' }], wires: [['activate-a']] },
+    { id: 'sound-count', type: 'change', rules: [{ t: 'set', p: 'payload.sound.count', pt: 'msg', to: '3', tot: 'num' }], wires: [['activate-b']] },
+    { id: 'history', type: 'change', rules: [{ t: 'set', p: 'payload.history', pt: 'msg', to: 'true', tot: 'bool' }], wires: [['activate-b']] },
+    { id: 'activate-a', type: 'debug', name: 'Activate', wires: [[]] },
+    { id: 'activate-b', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  assert.deepEqual(extractActiveRules(flow), [{
+    id: 'alarm-1',
+    match: { state: 'alarm' },
+    actions: { sound: { file: 'alarm.wav', count: 3 }, history: true }
+  }])
+})
+
+test('rejects conflicting same-scope parallel assignments independent of flow order', () => {
+  const branch = value => ({
+    id: `table-${value}`,
+    type: 'change',
+    rules: [{ t: 'set', p: 'payload.visibleInTable', pt: 'msg', to: String(value), tot: 'bool' }],
+    wires: [['activate']]
+  })
+  const build = branches => [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: '{"state":"alarm"}', wires: [branches.map(node => node.id)] },
+    ...branches,
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  assert.throws(() => extractActiveRules(build([branch(true), branch(false)])), /Conflicting parallel assignments.*actions\.visibleInTable/)
+  assert.throws(() => extractActiveRules(build([branch(false), branch(true)])), /Conflicting parallel assignments.*actions\.visibleInTable/)
+})
+
+test('rejects conflicting legacy and canonical sound file assignments', () => {
+  const flow = [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: '{"state":"alarm"}', wires: [['legacy'], ['canonical']] },
+    { id: 'legacy', type: 'change', rules: [{ t: 'set', p: 'payload.soundFile', pt: 'msg', to: 'old.wav', tot: 'str' }], wires: [['activate']] },
+    { id: 'canonical', type: 'change', rules: [{ t: 'set', p: 'payload.sound.file', pt: 'msg', to: 'new.wav', tot: 'str' }], wires: [['activate']] },
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  assert.throws(() => validateRules(extractActiveRules(flow)), /conflicting sound file assignments/)
+  flow[2].rules[0].to = 'old.wav'
+  assert.doesNotThrow(() => validateRules(extractActiveRules(flow)))
 })
 
 test('rejects a flow without an active rule', () => {

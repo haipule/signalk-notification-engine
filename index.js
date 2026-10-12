@@ -2,6 +2,7 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
+const packageMetadata = require('./package.json')
 const NotificationStore = require('./lib/notification-store')
 const classify = require('./lib/classifier')
 const NotificationActions = require('./lib/actions')
@@ -18,11 +19,14 @@ const AudioCircuitRepository = require('./lib/audio-circuit-repository')
 const { AudioSystemNotification, AUDIO_SYSTEM_PATH } = require('./lib/audio-system-notification')
 const AudioSystemRepository = require('./lib/audio-system-repository')
 const RestartStateRepository = require('./lib/restart-state-repository')
+const { ExternalTaskRunner } = require('./lib/external-task-runner')
 const { AudioSelfTest, AUDIO_SELF_TEST_ORIGIN_PATH } = require('./lib/audio-self-test')
+const AudioSelfTestRepository = require('./lib/audio-self-test-repository')
 const requestActor = require('./lib/request-actor')
 const Diagnostics = require('./lib/diagnostics')
 const { inspectInputSources, normalizeInputSources } = require('./lib/input-source-diagnostics')
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
+const ConfiguredTestNotification = require('./lib/configured-test-notification')
 const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catalog')
 const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
@@ -52,6 +56,7 @@ module.exports = function createPlugin(app) {
   })
   let audioCircuitRepository = null
   let audioSystemRepository = null
+  let audioSelfTestRepository = null
   let restartStateRepository = null
   let configuredClassifier = classify
   let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
@@ -64,8 +69,6 @@ module.exports = function createPlugin(app) {
   let shortcutHistory = 'h'
   let lifecycleRules = []
   let criticalInputs = []
-  let testNotificationId = null
-  let testNotificationTimer = null
   let testNotificationEnabled = false
   let testTonePath = path.join(__dirname, 'sounds', 'test.wav')
   let audioTestIntervalDays = 7
@@ -73,6 +76,7 @@ module.exports = function createPlugin(app) {
   let policyResolver = new PolicyResolver([], {}, readSignalKValue)
   let historyService = null
   let audioController = null
+  let externalTaskRunner = null
   const store = new NotificationStore({
     classify: notification => configuredClassifier(notification),
     shouldRecord: notification => historyService?.shouldRecord(notification) === true,
@@ -83,6 +87,7 @@ module.exports = function createPlugin(app) {
     },
     onChange: event => {
       audioController?.apply(event)
+      externalTaskRunner?.apply(event)
       persistRestartState()
     }
   })
@@ -119,6 +124,11 @@ module.exports = function createPlugin(app) {
     onError: error => app.error?.(`Unable to play notification sound: ${error.message}`),
     onResult: () => {}
   })
+  externalTaskRunner = new ExternalTaskRunner({
+    onAudit: (type, notification, externalTask) => store.recordLocalAuditEvent(type, notification, { externalTask }),
+    onRegistryChange: () => persistRestartState(),
+    log: message => app.debug?.(message)
+  })
   audioController = new AudioController({
     player: audioPlayer,
     circuitBreaker: audioCircuitBreaker,
@@ -143,7 +153,10 @@ module.exports = function createPlugin(app) {
   }
   const audioSelfTest = new AudioSelfTest({
     play: (file, callback) => audioPlayer.play(file, '__audio_self_test__', callback),
-    onEvent: event => store.recordLocalAuditEvent(event.type, audioSelfTestRecord, { audioTest: event.test }),
+    onEvent: event => {
+      store.recordLocalAuditEvent(event.type, audioSelfTestRecord, { audioTest: event.test })
+      audioSelfTestRepository?.save(event.test)
+    },
     onFailure: (test, result) => audioSystemNotification.recordFailure({ ...audioSelfTestRecord, message: test.statement }, result),
     onPassed: () => audioSystemNotification.recordSuccess(audioSelfTestRecord)
   })
@@ -157,6 +170,22 @@ module.exports = function createPlugin(app) {
     resume: resumeNotificationProcessing,
     debug: message => app.debug?.(message),
     error: message => app.error?.(message)
+  })
+  const configuredTestNotification = new ConfiguredTestNotification({
+    notifications: app.notifications,
+    debug: message => app.debug?.(message),
+    error: message => app.error?.(message),
+    onComplete: (configuration, context) => {
+      if (!runtime.isCurrent(context.currentLifecycle) || typeof app.savePluginOptions !== 'function') return
+      testNotificationEnabled = false
+      app.savePluginOptions({
+        ...context.pluginOptions,
+        testNotif: { ...configuration, enabled: false }
+      }, error => {
+        if (error) app.error?.(`Unable to reset TestNotif after completion: ${error.message}`)
+        else app.debug?.('TestNotif completed and was disabled')
+      })
+    }
   })
 
   function readSignalKValue(pathName) {
@@ -200,13 +229,15 @@ module.exports = function createPlugin(app) {
     criticalInputs = normalizeInputSources(flowOptions?.criticalInputs || [{
       name: 'Android GPS', path: 'navigation.position', source: 'android_udp.gps', staleAfterSeconds: 15
     }])
+    externalTaskRunner.configure(flowOptions?.externalTasks, activeRules, readSignalKValue)
     subscribeToConditions()
   }
 
   const plugin = {
     id: 'signalk-notification-engine',
     name: 'Notification Engine',
-    description: 'Flow-based Signal K notification automation engine',
+    version: packageMetadata.version,
+    description: 'Signal K notification engine using Node-RED nodes to visually create and represent notification rules',
 
     schema: {
       type: 'object',
@@ -298,6 +329,10 @@ module.exports = function createPlugin(app) {
         ,
         audioDevice: { type: 'string', title: 'Audio Device', description: 'ALSA device for aplay, for example default or plughw:2,0.', default: 'default' }
         ,
+        testTonePath: { type: 'string', title: 'Sound Test File', description: 'WAV file used by Sound Test and Alarm Sound Test.', default: path.join(__dirname, 'sounds', 'test.wav') }
+        ,
+        playTestTone: { type: 'boolean', title: 'Sound Test', description: 'Play the configured sound once after saving to check the audio connection. This does not complete the scheduled Alarm Sound Test.', default: false }
+        ,
         alarmSoundTest: {
           type: 'object', title: 'Alarm Sound Test',
           description: 'Scheduled audible safety check in the Notification Centre with explicit operator feedback.',
@@ -307,9 +342,33 @@ module.exports = function createPlugin(app) {
           }
         }
         ,
-        playTestTone: { type: 'boolean', title: 'Sound Test', description: 'Play the configured sound once after saving to check the audio connection. This does not complete the scheduled Alarm Sound Test.', default: false }
-        ,
-        testTonePath: { type: 'string', title: 'Sound Test File', description: 'WAV file used by Sound Test and Alarm Sound Test.', default: path.join(__dirname, 'sounds', 'test.wav') }
+        externalTasks: {
+          type: 'object', title: 'External Tasks',
+          description: 'Allow deployed Node-RED rules to start exact per-file executable paths. Task results never change Signal K notification state.',
+          default: { maxConcurrent: 2, allowedExecutables: [] }, additionalProperties: false,
+          properties: {
+            maxConcurrent: {
+              type: 'integer', title: 'Maximum Concurrent Tasks',
+              description: 'Maximum number of different external tasks that may run at the same time.',
+              minimum: 1, maximum: 4, default: 2
+            },
+            allowedExecutables: {
+              type: 'array', title: 'Allowed Executables',
+              description: 'Only an exact path enabled here may be requested by payload.execute in the deployed Rule Builder flow.',
+              default: [],
+              items: {
+                type: 'object', additionalProperties: false, required: ['name', 'path', 'timeoutSeconds'],
+                properties: {
+                  name: { type: 'string', title: 'Name', minLength: 1, maxLength: 64 },
+                  path: { type: 'string', title: 'Executable File', description: 'Exact absolute file or symbolic-link path.', pattern: '^/.*$' },
+                  enabled: { type: 'boolean', title: 'Enabled', default: false },
+                  timeoutSeconds: { type: 'integer', title: 'Timeout (seconds)', minimum: 1, maximum: 60, default: 10 },
+                  allowNormal: { type: 'boolean', title: 'Allow Execution for Normal State', default: false }
+                }
+              }
+            }
+          }
+        }
         ,
         infoAutoCloseSeconds: {
           type: 'integer', title: 'Info Auto-Close (seconds)',
@@ -330,28 +389,6 @@ module.exports = function createPlugin(app) {
             source: { type: 'string', title: 'Source Label', default: '' },
             history: { type: 'boolean', title: 'Record in History', default: true }
           } }
-        }
-        ,
-        clearHistoryOnStart: {
-          type: 'boolean', title: 'Clear History on Next Start',
-          description: 'One-shot cleanup switch. Turn it off again after restarting the plugin.',
-          default: false
-        }
-        ,
-        clearHistoryPath: {
-          type: 'string', title: 'Clear History Path', default: '',
-          description: 'Path prefix to remove. A trailing * is optional and means all child paths.'
-        }
-        ,
-        clearHistoryPathOnSave: {
-          type: 'boolean', title: 'Clear History for Path on Save',
-          description: 'One-shot cleanup when saving configuration. Alarm and emergency events are always retained.',
-          default: false
-        }
-        ,
-        clearHistoryOccurrenceId: {
-          type: 'string', title: 'Clear History Occurrence ID',
-          description: 'Optional local occurrence ID to remove when saving configuration.', default: ''
         }
         ,
         criticalInputs: {
@@ -380,13 +417,13 @@ module.exports = function createPlugin(app) {
         }
         ,
         testNotif: {
-          type: 'object', title: 'TestNotif', description: 'Creates one clearly marked Signal K test notification and removes it automatically.', default: { enabled: false, state: 'warn', message: 'Notification Manager test', runtimeSeconds: 30 },
+          type: 'object', title: 'Test Notification', description: 'Creates one clearly marked Signal K test notification after saving, keeps it visible for the configured duration, asks Signal K to clear it, and turns this one-shot request off. Signal K may retain the cleared record as normal.', default: { enabled: false, state: 'warn', message: 'Notification Engine test', runtimeSeconds: 30 },
           additionalProperties: false,
           properties: {
-            enabled: { type: 'boolean', title: 'Enable TestNotif', default: false },
+            enabled: { type: 'boolean', title: 'Run Test Notification Once', default: false },
             state: { type: 'string', title: 'Test State', enum: ['warn', 'alert', 'alarm', 'emergency'], default: 'warn' },
-            message: { type: 'string', title: 'Test Message', default: 'Notification Manager test' },
-            path: { type: 'string', title: 'Test Path', default: 'notifications.notification-manager-test' },
+            message: { type: 'string', title: 'Test Message', default: 'Notification Engine test' },
+            path: { type: 'string', title: 'Test Path', default: 'notifications.notification-engine-test' },
             runtimeSeconds: { type: 'integer', title: 'Runtime (seconds)', minimum: 1, maximum: 3600, default: 30 },
             includePosition: { type: 'boolean', title: 'Include Position', default: false },
             includeCreatedAt: { type: 'boolean', title: 'Include Created At', default: true }
@@ -402,8 +439,9 @@ module.exports = function createPlugin(app) {
     },
 
     async start(options) {
+      externalTaskRunner.disable()
       stopSubscriptions()
-      void stopTestNotification()
+      void configuredTestNotification.stop()
       const optionMigration = migratePluginOptions(options)
       const effectiveOptions = optionMigration.options
       const { token, flowOptions } = await runtime.start(effectiveOptions)
@@ -422,20 +460,22 @@ module.exports = function createPlugin(app) {
       audioSystemRepository = new AudioSystemRepository(app.getDataDirPath?.(), {
         onError: message => app.error?.(message)
       })
+      audioSelfTestRepository = new AudioSelfTestRepository(app.getDataDirPath?.(), {
+        onError: message => app.error?.(message)
+      })
       restartStateRepository = new RestartStateRepository(app.getDataDirPath?.(), {
         onError: message => app.error?.(message)
       })
       runtime.subscribe()
-      void initialize(token, flowOptions?.testNotif)
+      void initialize(token, flowOptions?.testNotif, effectiveOptions)
       if (options?.playTestTone === true) {
         void playTestTone(token, options?.testTonePath)
       }
       const persistedOptions = {
         ...effectiveOptions,
-        ...(options?.playTestTone === true ? { playTestTone: false } : {}),
-        ...(options?.testNotif?.enabled === true ? { testNotif: { ...options.testNotif, enabled: false } } : {})
+        ...(options?.playTestTone === true ? { playTestTone: false } : {})
       }
-      const shouldPersistOptions = optionMigration.changed || options?.playTestTone === true || options?.testNotif?.enabled === true
+      const shouldPersistOptions = optionMigration.changed || options?.playTestTone === true
       if (shouldPersistOptions && typeof app.savePluginOptions === 'function') {
         app.savePluginOptions(persistedOptions, error => {
           if (error) app.error?.(`Unable to migrate plugin configuration: ${error.message}`)
@@ -451,16 +491,19 @@ module.exports = function createPlugin(app) {
       // final exact restart snapshot is not overwritten with an empty state.
       restartStateRepository = null
       runtime.stop()
+      externalTaskRunner.shutdown()
       audioController.shutdown()
       audioSelfTest.stop()
       stopSubscriptions()
       snapshotService.stopPolling()
-      await stopTestNotification()
+      await configuredTestNotification.stop()
       await runtimeTests.clearAll()
       await audioCircuitRepository?.flush()
       audioCircuitRepository = null
       await audioSystemRepository?.flush()
       audioSystemRepository = null
+      await audioSelfTestRepository?.flush()
+      audioSelfTestRepository = null
       await historyService.stop()
       audioCircuitBreaker.restore({ version: 1, states: [] })
       store.clear()
@@ -471,13 +514,15 @@ module.exports = function createPlugin(app) {
      * Returned records are copies, so callers cannot mutate the store.
      */
     getNotifications() {
-      return store.list().map(notification => ({
+      return store.list()
+        .filter(notification => ConfiguredTestNotification.isVisibleInActiveView(notification, testNotificationEnabled))
+        .map(notification => ({
         ...notification,
         audioActionable: audioController?.isAudioActionable(notification.occurrenceId) === true,
         policy: notification.path === AUDIO_SYSTEM_PATH
           ? { ...policyResolver.resolve(notification), visible: true, audio: 'off', soundConfig: null }
           : policyResolver.resolve(notification)
-      }))
+        }))
     },
 
     getNotificationHistory() {
@@ -512,6 +557,7 @@ module.exports = function createPlugin(app) {
       diagnostics() {
         const locales = translationCatalog.list()
         return diagnostics.toJSON({
+          plugin: { version: packageMetadata.version },
           nodeRed: { revision: runtime.checksum, configurationStatus: configurationStatus(), runtimeDeployEventsAvailable: runtime.eventsAvailable() },
           restartCorrelation: store.restartCorrelationDiagnostics(),
           criticalInputs: inspectInputSources(criticalInputs, readSignalKLeaf),
@@ -520,8 +566,12 @@ module.exports = function createPlugin(app) {
             restartState: restartStateRepository?.status() || { available: false, lastWriteAt: null, lastError: null },
             circuitBreaker: { ...audioCircuitBreaker.toJSON(), persistence: audioCircuitRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
             systemNotification: { ...audioSystemNotification.toJSON(), persistence: audioSystemRepository?.status() || { available: false, lastWriteAt: null, lastError: null } },
-            selfTest: audioSelfTest.toJSON()
+            selfTest: {
+              ...audioSelfTest.toJSON(),
+              persistence: audioSelfTestRepository?.status() || { available: false, lastWriteAt: null, lastError: null }
+            }
           },
+          externalTasks: externalTaskRunner.diagnostics(),
           history: historyService.status(),
           localization: { locales, fallbackLocale: 'en', errors: translationCatalog.errors }
         })
@@ -541,8 +591,12 @@ module.exports = function createPlugin(app) {
         heard: request => audioSelfTest.reportHeard(requestActor(request))
       },
       clearHistory: query => historyService.clear(query),
-      async actionAll(action) {
-        const records = plugin.getNotifications()
+      async actionAll(action, ids) {
+        if (!Array.isArray(ids) || ids.length === 0 || ids.some(id => typeof id !== 'string' || id.length === 0)) {
+          throw new Error('Bulk notification actions require a non-empty list of visible notification IDs')
+        }
+        const requestedIds = new Set(ids)
+        const records = plugin.getNotifications().filter(record => requestedIds.has(record.id))
         const silencedRecords = action === 'silence' ? records.filter(record => actions.allowed(record, 'silence')) : []
         for (const record of silencedRecords) {
           audioController.silence(record)
@@ -575,29 +629,35 @@ module.exports = function createPlugin(app) {
   }
 
   /** Read the authoritative current notification snapshot when available. */
-  async function initialize(currentLifecycle, testNotificationConfiguration) {
-    const [historyState, circuitSnapshot, audioSystemSnapshot, restartState] = await Promise.all([
+  async function initialize(currentLifecycle, testNotificationConfiguration, pluginOptions) {
+    const [historyState, circuitSnapshot, audioSystemSnapshot, persistedAudioTest, restartState] = await Promise.all([
       historyService.initialize(),
       audioCircuitRepository.load(),
       audioSystemRepository.load(),
+      audioSelfTestRepository.load(),
       restartStateRepository.load()
     ])
     audioCircuitBreaker.restore(circuitSnapshot)
     audioSystemNotification.restore(audioSystemSnapshot)
     store.restoreExactOccurrences(restartState.notifications)
     audioController.restoreCompletedPlayback(restartState.completedPlayback)
+    externalTaskRunner.restore(restartState.externalTaskAttempts)
     if (!runtime.isCurrent(currentLifecycle)) return
     await runtimeTests.clearStale()
-    audioSelfTest.restore(historyState.lastAudioTest)
+    const restoredAudioTest = persistedAudioTest || historyState.lastAudioTest
+    audioSelfTest.restore(restoredAudioTest)
+    // Migrate one retained legacy audit result once. Future terminal results
+    // no longer depend on the bounded History repository for scheduling.
+    if (!persistedAudioTest && restoredAudioTest) audioSelfTestRepository.save(restoredAudioTest)
     await snapshotService.sync()
     applyCurrentLifecycleBoundaries()
     audioCircuitBreaker.reconcileActive(store.list())
     if (runtime.configurationError) return
-    await historyService.clearAfterSnapshot()
     snapshotService.subscribe()
     audioSystemNotification.synchronize()
     audioController.enable(store.list())
-    void startTestNotification(testNotificationConfiguration)
+    externalTaskRunner.enable()
+    configuredTestNotification.start(testNotificationConfiguration, { currentLifecycle, pluginOptions })
     snapshotService.startPolling()
     app.debug?.(`Notification manager started with ${store.size} notification(s)`)
   }
@@ -606,53 +666,14 @@ module.exports = function createPlugin(app) {
   function persistRestartState() {
     restartStateRepository?.save({
       notifications: store.restartSnapshot(),
-      completedPlayback: audioController?.completedPlayback() || []
+      completedPlayback: audioController?.completedPlayback() || [],
+      externalTaskAttempts: externalTaskRunner?.restartSnapshot() || []
     })
-  }
-
-  /** Create and later clear only the manager-owned, explicitly configured test alarm. */
-  async function startTestNotification(configuration) {
-    if (!configuration?.enabled || typeof app.notifications?.raise !== 'function') return
-    try {
-      const state = ['warn', 'alert', 'alarm', 'emergency'].includes(configuration.state) ? configuration.state : 'warn'
-      const path = String(configuration.path || 'notifications.notification-manager-test')
-      const data = { notificationManagerTest: true, source: 'Notification Manager Test' }
-      testNotificationId = app.notifications.raise({
-        state,
-        message: String(configuration.message || 'Notification Manager test'),
-        path,
-        includePosition: configuration.includePosition === true,
-        includeCreatedAt: configuration.includeCreatedAt !== false,
-        data
-      })
-      const runtime = Number.isInteger(configuration.runtimeSeconds) ? Math.max(1, Math.min(3600, configuration.runtimeSeconds)) : 30
-      testNotificationTimer = setTimeout(() => { void stopTestNotification() }, runtime * 1000)
-      app.debug?.(`Notification Manager test raised id=${testNotificationId}, runtime=${runtime}s`)
-    } catch (error) {
-      app.error?.(`Unable to raise Notification Manager test: ${error.message}`)
-    }
   }
 
   async function playTestTone(currentLifecycle, configuredPath) {
     while (runtime.isCurrent(currentLifecycle) && !audioController.ready) await new Promise(resolve => setTimeout(resolve, 100))
     if (runtime.isCurrent(currentLifecycle)) audioPlayer.play(path.resolve(String(configuredPath || path.join(__dirname, 'sounds', 'test.wav'))))
-  }
-
-  async function stopTestNotification() {
-    if (testNotificationTimer !== null) {
-      clearTimeout(testNotificationTimer)
-      testNotificationTimer = null
-    }
-    if (!testNotificationId) return
-    const id = testNotificationId
-    testNotificationId = null
-    try {
-      if (typeof app.notifications?.clear !== 'function') throw new Error('Signal K notification clear API unavailable')
-      app.notifications.clear(id)
-      app.debug?.(`Notification Manager test cleared id=${id}`)
-    } catch (error) {
-      app.error?.(`Unable to clear Notification Manager test id=${id}: ${error.message}`)
-    }
   }
 
   /** Publish the plugin-owned visual audio warning through the Signal K delta boundary. */
@@ -734,6 +755,7 @@ module.exports = function createPlugin(app) {
 
   /** Stop all rule-dependent processing while retaining the last observed view. */
   function suspendNotificationProcessing() {
+    externalTaskRunner.disable()
     audioController.suspend()
     stopSubscriptions()
     snapshotService.stopPolling()
@@ -747,6 +769,7 @@ module.exports = function createPlugin(app) {
     applyCurrentLifecycleBoundaries()
     snapshotService.subscribe()
     audioController.enable(store.list(), 'configuration_recovered')
+    externalTaskRunner.enable()
     snapshotService.startPolling()
   }
 

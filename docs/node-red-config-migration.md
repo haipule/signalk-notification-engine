@@ -22,10 +22,10 @@ for Signal K API calls and lifecycle state.
 | `stateColors`, `visualRules` | Node-RED | Visual presentation decisions |
 | `soundsByState`, `soundPaletteFile` | Node-RED | Sound selection and timing |
 | `historyRules` | Node-RED | Legacy history routing decisions |
-| `testNotif` | Node-RED | Test trigger and test lifecycle |
+| `testNotif` | Signal K | One-shot maintenance trigger and bounded owned test lifecycle |
 | `audioPlayer`, `audioDevice`, `testTonePath`, `alarmSoundTest` | Signal K initially | Host/device boundary, safe execution, and local maintenance interval |
 | `historyLimit`, `historyRetentionDays` | Signal K initially | Local persistence ownership |
-| `clearHistory*` | Signal K initially | Destructive administrative operations |
+| former `clearHistory*` fields | removed | Selected local occurrences are deleted in Notification Centre History |
 | `shortcutInfo`, `shortcutHistory` | Signal K initially | WebApp input handling |
 | plugin enabled/start/stop and logging | Signal K | Signal K lifecycle and logging authority |
 

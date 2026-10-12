@@ -35,6 +35,7 @@ test('keeps readonly and readwrite routes on their Signal K access boundaries', 
     { level: 'readonly', method: 'get', path: '/translations' },
     { level: 'readonly', method: 'get', path: '/translations/:locale' },
     { level: 'readonly', method: 'get', path: '/diagnostics' },
+    { level: 'readwrite', method: 'get', path: '/write-access' },
     { level: 'readwrite', method: 'get', path: '/runtime-tests' },
     { level: 'readwrite', method: 'post', path: '/runtime-tests/:slot' },
     { level: 'readwrite', method: 'patch', path: '/runtime-tests/:slot' },
@@ -48,6 +49,15 @@ test('keeps readonly and readwrite routes on their Signal K access boundaries', 
   ])
   const posts = router.routes.filter(route => route.method === 'post').map(route => route.path)
   assert.ok(posts.indexOf('/notifications/action-all/:action') < posts.indexOf('/notifications/:id/:action'))
+})
+
+test('write-access probe crosses only the readwrite boundary and changes no state', () => {
+  const router = fakeRouter()
+  registerHttpRoutes(router, api())
+  const route = router.routes.find(candidate => candidate.method === 'get' && candidate.path === '/write-access')
+  let body
+  route.handler({}, { json(value) { body = value } })
+  assert.deepEqual(body, { authorized: true })
 })
 
 test('rejects mutating runtime tests while processing is unavailable', () => {
@@ -71,6 +81,22 @@ test('rejects starting a disabled alarm sound test server-side', () => {
   assert.equal(status, 409)
   assert.equal(body.state, 'REJECTED')
   assert.match(body.message, /disabled/)
+})
+
+test('passes only the submitted visible IDs to a bulk action', async () => {
+  let received
+  const router = fakeRouter()
+  registerHttpRoutes(router, api({ actionAll: async (action, ids) => { received = { action, ids }; return ids.length } }))
+  const route = router.routes.find(candidate => candidate.method === 'post' && candidate.path === '/notifications/action-all/:action')
+  let status
+  let body
+  await route.handler(
+    { params: { action: 'acknowledge' }, body: { ids: ['visible-warn'] } },
+    { status(value) { status = value; return this }, json(value) { body = value } }
+  )
+  assert.deepEqual(received, { action: 'acknowledge', ids: ['visible-warn'] })
+  assert.equal(status, 202)
+  assert.deepEqual(body, { state: 'ACCEPTED', count: 1 })
 })
 
 test('does not reinterpret a history repository failure as an action conflict', async () => {
