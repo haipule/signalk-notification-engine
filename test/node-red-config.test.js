@@ -10,10 +10,7 @@ function flow(config) {
 
 const config = {
   schemaVersion: 1,
-  notificationEngine: {
-    stateOrder: ['emergency', 'alarm', 'warn', 'normal'],
-    visibleStates: ['emergency', 'alarm', 'warn', 'normal']
-  }
+  notificationEngine: {}
 }
 
 test('extracts and normalizes the deployed configuration', () => {
@@ -25,35 +22,36 @@ test('checksum ignores object key order', () => {
   assert.equal(checksumConfig(config), checksumConfig(reordered))
 })
 
-test('changed configuration has a different checksum', () => {
+test('changed effective configuration has a different checksum', () => {
   const changed = structuredClone(config)
-  changed.notificationEngine.visibleStates = ['emergency', 'alarm']
+  changed.notificationEngine.visualRules = { alarm: { display: 'overlay' } }
   assert.notEqual(checksumConfig(config), checksumConfig(changed))
 })
 
-test('rejects missing, duplicate, and invalid configuration nodes', () => {
-  assert.throws(() => extractConfig([]), /Expected exactly one/)
-  assert.throws(() => extractConfig([...flow(config), ...flow(config)]), /Expected exactly one/)
+test('uses an empty compatibility config without a legacy node and rejects duplicates or invalid versions', () => {
+  assert.deepEqual(extractConfig([]), config)
+  assert.throws(() => extractConfig([...flow(config), ...flow(config)]), /Expected at most one/)
   assert.throws(() => extractConfig(flow({ schemaVersion: 2, notificationEngine: config.notificationEngine })), /Unsupported/)
 })
 
-test('accepts all supported notification states', () => {
-  const configured = structuredClone(config)
-  configured.notificationEngine.stateOrder = ['emergency', 'alarm', 'warn', 'alert', 'nominal', 'normal']
-  configured.notificationEngine.visibleStates = [...configured.notificationEngine.stateOrder]
-  assert.deepEqual(extractConfig(flow(configured)), configured)
-})
-
-test('canonicalizes configured states and rejects unknown states', () => {
+test('discards obsolete and protected copies from the legacy config node', () => {
   const normalized = validateConfig({
     schemaVersion: 1,
-    notificationEngine: { stateOrder: ['WARN', 'Normal'], visibleStates: ['ALARM'] }
+    notificationEngine: {
+      classificationRules: [{ category: 'OTHER' }],
+      historyStates: ['alarm'],
+      stateOrder: ['WARN', 'Normal'],
+      visibleStates: ['ALARM'],
+      testNotif: { enabled: false },
+      shortcutInfo: 'x',
+      shortcutHistory: 'y'
+    }
   })
-  assert.deepEqual(normalized.notificationEngine.stateOrder, ['warn', 'normal'])
-  assert.deepEqual(normalized.notificationEngine.visibleStates, ['alarm'])
+  assert.deepEqual(normalized, { schemaVersion: 1, notificationEngine: {} })
+})
 
-  assert.throws(() => validateConfig({
-    schemaVersion: 1,
-    notificationEngine: { stateOrder: ['Info'], visibleStates: ['alarm'] }
-  }), /allowed states/)
+test('does not mutate the embedded flow object while normalizing legacy fields', () => {
+  const source = { schemaVersion: 1, notificationEngine: { testNotif: { enabled: false } } }
+  validateConfig(source)
+  assert.deepEqual(source.notificationEngine.testNotif, { enabled: false })
 })

@@ -7,7 +7,7 @@ const { historyForTableNotifications } = window.NotificationHistoryFilter
 const { hasGlobalActionTarget, globalActionTargetIds } = window.NotificationGlobalActions
 const { buildDiagnosticsModel } = window.NotificationDiagnosticsView
 const { notificationActionState, sourceAllowsAction } = window.NotificationActionAvailability
-const { attentionPresentation } = window.NotificationVisualPresentation
+const { attentionPresentation, tablePresentationVisible } = window.NotificationVisualPresentation
 const i18n = window.NotificationI18n
 const t = (key, parameters) => i18n.t(key, parameters)
 const notificationContainer = document.querySelector('#notifications')
@@ -40,7 +40,7 @@ const clientPollDiagnostics = { lastStartedAt: null, lastCompletedAt: null, dura
 let selectedId = null
 let activeNotifications = []
 let knownNotifications = []
-let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
+const configuredStateOrder = ['emergency', 'alarm', 'warn', 'alert', 'normal', 'nominal']
 let stateColors = {}
 let visualRules = {}
 let infoAutoCloseSeconds = 0
@@ -220,6 +220,7 @@ function renderNotifications(notifications) {
     stateLabel.classList.add(`state-label-${notification.state}`)
     stateLabel.classList.toggle('state-acknowledged', false)
     stateLabel.style.removeProperty('color')
+    stateLabel.style.borderColor = notification.policy?.hex || notification.policy?.color || stateColors[notification.state] || stateColors.normal
     stateLabel.classList.toggle('state-attention', ['warn', 'alert', 'alarm', 'emergency'].includes(notification.state))
     setText(card, '.state', formatState(notification.state))
     setText(card, '.category', formatCategory(notification.category))
@@ -240,7 +241,13 @@ function renderNotifications(notifications) {
 function renderVisualAlerts(notifications) {
   visualAlerts.replaceChildren()
   for (const notification of notifications) {
-    const rule = visualRules[notification.state] || { display: 'table' }
+    const fallback = visualRules[notification.state] || { display: 'table' }
+    const rule = {
+      ...fallback,
+      ...(notification.policy?.display !== undefined ? { display: notification.policy.display } : {}),
+      ...(notification.policy?.flash !== undefined ? { flash: notification.policy.flash } : {}),
+      ...(notification.policy?.hex || notification.policy?.color ? { color: notification.policy.hex || notification.policy.color } : {})
+    }
     const presentation = attentionPresentation(notification, rule)
     if (!presentation) continue
     const alert = document.createElement('div')
@@ -257,8 +264,7 @@ function renderVisualAlerts(notifications) {
 }
 
 function isVisibleInTable(notification) {
-  if (['emergency', 'alarm'].includes(notification.state)) return true
-  return activeRules.some(rule => ruleMatchesNotification(rule, notification) && rule.actions?.visibleInTable === true)
+  return tablePresentationVisible(notification)
 }
 
 function isResolvedState(state) {
@@ -507,7 +513,7 @@ function sortValue(notification, column) {
 }
 
 function compareHierarchy(left, right) {
-  const order = ['emergency', 'alarm', ...configuredStateOrder, 'info']
+  const order = [...configuredStateOrder, 'info']
   const leftState = String(left.state || '').toLowerCase()
   const rightState = String(right.state || '').toLowerCase()
   const leftRank = order.indexOf(leftState)
@@ -600,7 +606,7 @@ function formatState(state) {
 }
 function formatCategory(category) {
   const value = String(category || 'OTHER').toLowerCase()
-  return ['navigation', 'weather', 'electrical', 'propulsion', 'system', 'security', 'anchor', 'collision', 'other'].includes(value) ? t(`category.${value}`) : value.toUpperCase()
+  return ['navigation', 'weather', 'environment', 'electrical', 'propulsion', 'system', 'security', 'anchor', 'collision', 'other'].includes(value) ? t(`category.${value}`) : value.toUpperCase()
 }
 function formatMethod(method) {
   if (!Array.isArray(method) || method.length === 0) return t('presentation.notSpecified')
@@ -618,7 +624,7 @@ function closeDetails() {
   renderNotifications(activeNotifications)
 }
 function bySeverity(left, right) {
-  const order = ['emergency', 'alarm', ...configuredStateOrder]
+  const order = configuredStateOrder
   const leftRank = order.indexOf(left.state)
   const rightRank = order.indexOf(right.state)
   const rankDifference = (leftRank < 0 ? order.length : leftRank) - (rightRank < 0 ? order.length : rightRank)
@@ -680,7 +686,6 @@ async function refresh() {
     currentConfigurationStatus = notifications.configurationStatus || null
     configurationReady = currentConfigurationStatus?.state !== 'error'
     updateHealthBanner(currentConfigurationStatus)
-    configuredStateOrder = Array.isArray(notifications.stateOrder) ? notifications.stateOrder : configuredStateOrder
     stateColors = notifications.stateColors || stateColors
     visualRules = notifications.visualRules || visualRules
     activeRules = Array.isArray(notifications.rules) ? notifications.rules : activeRules

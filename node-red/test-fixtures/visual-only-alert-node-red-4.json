@@ -1,0 +1,40 @@
+[
+  {
+    "id": "ne-temp-visual-source", "type": "inject", "z": "tab-adjective-mapping",
+    "name": "TEMP: visual-only alert", "props": [{ "p": "payload" }],
+    "repeat": "", "crontab": "", "once": false, "onceDelay": 0.1, "topic": "",
+    "payload": "{\"state\":\"alert\"}", "payloadType": "json",
+    "x": 180, "y": 1320, "wires": [["ne-temp-visual-path"]]
+  },
+  {
+    "id": "ne-temp-visual-path", "type": "change", "z": "tab-adjective-mapping",
+    "name": "TEMP: exact runtime-test path",
+    "rules": [{ "t": "set", "p": "payload.match.path", "pt": "msg", "to": "notifications.system.notificationEngine.runtimeTest.visual", "tot": "str" }],
+    "x": 460, "y": 1320,
+    "wires": [["ne-temp-visual-silent", "ne-temp-visual-overlay", "ne-temp-visual-flash", "ne-temp-visual-table"]]
+  },
+  {
+    "id": "ne-temp-visual-silent", "type": "change", "z": "tab-adjective-mapping",
+    "name": "TEMP: sound inactive",
+    "rules": [{ "t": "set", "p": "payload.sound.active", "pt": "msg", "to": "false", "tot": "bool" }],
+    "x": 770, "y": 1260, "wires": [["adj-result"]]
+  },
+  {
+    "id": "ne-temp-visual-overlay", "type": "change", "z": "tab-adjective-mapping",
+    "name": "TEMP: overlay",
+    "rules": [{ "t": "set", "p": "payload.display", "pt": "msg", "to": "overlay", "tot": "str" }],
+    "x": 750, "y": 1300, "wires": [["adj-result"]]
+  },
+  {
+    "id": "ne-temp-visual-flash", "type": "change", "z": "tab-adjective-mapping",
+    "name": "TEMP: flash",
+    "rules": [{ "t": "set", "p": "payload.flash", "pt": "msg", "to": "true", "tot": "bool" }],
+    "x": 740, "y": 1340, "wires": [["adj-result"]]
+  },
+  {
+    "id": "ne-temp-visual-table", "type": "change", "z": "tab-adjective-mapping",
+    "name": "TEMP: table visible",
+    "rules": [{ "t": "set", "p": "payload.visibleInTable", "pt": "msg", "to": "true", "tot": "bool" }],
+    "x": 760, "y": 1380, "wires": [["adj-result"]]
+  }
+]

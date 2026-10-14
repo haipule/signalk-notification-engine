@@ -12,12 +12,33 @@ function loadFlow() {
   return JSON.parse(fs.readFileSync(flowPath, 'utf8'))
 }
 
+test('Node-RED 4 visual-only fixture contains complete inject defaults', () => {
+  const fixturePath = path.join(__dirname, '..', 'node-red', 'test-fixtures', 'visual-only-alert-node-red-4.json')
+  const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'))
+  const inject = fixture.find(node => node.type === 'inject')
+  assert.ok(inject)
+  for (const field of ['repeat', 'crontab', 'once', 'onceDelay', 'topic']) {
+    assert.equal(Object.hasOwn(inject, field), true, `missing Node-RED 4 inject field ${field}`)
+  }
+  assert.equal(fixture.some(node => node.name === 'TEMP: sound inactive'), true)
+  assert.equal(fixture.every(node => node.z === 'tab-adjective-mapping'), true)
+})
+
 test('release reference flow is importable and entirely inactive by default', () => {
   const flow = loadFlow()
   assert.ok(Array.isArray(flow))
   assert.equal(new Set(flow.map(node => node.id)).size, flow.length)
   assert.deepEqual(extractActiveRules(flow), [])
   assert.throws(() => validateRules(extractActiveRules(flow)), /No active notification rule/)
+})
+
+test('release flow requires direct tab selection and contains no legacy config node', () => {
+  const flow = loadFlow()
+  const tab = flow.find(node => node.type === 'tab' && node.id === 'notification-engine-release-flow')
+  assert.match(tab.info, /Rule Builder Flow/)
+  assert.match(tab.info, /stable ID/)
+  assert.match(tab.info, /connect at least one intended complete branch.*deploy/i)
+  assert.equal(flow.some(node => node.name === 'Notification Engine config'), false)
 })
 
 test('every instructional release-flow node has useful English info', () => {

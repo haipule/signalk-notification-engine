@@ -7,10 +7,9 @@ const colors = require('../lib/visual-colors')
 
 const service = () => new ConfigurationService({ baseDirectory: '/plugin', visualColorPool: colors })
 
-test('normalizes state order and local presentation without changing rule meaning', () => {
+test('normalizes local presentation without changing rule meaning', () => {
   const configuration = service()
   configuration.loadColorPalette()
-  assert.deepEqual(configuration.normalizeStateOrder(['warn', 'warn', 'normal', 'invalid']), ['warn', 'normal'])
   const stateColors = configuration.normalizeStateColors({ alarm: 'red', warn: '#123456' })
   assert.equal(stateColors.alarm, colors.red)
   assert.equal(stateColors.warn, '#123456')

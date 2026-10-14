@@ -37,6 +37,15 @@ that service for this work.
 
 ### Node-RED builder semantics
 
+- The live embedded editor currently uses Node-RED 4.x (`4.1.13` at the last
+  verification). Any flow JSON prepared for import must use complete Node-RED
+  4 export structures copied from or compared with the live embedded flow. Do
+  not hand-write abbreviated import nodes. In particular, inject nodes must
+  include their Node-RED 4 scheduling/default fields (`repeat`, `crontab`,
+  `once`, `onceDelay`, and `topic`) and every node must be free of the editor's
+  red invalid-node triangle before deploy. Validate the exact import fixture
+  against the installed Node-RED version before giving it to the operator.
+
 The graphical builder is a message-flow builder. Each wire branch adds one
 property to `msg.payload` when that branch is triggered; branches are not an
 implicit shared object that may be merged indiscriminately. A sound branch may

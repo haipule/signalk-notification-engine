@@ -2,6 +2,38 @@
 
 ## Component boundary
 
+Known Signal K notification states have one non-configurable descending
+presentation order: `emergency`, `alarm`, `warn`, `alert`, `normal`,
+`nominal`. Unknown foreign state strings remain visible after the known states.
+Rule Builder visibility branches may control an individual treatment, but no
+configuration source can redefine Signal K state severity.
+
+Rule Builder treatment is resolved per notification. General state branches
+provide defaults; matching path and condition branches override only the
+fields they set. The resolved policy carries table visibility, display mode,
+marker color, flashing, history and sound to their respective consumers.
+An explicit local `display: banner` or `display: overlay` treatment is applied
+independently of the producer's optional notification `method` list; that list
+does not override Rule Builder presentation policy.
+Ignore suppresses only local visibility and audio. External execution is
+resolved independently at the bounded delivery boundary. None of these local
+treatments changes Signal K state or grants a lifecycle action.
+
+An optional legacy `Notification Engine config` node is accepted only for
+upgrade compatibility; shipped flows and current installations do not require
+or include it. Its effective surface is restricted to an explicit allowlist
+of presentation, sound, and history treatment fields. Signal K Plugin Config always wins for host audio,
+maintenance tests, persistence limits, browser shortcuts/timeouts, critical
+input diagnostics, Rule Builder selection, and external-task authorization.
+Known obsolete or misplaced Node-RED copies are excluded before checksumming,
+so changing one cannot reload or alter notification processing.
+
+The selected active Rule Builder tab and its connected branches are the
+mandatory deployed configuration. The former inject node is no longer
+required: its absence yields an empty compatibility object, while more than
+one such node remains invalid. This does not weaken fail-closed startup for a
+missing, disabled, or invalid selected tab or for invalid rule wiring.
+
 ### Localization boundary
 
 The WebApp renders Notification Engine labels through stable keys. Built-in
@@ -295,6 +327,13 @@ only the properties it explicitly defines. Sound activation is also a branch
 property: `payload.sound.active: false` remains attached to that branch and
 suppresses an inherited state sound without hiding or changing the Signal K
 notification.
+
+The Plugin Config schema reads the current embedded Node-RED workspace and
+offers only active `tab` nodes by display name; the persisted value is the
+stable tab ID, shown in a read-only field beneath the choice. Configuration and
+rule extraction receive only nodes whose `z` equals that selected ID. A
+missing, deleted, or disabled selection fails closed before backup recovery;
+the plugin never falls back to a matching display label or scans other tabs.
 
 Runtime Node-RED validation has a fail-closed boundary. If a deployed
 configuration cannot be validated or restored, the plugin latches the error,

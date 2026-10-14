@@ -20,6 +20,12 @@
   specific path rules, safe default policy, all configured base match fields
   combined with AND, unsatisfied specific conditions falling back to a matching
   general rule, and longer satisfied condition chains overriding shorter chains.
+  Visual `display`, `color`/`hex`, and `flash` fields must reach the matching
+  WebApp notification without leaking across unrelated branches. Unknown
+  states remain table-visible by default; explicit visibility false and ignore
+  remain local presentation decisions only. Explicit banner and overlay rules
+  must also render when the producer omits `method: visual`; producer methods
+  do not veto the local presentation policy.
 - History: once an occurrence has entered the audit trail, retain its final
   authoritative normal/cleared transition even when that terminal state is not
   independently configured for history.
@@ -44,6 +50,27 @@
   An explicitly empty or whitespace-only sound path must reject an active
   rule, while the same empty path remains valid only with
   `payload.sound.active: false`.
+- Rule Builder flow selection: normalize the current embedded flow document,
+  list only active `tab` nodes, preserve their stable IDs independently from
+  display labels, and omit disabled tabs and ordinary nodes from the Plugin
+  Config choices. Scope config and rules to the exact selected ID, ignore even
+  same-named tabs, and fail closed for missing or disabled selection without
+  restoring that protected choice from a backup. Schema failure remains
+  visible rather than silently inventing or selecting a tab.
+- State presentation: enforce the fixed Signal K order `emergency`, `alarm`,
+  `warn`, `alert`, `normal`, `nominal`, discard obsolete `stateOrder` and
+  `visibleStates` config fields, and retain unknown foreign states after the
+  known states instead of filtering them out.
+- Configuration ownership: inject contradictory host, maintenance,
+  persistence, browser, diagnostics, and external-task values through the
+  legacy Node-RED config object and prove the Signal K Plugin Config values
+  remain authoritative. Obsolete classification, history-state, test
+  notification, shortcut, and state-order copies must be absent from the
+  effective Node-RED configuration and its checksum.
+- Legacy-node removal: accept a valid selected active Rule Builder tab with no
+  `Notification Engine config` inject node, retain temporary compatibility
+  with exactly one such node, and reject duplicates. Missing, disabled, or
+  invalid selected tabs and invalid rule graphs must continue to fail closed.
 - WebApp table sorting: newest-first default, column A–Z/Z–A toggles, persisted
   sort selection, and segment-wise Signal K path grouping for the Notification
   column within each authoritative state hierarchy level.

@@ -130,34 +130,125 @@ evidence and older completed work remain below for traceability.
    accepted the live 240-node embedded flow as the same ten production rules
    and unchanged revision; Node-RED configuration and runtime deploy events
    remained ready after restart.
-8. [ ] Replace global Node-RED scanning and the legacy `Notification Engine
+8. [x] Replace global Node-RED scanning and the legacy `Notification Engine
    config` inject node with one explicitly selected Rule Builder tab. Complete
    the migration in this order:
 
-   1. [ ] Add a Plugin Config selector that lists only active tabs from the
+   1. [x] Add a Plugin Config selector that lists only active tabs from the
       embedded Signal K Node-RED instance by name, stores the stable tab ID,
-      and shows the selected ID read-only.
-   2. [ ] Restrict configuration and rule extraction to the selected tab ID.
+      and shows the selected ID read-only. Completed and accepted live in
+      `0.1.79`: the selector listed nine active embedded tabs and excluded the
+      disabled `Audio Alarms` tab. The operator selected `Notification Engine
+      Rule Builder`; Plugin Config persisted the single value
+      `ruleBuilderFlow.id: tab-adjective-mapping` and displayed that ID in its
+      own read-only field. Runtime configuration remained ready with the same
+      ten rules and unchanged revision.
+   2. [x] Restrict configuration and rule extraction to the selected tab ID.
       Fail closed when the selection is missing, absent, or later disabled;
       never fall back to a tab label and never scan other tabs for rules.
-   3. [ ] Remove configurable `stateOrder` and `visibleStates`. Use the fixed
+      Completed and proved live in `0.1.80` on 2026-10-12: the runtime used
+      only persisted `ruleBuilderFlow.id: tab-adjective-mapping`, retained ten
+      deployed rules, and reported configuration `ready` after restart. The
+      selected active tab owned 50 nodes; source and installed runtime hashes
+      matched. Unit tests cover missing, unknown, disabled, and same-label
+      alternatives without backup or label fallback.
+   3. [x] Remove configurable `stateOrder` and `visibleStates`. Use the fixed
       Signal K descending severity order `emergency`, `alarm`, `warn`,
       `alert`, `normal`, `nominal`, while keeping unknown states visible.
-   4. [ ] Pass all Rule Builder treatment fields through to their runtime
+      Completed and proved live in `0.1.81` on 2026-10-12: obsolete values are
+      discarded at both Node-RED validation and runtime adoption boundaries;
+      the server and WebApp share the fixed order, and unknown state strings
+      sort after known states without being filtered. After restart the live
+      API reported the exact fixed order, configuration `ready`, ten rules,
+      fresh Android GPS diagnostics, and ready idle audio. All 260 tests passed.
+   4. [x] Pass all Rule Builder treatment fields through to their runtime
       consumers and test them: display, color/hex, flash, visibility, history,
       sound, ignore, and execute. Keep `acknowledgeRequired` as a display hint
       only; Signal K remains authoritative for action permission.
-   5. [ ] Keep host, maintenance, persistence, browser, and exact external-task
+      Implementation deployed as `0.1.82` on 2026-10-12 with 265 passing
+      tests. The live GNSS warning proved the selected `warn-6` branch reaches
+      the API with `visible: true`, `history: true`, `color: orange`,
+      `hex: #f57c00`, and its resolved sound configuration. The served WebApp
+      uses cache version `0.1.82`; configuration remained ready with ten rules,
+      fresh Android GPS, and ready idle audio. Previous bounded acceptance
+      tests cover History, Ignore, Sound, and Execute. Still required before
+      checking this item: one bounded visual runtime test proving rule-derived
+      `display` and `flash` in the browser. Current production alarm/emergency
+      branches also request looping sound, so do not trigger them without an
+      explicitly approved acoustic test window or a temporary visual-only
+      test branch.
+      The first bounded visual test resolved `display: overlay` and
+      `flash: true` correctly on the server but exposed a WebApp defect: the
+      browser suppressed the overlay when the test producer omitted
+      `method: visual`. The `0.1.83` fix and regression test remove that
+      unrelated producer-method gate. Completed live on 2026-10-12: after a
+      forced Tab 3 reload from stale WebApp `0.1.73` to `0.1.83`, the bounded
+      visual-only `alert` displayed a yellow flashing overlay while the server
+      reported `soundConfig.active: false`, `audioActionable: false`, and zero
+      active or pending audio work. The operator confirmed the overlay and
+      flash. The runtime test was cleared, all six temporary Node-RED 4 test
+      nodes were removed and deployed, and the selected production tab
+      returned to exactly ten rules with no temporary rule, configuration
+      `ready`, revision `a1b66deefcb34cd50e93aa2068a751c770b4796c036d784c164aa08c3c2b14dc`,
+      fresh Android GPS, and idle audio. All 266 tests, syntax checks, package
+      dry run, and diff checks passed before deployment.
+   5. [x] Keep host, maintenance, persistence, browser, and exact external-task
       authorization settings in Plugin Config. Remove obsolete classification,
       history-state, and Node-RED test-notification configuration copies.
-   6. [ ] Migrate the current installation to tab ID
+      Completed and proved live in `0.1.84` on 2026-10-13. Runtime composition
+      accepts only the temporary allowlist of legacy presentation, sound, and
+      history treatment fields; contradictory Node-RED host, maintenance,
+      persistence, browser, diagnostics, and external-task settings cannot
+      override Signal K Plugin Config. Obsolete `classificationRules`,
+      `historyStates`, `stateOrder`, `visibleStates`, `testNotif`, and browser
+      shortcut copies are excluded from the effective configuration and
+      checksum without mutating the live flow. After the protected deployment,
+      configuration was `ready`, the deploy event interface was available,
+      WebApp values remained `infoAutoCloseSeconds: 0`, `shortcutInfo: i`, and
+      `shortcutHistory: h`, the fixed state order remained intact, and the
+      exact ten production rule IDs were preserved with no temporary rule.
+      Android GPS was fresh and audio was ready with zero active or pending
+      work. All 268 tests, syntax checks, package dry run, and diff checks
+      passed; installed `0.1.83` is retained as the rollback backup.
+   6. [x] Migrate the current installation to tab ID
       `tab-adjective-mapping` and demonstrate source, deployed-rule, runtime,
       and WebApp parity while the legacy config node is still present. Only
       after that proof may the old config node be removed and deployed.
-   7. [ ] Update the release flow and documentation so a new user selects the
+      Completed live in `0.1.85` on 2026-10-13. With the single legacy node
+      still present, the selected tab remained `ready` with the same ten rule
+      IDs, Plugin Config browser values, fixed state order, fresh Android GPS,
+      and idle audio. A byte-identical pre-removal flow backup was saved as
+      `/home/pi/.signalk/red/flows_openplotter.before-remove-notification-engine-config-0.1.85.json`.
+      The operator then removed only `Notification Engine config` and deployed
+      without restarting Signal K. Live inspection proved zero remaining
+      legacy nodes, configuration `ready`, runtime deploy events available,
+      the exact same ten production rule IDs, no temporary rule, fresh GPS,
+      and ready audio with zero active or pending work. The expected effective
+      checksum is now
+      `34649048570fc10c56b951586d11a1ec9ff149e65410a22cfcafe623417d28d2`.
+      Source and installed hashes matched for package metadata, both runtime
+      boundary modules, and the WebApp entry files; the served page reported
+      `0.1.85`. All 269 tests, syntax checks, package dry run, and diff checks
+      passed before deployment. Installed `0.1.84` remains the rollback
+      package backup.
+   7. [x] Update the release flow and documentation so a new user selects the
       intended active flow directly and does not import or depend on a hidden
       configuration node or file.
-9. [ ] Rewrite the README as a short user entry point: purpose, requirements,
+      Completed and proved live in `0.1.86` on 2026-10-13. The packaged Release
+      Flow and prototype each contain zero `Notification Engine config` nodes.
+      The Release Flow tab documentation tells the operator to keep the
+      imported tab active, select it by display name in Signal K Plugin Config,
+      and verify the read-only stable ID; it explicitly states that no config
+      inject node or hidden configuration file is required. An automated
+      reference-flow test enforces those requirements. After deployment, the
+      config-node-free productive flow remained `ready` with the unchanged
+      checksum
+      `34649048570fc10c56b951586d11a1ec9ff149e65410a22cfcafe623417d28d2`,
+      all ten production rule IDs, no temporary rule, fresh Android GPS, and
+      ready idle audio. The served WebApp reported `0.1.86`; all 270 tests,
+      syntax checks, package dry run, and diff checks passed. Installed
+      `0.1.85` remains the rollback package backup.
+9. [x] Rewrite the README as a short user entry point: purpose, requirements,
    installation, five-minute Quick Start, Signal K authority/safety boundary,
    and links to detailed documentation. Move the complete setup and operation
    material to `docs/user-guide.md`, including Plugin Config, importing and
@@ -165,8 +256,27 @@ evidence and older completed work remain below for traceability.
    Notification Centre actions, audio tests, history, external tasks,
    Diagnostics, upgrades, troubleshooting, and rollback. Keep developer and
    architecture detail in their existing dedicated documents.
-10. [ ] Reconcile the current safety matrix and release documentation with the
+   Completed and proved live in `0.1.88` on 2026-10-13. The README is now a
+   73-line entry point and the complete operator material is in the packaged
+   `docs/user-guide.md`. The Quick Start preserves fail-closed startup by
+   requiring one deliberately connected and deployed branch before the plugin
+   is enabled and its active stable Rule Builder tab is selected. All 270
+   tests, syntax checks, package dry run, link checks, and diff checks passed.
+   The installed and served WebApp reports `0.1.88`; live configuration is
+   `ready` with the unchanged productive rule checksum, runtime deploy events
+   available, fresh Android GPS, and ready idle audio. Installed `0.1.87`
+   remains the rollback package backup. The same live validation also proved
+   the new automatic `notifications.environment.*` category as `ENVIRONMENT`,
+   displayed as `UMWELT` for both bilge notifications on Tab 3.
+10. [x] Reconcile the current safety matrix and release documentation with the
    results above. Do not describe the real-producer gaps below as passed.
+   Completed on 2026-10-13 for installed `0.1.88`. The current audit now uses
+   the 270-test/package baseline, selected-tab/config-node-free runtime,
+   accepted external-task delivery, complete current History/severity
+   regressions, physical bilge evidence, and live `ENVIRONMENT` classification.
+   Older PARTIAL/FAIL tables are explicitly historical rather than current
+   verdicts. Active Hoekens restart continuity and deliberate Android UDP loss
+   remain open release decisions; neither is described as passed.
 
 ### P1 — Explicit release-risk decisions
 
@@ -542,11 +652,13 @@ evidence and older completed work remain below for traceability.
     restart, but audible output still requires an approved acoustic window.
     Passed with deployed `0.1.73` on 2026-10-11/12; see prioritized P0 item 4
     and `docs/e2e-safety-matrix.md` for the complete acceptance evidence.
-  - [ ] Verify the Rule Builder `History: enabled` branch with a bounded test
+  - [x] Verify the Rule Builder `History: enabled` branch with a bounded test
     notification. Prove that an explicitly connected `payload.history: true`
     branch is retained, while `history: false` overrides table visibility.
     Alarm and emergency states must not receive hard-coded retention; they use
     the same resolved visibility/history policy as every other notification.
+    Passed with `0.1.71`; see prioritized P0 item 2 and the current audit in
+    `docs/e2e-safety-matrix.md`.
   - [x] Complete the live acceptance test for the implemented Rule Builder
     `Execute: file` branch. Version `0.1.66` uses only a connected absolute
     `payload.execute` path; no redundant activation flag exists. Signal K
@@ -737,7 +849,7 @@ evidence and older completed work remain below for traceability.
   Audio-Prozesse, letzten Audio-Exitcode sowie Historien-Schreibstatus bauen.
   Version `0.1.11` ergänzt zusätzlich Poll-Start/-Ende, Dauer und letzten
   Netzwerkfehler des jeweiligen WebApp-Clients.
-- [ ] Replace the development-oriented Diagnostics JSON wall with a structured
+- [x] Replace the development-oriented Diagnostics JSON wall with a structured
   operator view suitable for Tab 3. Start with an Overview that shows overall
   health, installed server plugin version, WebApp version loaded by the current
   browser, whether both versions match, connection state, and configuration
@@ -749,7 +861,8 @@ evidence and older completed work remain below for traceability.
   a clear `Reload required` indication; localization remains presentation-only
   and must not alter diagnostic values or notification processing.
   Version `0.1.69` implements this structure and retains the untouched payload
-  under Advanced; Tab 3 live acceptance remains pending deployment.
+  under Advanced; Tab 3 live acceptance passed on 2026-10-10 as recorded in
+  prioritized P0 item 1.
 - [x] Verify the repaired Plugin Config `Test Notification` one-shot live.
   Version `0.1.69` makes Signal K Plugin Config authoritative over the obsolete
   Node-RED `testNotif.enabled: false` value. The failed 0.1.68 attempt remained

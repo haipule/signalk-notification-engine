@@ -75,17 +75,6 @@
   "y": 180,
   "wires": []
 }, {
-  "id": "inject-policy",
-  "type": "inject",
-  "z": "tab-prototype",
-  "name": "Notification Engine config",
-  "props": [{"p": "payload"}],
-  "payloadType": "json",
-  "payload": "{\"schemaVersion\":1,\"notificationEngine\":{\"stateOrder\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"visibleStates\":[\"emergency\",\"alarm\",\"warn\",\"alert\",\"nominal\",\"normal\"],\"policies\":[],\"classificationRules\":[],\"stateColors\":{\"emergency\":\"red\",\"alarm\":\"darkRed\",\"warn\":\"yellow\",\"alert\":\"orange\",\"nominal\":\"green\",\"normal\":\"grey\"},\"visualRules\":{\"emergency\":{\"display\":\"overlay\",\"color\":\"red\",\"flash\":true,\"acknowledgeRequired\":true},\"alarm\":{\"display\":\"overlay\",\"color\":\"darkRed\",\"flash\":true,\"acknowledgeRequired\":true},\"warn\":{\"display\":\"banner\",\"color\":\"yellow\",\"flash\":false,\"acknowledgeRequired\":false},\"alert\":{\"display\":\"banner\",\"color\":\"orange\",\"flash\":false,\"acknowledgeRequired\":false},\"nominal\":{\"display\":\"table\",\"color\":\"green\",\"flash\":false,\"acknowledgeRequired\":false},\"normal\":{\"display\":\"table\",\"color\":\"grey\",\"flash\":false,\"acknowledgeRequired\":false}},\"soundsByState\":{},\"historyRules\":[],\"historyStates\":[\"emergency\",\"alarm\"],\"shortcutInfo\":\"i\",\"shortcutHistory\":\"h\",\"testNotif\":{\"enabled\":false}}}",
-  "x": 140,
-  "y": 260,
-  "wires": [[]]
-}, {
   "id": "color-emergency",
   "type": "inject",
   "z": "tab-prototype",

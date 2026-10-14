@@ -12,8 +12,10 @@ Notification Input → Policy/Filter → Visual
 it. The filter routes `alarm` and `emergency` in parallel to visual, sound, and
 history adapters, which are initially debug nodes.
 
-`Notification Engine config` contains the versioned configuration block for
-the Notification Engine. The adapter extracts this block at startup and after
-every deployment; the app does not interpret the Node-RED flow file.
+This prototype contains no configuration inject node. Select the imported
+active tab in Signal K Plugin Config; connected branches ending at `Activate`
+are the Rule Builder configuration. Host, maintenance, persistence, browser,
+diagnostics, flow-selection, and external-task authorization settings remain
+owned by Signal K Plugin Config.
 
 This prototype requires no additional nodes.

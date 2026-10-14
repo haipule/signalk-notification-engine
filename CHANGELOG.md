@@ -1,5 +1,95 @@
 # Changelog
 
+## 0.1.88 - 2026-10-13
+
+- Classify `notifications.environment.*` as the automatic display category
+  `ENVIRONMENT`, shown as `UMWELT` in German. This changes no Signal K state,
+  lifecycle, permissions, or Rule Builder behaviour.
+
+## 0.1.87 - 2026-10-13
+
+- Replace the long development-oriented README with a concise user entry point
+  and five-minute Quick Start. Add `docs/user-guide.md` for complete setup,
+  Rule Builder, Plugin Config, Notification Centre, audio-test, History,
+  external-task, localization, Diagnostics, upgrade, troubleshooting, and
+  rollback guidance.
+- Document the safe first-install order: connect and deploy at least one valid
+  branch before selecting the imported tab, preserving fail-closed rejection
+  of an empty Rule Builder flow.
+
+## 0.1.86 - 2026-10-13
+
+- Remove the legacy configuration inject node from shipped prototype material.
+  Document direct selection of the imported active Rule Builder tab in Signal K
+  Plugin Config, including verification of its read-only stable ID. Shipped
+  flows no longer require or describe a hidden configuration source.
+
+## 0.1.85 - 2026-10-13
+
+- Allow the explicitly selected active Rule Builder tab to operate without the
+  legacy `Notification Engine config` inject node. A single legacy node remains
+  temporarily compatible, duplicates remain invalid, and rule extraction still
+  fails closed when the selected flow itself is missing, disabled, or invalid.
+
+## 0.1.84 - 2026-10-13
+
+- Enforce Signal K Plugin Config as the protected owner of host, maintenance,
+  persistence, browser, diagnostics, and exact external-task authorization
+  settings. The legacy Node-RED config node can temporarily contribute only
+  its allowlisted presentation, sound, and history treatment fields.
+- Discard obsolete Node-RED copies of classification rules, history states,
+  notification tests, browser shortcuts, and state ordering from the effective
+  configuration and checksum without mutating the embedded flow document.
+
+## 0.1.83 - 2026-10-12
+
+- Apply an explicit Rule Builder `display: banner` or `display: overlay`
+  treatment even when the notification producer does not advertise a
+  `visual` method. This local presentation choice remains independent of
+  Signal K lifecycle permissions and audio treatment.
+
+## 0.1.82 - 2026-10-12
+
+- Carry Rule Builder `display`, `color`/`hex`, and `flash` fields through
+  policy resolution to each matching WebApp notification. Preserve the
+  existing visibility, history, sound, ignore, and external-task consumers.
+- Keep unknown foreign notification states visible by default; only an
+  explicit matching `visibleInTable: false` or `ignore: true` rule hides a
+  notification locally. Refresh WebApp asset versions so browsers load the
+  updated presentation code.
+
+## 0.1.81 - 2026-10-12
+
+- Use the fixed Signal K presentation order `emergency`, `alarm`, `warn`,
+  `alert`, `normal`, `nominal`. Obsolete Node-RED `stateOrder` and
+  `visibleStates` values are discarded and can no longer reorder or hide
+  notifications; unknown foreign states remain visible after known states.
+
+## 0.1.80 - 2026-10-12
+
+- Scope Node-RED configuration and rule extraction exclusively to the active
+  tab ID selected in Plugin Config. Missing, unknown, or disabled selections
+  fail notification processing closed without name fallback or backup-based
+  tab resurrection; all other Node-RED tabs are ignored.
+
+## 0.1.79 - 2026-10-12
+
+- Render Rule Builder flow selection as one named choice containing its real
+  read-only stable ID field. Migrate the temporary flat 0.1.77/0.1.78 setting
+  into this single-value representation.
+
+## 0.1.78 - 2026-10-12
+
+- Update the read-only stable Rule Builder tab ID immediately when the flow
+  selection changes, without persisting a duplicate display-only setting.
+
+## 0.1.77 - 2026-10-12
+
+- Add the first staged Rule Builder flow-selection control to Signal K Plugin
+  Config. It lists only active embedded Node-RED tabs by display name, stores
+  the stable tab ID, and reports the saved ID as read-only help text. This
+  migration release does not yet scope runtime extraction to the selection.
+
 ## 0.1.76 - 2026-10-12
 
 - Make multiple Rule Builder `Activate` endpoints deterministic: independent

@@ -1,201 +1,73 @@
 # Signal K Notification Engine
 
-A Signal K server plugin evolving from the Notification Manager into a visual
-notification automation engine. It observes Signal K notifications, keeps a
-safe local lifecycle/history model, and will execute configurable flows from
-triggers through conditions to actions.
+Notification Engine is a Signal K server plugin and companion WebApp that
+collects active notifications in one centre and applies locally authored
+presentation, history, audio, and bounded external-task rules. Rules are built
+visually with ordinary nodes in the Node-RED instance embedded in Signal K.
 
-## Current direction
+Signal K and the plugin that raised a notification remain authoritative. The
+engine never invents another alarm lifecycle and offers Silence, Acknowledge,
+or Clear only when the current Signal K notification permits that action.
 
-The WebApp will become a flow editor. Flows are stored as versioned JSON but
-edited graphically. Signal K remains authoritative for foreign notification
-state; the engine owns automation state and effects such as audio, UI output,
-and newly generated notifications.
+## Requirements
 
-The first engine boundary is documented in [Flow architecture](docs/flow-architecture.md).
+- Signal K Server with its embedded Node-RED plugin enabled
+- Node-RED 4.x for the supplied reference flow
+- `aplay` and a working ALSA playback device when server-side audio is used
+- a Signal K user with write permission for notification actions and tests
 
-The current Node-RED prototype is in [node-red/prototype](node-red/prototype/README.md).
+The currently tested development version is `0.1.88`.
 
-## Current status
+## Five-minute quick start
 
-The project is an active development build (`0.1.67`). The plugin currently
-provides an active-notification WebApp, snapshot/delta reconstruction,
-capability-checked Signal K actions, local lifecycle/history persistence,
-classification, presentation and audio policies, and the first Node-RED flow
-rule extraction/runtime integration.
+1. Install `signalk-notification-engine` in Signal K. Leave it disabled until
+   the Rule Builder flow below has been deployed.
+2. Open the Node-RED editor embedded in Signal K.
+3. Import
+   [`node-red/notification-engine-release-flow.json`](node-red/notification-engine-release-flow.json).
+4. Keep the imported tab active. Connect the final wire from **Quick Start:
+   show in table** to the supplied debug node named exactly `Activate`, then
+   deploy.
+5. In Signal K Plugin Config, open Notification Engine, enable the plugin, and
+   select that tab under **Rule Builder Flow**. Verify the stable ID displayed
+   below the selector, then save.
+6. Open the Notification Engine WebApp and verify Diagnostics reports
+   configuration `ready` and the generated Quick Start rule is listed.
 
-The current implementation is documented in
-[Current implementation](docs/current-implementation.md). The working tree may
-contain changes that have not yet been deployed to the Raspberry Pi.
+Every active rule needs one uninterrupted wire from a notification-state node,
+through its match and action nodes, to `Activate`. Importing the reference flow
+does not activate any rule, sound, or external task. No configuration inject
+node or hidden configuration file is required.
 
-## Design principles
+## Safety boundary
 
-- All notifications are visible, including unknown ones.
-- Signal K remains authoritative for notification state and lifecycle.
-- The manager applies local policies: display priority, audio, repetition,
-  retention, and bounded per-file external task delivery.
-- `silence`, `acknowledge`, and `clear` are separate operations and only shown
-  when Signal K permits them.
-- Existing alarm producers remain authoritative. The retained Node-RED
-  `Audio Alarms` legacy tab is disabled; its scripts remain only as a controlled
-  rollback path and must not be enabled alongside Notification Engine audio.
-
-Notification state visibility and sorting are configured together in Plugin
-Config. Listed states are visible in the listed order; `emergency` and `alarm`
-are always visible first.
-
-Policies are evaluated in order and may match by state, path prefix, or
-source. Unknown notifications remain visible unless an explicit rule hides
-them. The local history is an audit/history model owned by this plugin; deleting
-it does not delete or alter the Signal K notification. It is not a replacement
-for Signal K's notification or history APIs. Lifecycles are
-tracked with a local `occurrenceId`, and producer-specific end markers can be
-configured in `lifecycle-rules.json`.
-
-The WebApp supports permitted per-notification actions, global silence and
-acknowledge actions, per-notification history inspection, a combined retained
-history of complete occurrences containing a table-visible event, and confirmed
-occurrence-scoped local-history cleanup. The combined view has no bulk-delete
-action and local cleanup never changes the authoritative Signal K notification.
-Global Silence is shown only for unfinished local audio whose Signal K source
-permits silence; global Acknowledge is shown only while an unacknowledged,
-permitted target exists. Data refreshes automatically every five seconds and
-after browser reconnect, so there is no separate in-app refresh control.
-
-The Plugin Config `Test Notification` is a one-shot maintenance aid. Saving
-with `Run Test Notification Once` enabled raises one clearly marked Signal K
-notification, keeps it visible for the configured duration, clears only the id
-returned for that test, and then turns the request off. Signal K may retain the
-cleared record as `normal`; the completed maintenance record is no longer shown
-in the active Notification Engine view. Interrupted or failed cleanup does not
-silently consume the request.
-
-Audio uses one playback count: `0` loops, `1` plays once, and `2` through `99`
-play exactly that many times. Optional `payload.sound.pauseSeconds` accepts
-only whole seconds from `0` through `5` and delays playback only between
-complete plays; a missing value behaves like `0`. Values outside that range
-and values of another type reject the deployed rule. Existing
-`once`/`repeat`/`loop` flow fields are accepted through a migration adapter.
-The disabled embedded Node-RED `Audio Alarms` legacy tab is
-retained for rollback, while the plugin is the only active rule-based
-notification audio path. The WebApp also provides an authenticated, bounded `Test alarm sound`
-maintenance action. Its configured test-tone file is played once; a successful
-player exit opens a 15-second window with explicit `Alarm heard` and
-`Sound not heard` choices. Positive feedback records human audibility; with no
-selection the result is only technically played, never proven audible.
-The Plugin Config `Alarm Sound Test` interval accepts `0` through `30` days
-and defaults to `7`; `0` removes the WebApp control and disables its start API.
-The separate Plugin Config `Sound Test` plays the configured file once to check
-the audio connection and never completes or reschedules the operator-confirmed
-Alarm Sound Test.
-Full automatic amplifier/loudspeaker verification requires hardware loopback
-or a microphone.
-
-### External tasks
-
-A connected Rule Builder branch may request one external task by setting
-`payload.execute` to an absolute path and reaching `Activate`. The branch does
-not need or accept a second activation flag. Signal K Plugin Config remains the
-authorization boundary: the exact same path must appear under `External Tasks`
-with its per-file `Enabled` switch on. Each entry also defines a timeout and
-whether an explicit `normal`-state recovery rule may use it; the section sets a
-global concurrency limit from one through four.
-
-The engine starts the path directly with no dynamic arguments and no additional
-command shell. Executable shell scripts work normally through their shebang,
-and files or symbolic links are left to normal operating-system resolution.
-The engine attempts an accepted path at most once per notification occurrence,
-does not retry, terminates its process group at timeout or plugin stop, and
-limits captured stdout and stderr. Start errors, exit status and timeout are
-local audit and Diagnostics results only. They never alter, silence,
-acknowledge, clear, or normalize the originating Signal K notification and do
-not create another alarm lifecycle.
-
-### Audio device selection
-
-`audioDevice` is passed to ALSA `aplay` as its playback PCM. `default` uses
-the host's configured default route (PulseAudio on the current Pi), while
-`plughw:<card>,<device>` selects one hardware card and permits ALSA format and
-rate conversion. Numeric card indices are host-specific and must be confirmed
-with `aplay -l`; they must not be copied to another installation blindly.
-
-On the currently verified Pi, `plughw:0,0` is the first HDMI output,
-`plughw:1,0` is the second HDMI output, and `plughw:2,0` is the BCM2835 analog
-Headphones output used by Notification Engine. The equivalent symbolic form
-is `plughw:CARD=Headphones,DEV=0`, which is easier to understand when card
-indices change. After changing the device, first check Diagnostics for passive
-backend/PCM availability and then run the authenticated bounded
-`Test alarm sound` action. Only the operator's audible confirmation verifies
-the amplifier, volume, cabling, and loudspeaker; exit code zero alone does not.
-
-The Notification Centre polls every five seconds. A notification request may take up
-to twelve seconds and the displayed snapshot becomes stale after fifteen
-seconds without a successful refresh. A browser-reported offline event still
-disables actions immediately; these presentation limits never alter Signal K
-notification state or server-side audio.
-
-## WebApp language files
-
-The Notification Centre ships complete English and German catalogs and selects an
-initial locale from the browser. The compact language button stores an
-explicit choice only in that browser. English is always the fallback.
-
-Administrators may add one declarative JSON file per locale under the
-`translations` directory returned by Signal K's plugin data path. This
-persistent location is outside the installed npm package and survives package
-replacement. A file such as `nl.json` has this structure:
-
-```json
-{
-  "schemaVersion": 1,
-  "locale": "nl",
-  "name": "Nederlands",
-  "messages": {
-    "app.title": "Alarmcentrum"
-  }
-}
-```
-
-Missing entries inherit the built-in English text. Invalid files, HTML values,
-oversized files and malformed placeholders are rejected as localization
-diagnostics only; they never disable notification processing. Producer-supplied
-messages, Signal K paths, IDs, sources and raw Diagnostics remain verbatim.
-
-`criticalInputs` is an optional Signal K Plugin Config array for read-only
-source freshness checks. Each entry requires `name`, `path`, `source`, and an
-integer `staleAfterSeconds` from `1` through `3600`. The default checks
-`navigation.position` from `android_udp.gps` after 15 seconds. Results appear
-only in Diagnostics and never create a notification or change alarm handling.
+- Unknown notifications remain visible by default.
+- `emergency` is never locally silenceable.
+- Local audio suppression never changes a Signal K notification state.
+- Acknowledge, Silence, and Clear follow the current Signal K capabilities.
+- Deleting History removes only the engine's local audit entry.
+- External tasks never acknowledge, silence, clear, or normalize a
+  notification.
+- Existing alarm/audio scripts must not run in parallel with engine-owned
+  audio unless an explicit migration has been completed.
 
 ## Documentation
 
-- [Phase-1 brief](docs/codex-phase-1.md)
-- [Notification API analysis](docs/notification-api-analysis.md)
+- [User guide](docs/user-guide.md) — configuration, rule authoring, operation,
+  audio tests, History, Diagnostics, upgrades, troubleshooting, and rollback
 - [Architecture](docs/architecture.md)
-- [Flow architecture](docs/flow-architecture.md)
+- [Notification API authority analysis](docs/notification-api-analysis.md)
 - [Testing strategy](docs/testing.md)
-- [Current implementation and API](docs/current-implementation.md)
-- [Node-RED configuration migration](docs/node-red-config-migration.md)
-- [Node-RED prototype](node-red/prototype/README.md)
-- [Pi integration notes](docs/pi-integration.md)
-- [UI and touch interaction concept](docs/ui-ux.md)
-
-## Intended delivery sequence
-
-The current delivery is an alarm centre with an active list, snapshot
-reconstruction, delta updates, classification, policy-driven presentation and
-audio, local lifecycle/history views, and safe Signal K actions. Persistent
-configuration remains in Signal K Plugin Config; the WebApp is not yet a full
-policy editor. Node-RED flow deployment and live Raspberry Pi validation remain
-part of the development/handoff work described in `AGENTS.md` and `TODO.md`.
+- [End-to-end safety matrix](docs/e2e-safety-matrix.md)
+- [Raspberry Pi integration and rollback evidence](docs/pi-integration.md)
 
 ## Development checks
 
-```text
+```sh
 npm run check
 npm test
 npm pack --dry-run
 ```
 
-See `AGENTS.md` for the deployment, Node-RED, safety, and verification rules
-that apply before a change is considered ready for use.
+Repository work must also follow [`AGENTS.md`](AGENTS.md), especially its
+Signal K authority, deployment, backup, Node-RED, and live-test requirements.

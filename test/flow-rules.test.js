@@ -164,6 +164,35 @@ test('uses payload.state from an inject node without depending on its type', () 
   }])
 })
 
+test('carries connected visual treatment fields into runtime policy', () => {
+  const flow = [
+    { id: 'source', type: 'inject', payloadType: 'json', payload: '{"state":"warn"}', wires: [['visual']] },
+    { id: 'visual', type: 'change', rules: [
+      { t: 'set', p: 'payload.display', pt: 'msg', to: 'overlay', tot: 'str' },
+      { t: 'set', p: 'payload.color', pt: 'msg', to: 'red', tot: 'str' },
+      { t: 'set', p: 'payload.hex', pt: 'msg', to: '#d32f2f', tot: 'str' },
+      { t: 'set', p: 'payload.flash', pt: 'msg', to: 'true', tot: 'bool' }
+    ], wires: [['activate']] },
+    { id: 'activate', type: 'debug', name: 'Activate', wires: [[]] }
+  ]
+
+  const rules = validateRules(extractActiveRules(flow))
+  assert.deepEqual(normalizeFlowRules(rules), [{
+    name: 'warn-1', state: 'warn', match: { state: 'warn', path: undefined },
+    display: 'overlay', color: 'red', hex: '#d32f2f', flash: true
+  }])
+})
+
+test('rejects malformed visual treatment values', () => {
+  const rule = actions => ({ id: 'warn-1', match: { state: 'warn' }, actions })
+  assert.throws(() => validateRules([rule({ display: 'window' })]), /invalid display/)
+  assert.throws(() => validateRules([rule({ hex: 'red' })]), /invalid hex color/)
+  assert.throws(() => validateRules([rule({ flash: 'true' })]), /invalid flash/)
+  assert.throws(() => validateRules([rule({ visibleInTable: 'true' })]), /invalid table visibility/)
+  assert.throws(() => validateRules([rule({ history: 1 })]), /invalid history/)
+  assert.throws(() => validateRules([rule({ ignore: 'true' })]), /invalid ignore/)
+})
+
 test('canonicalizes known notification states and rejects unknown states', () => {
   const known = [
     { id: 'source', type: 'inject', payloadType: 'json', payload: JSON.stringify({ state: 'WARN' }), wires: [['activate']] },

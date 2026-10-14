@@ -1,6 +1,6 @@
 {
   "name": "signalk-notification-engine",
-  "version": "0.1.76",
+  "version": "0.1.88",
   "description": "Signal K notification engine using Node-RED nodes to visually create and represent notification rules.",
   "author": "haipule",
   "repository": {
@@ -13,7 +13,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "check": "node --check index.js && node --check lib/external-task-runner.js && node --check lib/local-lifecycle-boundaries.js && node --check lib/plugin-options-migration.js && node --check lib/plugin-runtime.js && node --check lib/runtime-test-notifications.js && node --check lib/configuration-service.js && node --check lib/http-routes.js && node --check lib/snapshot-service.js && node --check lib/history-service.js && node --check lib/audio-controller.js && node --check lib/input-source-diagnostics.js && node --check lib/audio-player.js && node --check lib/audio-playback-registry.js && node --check lib/audio-repeat-plan.js && node --check lib/sound-config.js && node --check lib/audio-watchdog.js && node --check lib/audio-circuit-breaker.js && node --check lib/audio-circuit-repository.js && node --check lib/audio-system-notification.js && node --check lib/audio-system-repository.js && node --check lib/restart-state-repository.js && node --check lib/audio-self-test.js && node --check lib/translation-catalog.js && node --check lib/request-actor.js && node --check lib/diagnostics.js && node --check lib/notification-source.js && node --check lib/notification-states.js && node --check lib/notification-store.js && node --check lib/classifier.js && node --check lib/actions.js && node --check lib/policies.js && node --check lib/history-repository.js && node --check lib/lifecycle-rules.js && node --check lib/notification-snapshot.js && node --check lib/node-red-config.js && node --check lib/node-red-runtime.js && node --check public/connectivity.js && node --check public/table-sort.js && node --check public/history-filter.js && node --check public/global-actions.js && node --check public/localization.js && node --check public/action-availability.js && node --check public/visual-presentation.js && node --check public/app.js && node --check test/*.test.js",
+    "check": "node --check index.js && node --check lib/external-task-runner.js && node --check lib/local-lifecycle-boundaries.js && node --check lib/plugin-options-migration.js && node --check lib/plugin-runtime.js && node --check lib/rule-builder-flow-selection.js && node --check lib/runtime-test-notifications.js && node --check lib/configuration-service.js && node --check lib/http-routes.js && node --check lib/snapshot-service.js && node --check lib/history-service.js && node --check lib/audio-controller.js && node --check lib/input-source-diagnostics.js && node --check lib/audio-player.js && node --check lib/audio-playback-registry.js && node --check lib/audio-repeat-plan.js && node --check lib/sound-config.js && node --check lib/audio-watchdog.js && node --check lib/audio-circuit-breaker.js && node --check lib/audio-circuit-repository.js && node --check lib/audio-system-notification.js && node --check lib/audio-system-repository.js && node --check lib/restart-state-repository.js && node --check lib/audio-self-test.js && node --check lib/translation-catalog.js && node --check lib/request-actor.js && node --check lib/diagnostics.js && node --check lib/notification-source.js && node --check lib/notification-states.js && node --check lib/notification-store.js && node --check lib/classifier.js && node --check lib/actions.js && node --check lib/policies.js && node --check lib/history-repository.js && node --check lib/lifecycle-rules.js && node --check lib/notification-snapshot.js && node --check lib/node-red-config.js && node --check lib/node-red-runtime.js && node --check public/connectivity.js && node --check public/table-sort.js && node --check public/history-filter.js && node --check public/global-actions.js && node --check public/localization.js && node --check public/action-availability.js && node --check public/visual-presentation.js && node --check public/app.js && node --check test/*.test.js",
     "test": "node --test test/*.test.js",
     "prepublishOnly": "npm run check && npm test"
   },
@@ -36,6 +36,7 @@
     "index.js",
     "lib",
     "public",
+    "docs",
     "examples",
     "sounds",
     "lifecycle-rules.json",

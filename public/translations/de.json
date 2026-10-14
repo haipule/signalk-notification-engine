@@ -44,6 +44,7 @@
     "state.unknown": "UNBEKANNT",
     "category.navigation": "NAVIGATION",
     "category.weather": "WETTER",
+    "category.environment": "UMWELT",
     "category.electrical": "ELEKTRIK",
     "category.propulsion": "ANTRIEB",
     "category.system": "SYSTEM",

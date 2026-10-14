@@ -1,5 +1,30 @@
 # Raspberry Pi deployment and rollback
 
+## Notification Engine 0.1.88 release-candidate baseline
+
+Version `0.1.88` was packaged, deployed, and verified on 2026-10-13. The
+deployment archive SHA-256 is
+`cb5362e49cd6a7e423ef33ebbc8a66d00e48ae8dc39bb112d346f872857d1f90`.
+The complete replaced `0.1.87` installation is retained at
+`/home/pi/.signalk/node_modules/signalk-notification-engine.backup-0.1.87-before-0.1.88`.
+
+After full initialization, Signal K was active; embedded Node-RED reported
+configuration `ready`, runtime deploy events available, and productive rule
+revision
+`34649048570fc10c56b951586d11a1ec9ff149e65410a22cfcafe623417d28d2`.
+Android GPS was fresh from `android_udp.gps`; audio was ready with zero active
+processes and pending retries; no `alarm` or `emergency` notification was
+active. The installed package, Diagnostics, served WebApp metadata, and asset
+cache keys all reported `0.1.88`.
+
+The two live bilge paths were normal and classified as `ENVIRONMENT`; after a
+forced Tab 3 reload both appeared as `UMWELT`. Source and installed SHA-256
+values matched for package metadata, classifier, WebApp entry files, both
+built-in translation catalogs, and the packaged user guide. All 270 tests,
+syntax checks, package dry run, documentation-link checks, and diff checks
+passed before deployment. The embedded Node-RED flow was not changed by this
+deployment.
+
 ## Notification Engine 0.1.76 deterministic Activate endpoints
 
 Version `0.1.76` was deployed and verified on 2026-10-12. The package at

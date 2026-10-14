@@ -18,7 +18,7 @@ for Signal K API calls and lifecycle state.
 | --- | --- | --- |
 | `policies` | Node-RED | Flow conditions and presentation decisions |
 | `classificationRules` | Removed | Categories are automatic display metadata; do not configure them in Node-RED. |
-| `stateOrder`, `visibleStates` | Node-RED | Visibility and ordering policy |
+| `stateOrder`, `visibleStates` | Removed | Signal K state severity is fixed; rules control treatment and explicit visibility. |
 | `stateColors`, `visualRules` | Node-RED | Visual presentation decisions |
 | `soundsByState`, `soundPaletteFile` | Node-RED | Sound selection and timing |
 | `historyRules` | Node-RED | Legacy history routing decisions |
@@ -29,10 +29,27 @@ for Signal K API calls and lifecycle state.
 | `shortcutInfo`, `shortcutHistory` | Signal K initially | WebApp input handling |
 | plugin enabled/start/stop and logging | Signal K | Signal K lifecycle and logging authority |
 
-The Node-RED-owned settings are now authoritative. On startup and after every
-successful deploy, the engine reads the `Notification Engine config` node and
-applies its complete `notificationEngine` object. Signal K Plugin Config is
-used only for the host boundary and local persistence settings listed above.
+The selected Rule Builder flow is authoritative only for connected treatment
+rules. During the final compatibility stage, startup and each successful
+deploy still read the legacy `Notification Engine config` node, but only an
+explicit allowlist of its presentation, sound, and history treatment fields
+can be applied. The complete object is never merged over Signal K Plugin
+Config. Host audio, maintenance tests, persistence limits, browser controls,
+critical-input diagnostics, flow selection, and exact external-task
+authorization remain protected Plugin Config values.
+
+Known obsolete or misplaced legacy-node fields (`classificationRules`,
+`historyStates`, `stateOrder`, `visibleStates`, `testNotif`, and browser
+shortcuts) are removed from the effective configuration before checksumming.
+They cannot alter processing or cause a reload, while the source flow remains
+untouched until the operator performs the documented final node removal.
+
+Version `0.1.85` removes the node as a startup requirement. The explicitly
+selected active tab and its connected rules are the mandatory deployed
+configuration; absence of the legacy inject node contributes an empty
+compatibility object. Exactly one old node is still accepted for the staged
+live-parity proof, while duplicates are invalid. All selected-tab and rule
+validation boundaries remain fail closed.
 
 Starting with version `0.1.48`, a successful validated startup also removes
 known obsolete Node-RED-owned duplicates from the persisted Signal K plugin
@@ -71,11 +88,11 @@ its user directory are outside this project. A compatible Node-RED package
 update does not replace the deployed flow, which remains the source of the
 configuration after Signal K restarts.
 
-The Notification Engine also keeps the last flow that contained a valid
-`Notification Engine config` node in a sibling directory named
+The Notification Engine also keeps the last valid selected Rule Builder flow
+document in a sibling directory named
 `notification-engine-backups/last-valid-flow.json`. A valid startup or deploy
 updates this backup atomically. If a deploy removes or corrupts the
-Notification Engine configuration, the embedded runtime restores that backup
+selected Rule Builder configuration, the embedded runtime restores that backup
 through Node-RED's `setFlows` API, retaining the currently deployed
 credentials. A flow without a valid engine configuration is therefore never
 accepted silently as the new notification configuration.
@@ -89,24 +106,22 @@ checksum does not restart processing. A changed checksum is validated first
 and then applied as one configuration update. The Node-RED revision is useful
 for diagnostics but is not by itself evidence of a behavioural change.
 
-## First integration test
+## Historical first integration test
 
-The first test deliberately uses only the state policy. The prototype's
-existing `Policy snapshot` inject node is to be replaced by a dedicated
-Notification Engine configuration block with this payload:
+The first prototype replaced its `Policy snapshot` inject node with a temporary
+Notification Engine compatibility block. Current shipped flows no longer
+contain that node. The historical minimal payload was:
 
 ```json
 {
   "schemaVersion": 1,
-  "notificationEngine": {
-    "stateOrder": ["emergency", "alarm", "warn", "normal"],
-    "visibleStates": ["emergency", "alarm", "warn", "normal"]
-  }
+  "notificationEngine": {}
 }
 ```
 
-The adapter test covers four cases: valid startup configuration, identical
-deploy without an update, changed state policy with exactly one update, and a
-malformed or unsupported payload that is rejected without replacing the last
-valid configuration. The test uses an isolated prototype tab; existing
-Signal-K production flows are not changed.
+The adapter test covers valid startup configuration, identical deploy without
+an update, a changed effective setting with exactly one update, and a malformed
+or unsupported payload that is rejected without replacing the last valid
+configuration. Legacy `stateOrder` and `visibleStates` fields are discarded.
+The test uses an isolated prototype tab; existing Signal-K production flows
+are not changed.

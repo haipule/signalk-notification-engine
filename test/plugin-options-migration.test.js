@@ -51,3 +51,13 @@ test('leaves current operational and unknown options untouched', () => {
   assert.equal(result.changed, false)
   assert.deepEqual(result.removedFields, [])
 })
+
+test('migrates the staged flat Rule Builder tab id into the single visible selector object', () => {
+  const result = migratePluginOptions({ ruleBuilderTabId: ' tab-adjective-mapping ', audioDevice: 'default' })
+
+  assert.equal(result.changed, true)
+  assert.deepEqual(result.options.ruleBuilderFlow, { id: 'tab-adjective-mapping' })
+  assert.equal(result.options.ruleBuilderTabId, undefined)
+  assert.deepEqual(result.removedFields, ['ruleBuilderTabId'])
+  assert.equal(result.options.audioDevice, 'default')
+})

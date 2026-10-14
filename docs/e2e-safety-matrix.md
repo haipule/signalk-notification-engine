@@ -24,7 +24,7 @@ real anchor lifecycle.
 - **PENDING**: safe to perform later, but not yet executed.
 - **BLOCKED**: must not be executed in the current vessel state.
 
-## Current release-acceptance audit — 0.1.67
+## Current release-acceptance audit — 0.1.88
 
 This audit separates the current release decision from historical failures
 retained below. A historical PARTIAL or FAIL is not silently promoted: it is
@@ -32,13 +32,14 @@ either linked to a later complete retest or remains explicitly open.
 
 | Area | Current evidence | Release classification |
 | --- | --- | --- |
-| Automated checks and package | Syntax checks, 213 unit tests, and `npm pack --dry-run` pass for `0.1.67`; the deployed package SHA-256 is `323d699c494ff30b500484a62b5b610507bb9ec8189264d6e689e6cef7f34ac5`. | PASS |
-| Pi deployment baseline | Installed `0.1.67`; Signal K and health timer active with zero restarts; embedded Node-RED ready; external `nodered.service` inactive; GPS fresh; history healthy; audio ended idle with no retry, breaker, or unresolved failure. | PASS |
-| Global action target boundary | The live table calculation excluded both hidden Bilge `normal` records. `Silence all` had no target; only the visible, newly republished and unacknowledged GNSS warning qualified for `Acknowledge all`. No action was invoked. | PASS with `0.1.67` |
-| External task delivery | Unit coverage passes and live Diagnostics show zero configured, enabled, active, or attempted tasks. The deployed rules contain no connected `execute` action. No live script was started while acceptance tests were paused. | IMPLEMENTATION/DEPLOYMENT PASS; LIVE ACCEPTANCE PENDING |
+| Automated checks and package | Syntax checks, all 270 tests, `npm pack --dry-run`, documentation-link checks, and `git diff --check` pass for `0.1.88`. The package includes the concise README, complete user guide, release flow, English/German catalogs, and Node-RED 4 fixture. | PASS |
+| Pi deployment baseline | Installed and served `0.1.88`; Signal K active; embedded Node-RED configuration `ready` at revision `34649048570fc10c56b951586d11a1ec9ff149e65410a22cfcafe623417d28d2`; runtime deploy events available; Android GPS fresh from `android_udp.gps`; audio ready with zero active processes or pending retries. Installed `0.1.87` is the rollback backup. | PASS |
+| Selected Rule Builder ownership | Plugin Config persists stable tab ID `tab-adjective-mapping`; extraction is scoped only to that active tab, which contains ten productive rules and no legacy `Notification Engine config` node. Missing, unknown, disabled, empty, or invalid selection fails closed without name fallback or cross-tab scanning. | PASS with `0.1.88`; automated failure coverage and live parity proved |
+| Global action target boundary | Global Silence and Acknowledge are calculated and submitted only for exact records visible in the current table. Acknowledge remains state-independent when Signal K permits it; hidden or resolved records cannot manufacture a global target. | PASS; focused automated coverage and earlier live target inspection retained |
+| External task delivery | The exact per-file Plugin Config authorization and connected `payload.execute` branch were accepted live on 2026-10-10. The harmless configured script created its expected Desktop file only while the branch reached `Activate`; after disconnecting that final wire, the same test created no file. Task delivery remained independent of notification lifecycle authority. | PASS |
 | Tab 3 release UI | The earlier release smoke passed. The `0.1.64` pull-to-refresh retest additionally passed operator observation and a 39.966-second full-frame recording with no disconnected-banner frame. | PASS |
 | Rule failure and recovery | Invalid runtime configuration fails closed, and the later valid runtime deploy resumes processing without a Signal K restart or replaying completed finite sounds. | PASS with `0.1.32` |
-| History inheritance and final `normal` | Later live GPS-loss lifecycles and the `0.1.57` table-history inspection contain raised/update/action/final-normal events under retained occurrences. | PASS for the repaired history path; older simulated scenarios remain historical PARTIAL until repeated end to end |
+| History inheritance and final `normal` | Later live GPS-loss lifecycles, the occurrence-scoped Rule Builder History test, and the fresh `0.1.73` severity regression contain the expected raised/update/action/final-normal events. Explicit `history: false` suppresses a complete occurrence without hard-coded alarm/emergency exceptions. | PASS; older PARTIAL rows below are retained only as historical defect evidence |
 | Occurrence-scoped Rule Builder History | A visible notification inherits recording by default; explicit `history: true` records a hidden notification; explicit `history: false` suppresses the complete occurrence, including its final `normal`, for alarm and emergency without a hard-coded severity exception. | PASS with `0.1.71`. Four new sound-disabled `hist2-*` runtime slots began with no retained events. Default warn and hidden explicit-history alert each produced `raised` and `updated/normal` with one occurrence ID. Alarm and emergency with `history: false` produced no local event at either transition. The temporary flow was removed and the productive flow hash/revision were restored exactly. |
 | Exact plugin-restart correlation | An unchanged active GNSS notification retained producer ID, occurrence, completed playback, and 15 exact staged matches without replay. | PASS with `0.1.50` |
 | Current simulated severity regression | Deployed `0.1.73` passed a fresh bounded `warn`, `alarm`, `emergency`, and isolated Hoekens-compatible exact-path run on 2026-10-11/12. The operator confirmed every expected visual and audible presentation. Warn retained Acknowledge and final `normal`; alarm retained Silence, Acknowledge, authoritative status updates and final `normal`; emergency offered no Silence, ACK removed only its overlay while its siren continued, and permitted Clear (`Zurücksetzen` in German) ended presentation and audio. A temporary exact-path runtime rule selected the Hoekens `2bells.wav` loop without touching the real anchor notification and retained Silence, Acknowledge, and final `normal` in one occurrence. | PASS; the productive flow hash/revision were restored exactly, the temporary access client was removed, and an approved Signal K restart ended with zero test slots or audio faults |
@@ -47,13 +48,18 @@ either linked to a later complete retest or remains explicitly open.
 | Multiple `Activate` endpoints | Independent complete branches may terminate at separate nodes named exactly `Activate`; duplicate fan-out must not duplicate a rule, complementary same-scope fields must merge, and contradictory same-scope actions must fail closed independently of JSON order. | PASS with `0.1.76`: focused tests cover independent endpoints, two-endpoint fan-out, recursive same-scope sound/history composition, both conflict orders, and conflicting legacy/canonical sound-file aliases. Before deployment the new extractor accepted the actual 240-node embedded flow as ten rules. After restart the live deployed-rules file still contained exactly ten rules with the unchanged revision and ready runtime deploy events. No temporary active rule or notification was required. |
 | Active real Hoekens alarm across a full Signal K restart | Presentation and exactly one audio process recovered, but Hoekens changed producer ID and the local occurrence/history did not remain continuous. | RELEASE DECISION REQUIRED; upstream report still open |
 | Deliberate real Android UDP interruption | Requires a separate safe window because Android GPS is the active position source. | NOT RUN on the current release candidate; disclose as a limitation unless made a release blocker |
-| Real bilge producer | The operator physically triggered the starboard bilge input on 2026-10-11 and confirmed the expected visual and audible alarm. Local History independently records `notifications.environment.bilgeWater.stbd` from `engineroomStbd.XX` changing to `alarm` at 12:39:16 UTC with `Bilge water detected in starboard engine room`, then returning to `normal`/`Watching` at 12:39:21 UTC under the same occurrence ID. The current projection is normal and audio diagnostics are idle and healthy. | PASS |
+| Real bilge producer | The operator physically triggered the starboard bilge input on 2026-10-11 and confirmed the expected visual and audible alarm. Local History independently records `notifications.environment.bilgeWater.stbd` from `engineroomStbd.XX` changing to `alarm` at 12:39:16 UTC with `Bilge water detected in starboard engine room`, then returning to `normal`/`Watching` at 12:39:21 UTC under the same occurrence ID. Version `0.1.88` additionally classifies both live bilge paths as `ENVIRONMENT`, displayed as `UMWELT`; the current projections are normal and audio diagnostics are idle and healthy. | PASS |
 
 The current candidate must not be described as fully release-accepted until
 every row marked for rerun, release decision, or real-producer coverage is
 either passed or explicitly accepted as a documented limitation.
 
-## Live evidence captured on 2026-09-26
+## Historical live evidence captured from 2026-09-26
+
+The following tables preserve observations from the versions named in each
+row. They are not the current release verdict. Where a later complete retest
+exists, the `0.1.88` audit above is authoritative and the historical
+PARTIAL/FAIL result remains only to document the defect that prompted the fix.
 
 | Case | Expected result | Evidence | Result |
 | --- | --- | --- | --- |
@@ -64,7 +70,11 @@ either passed or explicitly accepted as a documented limitation.
 | Transient GPS loss during a controlled Signal K restart | Hoeken's warning and its audio must be distinguishable from the later simulated notification and must resolve when Android GPS returns | During the multi-device E2E setup, `1bells.wav` sounded before the simulated alarm existed. Signal K had been restarted, Android GPS was temporarily unavailable during startup, and Hoeken's returned `notifications.navigation.anchor` to `normal` at 00:44:27Z. The isolated E2E alarm was not published until 00:44:31Z and then used `alarm.wav`. This identifies the preceding bell as the real Hoeken's GPS-loss warning. Its raised event is absent from local history because of the known path-rule history defect. | PARTIAL: safety warning and recovery worked; history failed |
 | Local occurrence continuity across restart | The same physical anchoring lifecycle remains correlated across a routine plugin/server restart | Before restart the anchor occurrence was `occurrence-1790305888174-ms0xjbo8rq`; after restart it became `occurrence-1790467178808-21k6yufj9h2`, with a new `raised` history event despite the anchor already being set. | FAIL |
 
-## Remaining controlled tests
+## Historical controlled-test evidence
+
+The early PARTIAL rows below were superseded by the complete `0.1.73`
+severity regression recorded in the current audit. They are intentionally not
+rewritten as passes because their original observations remain valid history.
 
 | Case | Required observations | Current status |
 | --- | --- | --- |
@@ -102,7 +112,7 @@ either passed or explicitly accepted as a documented limitation.
 | Raise and re-drop after ACK | New anchoring lifecycle is not born acknowledged even if Hoeken's reuses an ID | PASS after the `0.1.47` retest with Hoekens `2.13.1`. The earlier run proved the producer reset `acknowledged` to false but exposed a missing local boundary. The later controlled run ended occurrence `occurrence-1791416035898-96w9keg1kz` on Raise and assigned the next Drop occurrence `occurrence-1791416217885-tt4yew20on` despite one reused technical ID. Final Raise restored anchor state `off`; services, GPS, history, and audio remained healthy. |
 | Local anchor occurrence boundary | Inactive `navigation.anchor.state` (`off` or Hoekens 2.13.1 value removal) ends only the local anchor occurrence; repeated snapshots while inactive do not invent an occurrence, and the next producer update after `on` gets a fresh ID | PASS in `0.1.47` on 2026-10-07. Unit tests cover both inactive representations, idempotency, unrelated paths, notification immutability, persistent-inactive snapshots, re-arming, and local audio cleanup. In the controlled live test Hoekens reused technical ID `6d2e4189-b311-489f-a6a8-1b851b0ceb66`; first local occurrence `occurrence-1791416035898-96w9keg1kz` was marked `local_lifecycle_ended` on Raise, and the next Drop created `occurrence-1791416217885-tt4yew20on`. Final Raise ended the second occurrence and restored anchor state `off`; services, GPS, history, and audio remained healthy. |
 | Deliberate Android UDP interruption | Timeout, warning, recovery, history, and source-age behaviour are reproducible | BLOCKED while Android GPS is the active anchor-watch position source |
-| Real bilge producer alarm and recovery | Presentation, audio, history, permitted actions, producer-authoritative return to normal, and no phantom alarm | PENDING until an approved safe physical input or simulation method is available |
+| Real bilge producer alarm and recovery | Presentation, audio, history, permitted actions, producer-authoritative return to normal, and no phantom alarm | PASS on 2026-10-11; see the current `0.1.88` audit for the physical-input and retained-History evidence. |
 | Restart with an active real alarm | Active alarm is reconstructed without losing status or producing duplicate audio/lifecycles | PARTIAL/FAIL with Hoekens `2.13.1` and Notification Engine `0.1.47` on 2026-10-07 in an approved safe window. A temporary 5 m circle raised the real `Anchor Dragging (28m)` alarm. Before restart it used producer id `88045cb2-52e3-4d65-ba4f-8d78a86fc5ae` and local occurrence `occurrence-1791417704173-k4fxv5d3sv`; the operator confirmed visual and audible presentation. After one controlled Signal K restart, Hoekens republished the same continuing drag with new producer id `ea3e98ab-fa3e-4018-80e2-8d3d190d6dce`, and Notification Engine created new occurrence `occurrence-1791417869843-iu0oyfbbw3`. Visual presentation and looping `2bells.wav` recovered, the operator again confirmed both, and only one anchor audio process remained after initialization. However, lifecycle continuity failed and no anchor event was present in local history. Restoring 50 m returned the producer and centre to `normal`, stopped audio, and left GPS, rules, services, persistence, retries, breakers, and the original anchor position healthy. |
 | Restart with an active API-managed test alarm | Determine whether the active notification and audio are reconstructed without duplication | INCONCLUSIVE for producer reconstruction: the in-memory test producer did not republish after restart, so the Signal K notification disappeared on both devices and its audio stopped. No duplicate or restarted sound occurred, and the managed services recovered normally. A persistent producer is required for the real reconstruction case. |
 | Final Tab 3 release smoke | Current UI serves and renders correctly; Active, History, Diagnostics, localization, permitted actions, audible self-test, network loss/recovery, Node-RED readiness, and clean runtime diagnostics are verified | PASS with `0.1.47`, extended on `0.1.64`. The original smoke covered English/German, actions, audible confirmation, real WLAN loss/recovery, ready Node-RED, and clean diagnostics. On 2026-10-08 the operator repeated pull-to-refresh on `0.1.64`; it no longer flashed the false disconnected banner, and a 39.966-second full-frame control recording contained no red-banner region. Final Pi diagnostics again showed fresh GPS, healthy history, and zero audio processes, retries, open breakers, or unresolved failures. |
@@ -118,23 +128,25 @@ either passed or explicitly accepted as a documented limitation.
    for the same continuing physical alarm.
 3. **RESOLVED.** Audio success uses exit code and signal; ordinary successful
    `aplay` diagnostics on stderr are not reported as failures.
-4. **OPEN CONFIGURATION DECISION.** The historical non-critical warning was
-   table-visible but did not show its configured banner. Current builder output
-   and intended presentation must be reconciled before calling this a defect.
-5. **RESOLVED IN POLICY; HISTORICAL SCENARIO NOT REPEATED.** General-to-specific
-   policy composition repairs inherited history, but the exact old simulated
-   alarm scenario remains PARTIAL rather than being promoted without a rerun.
-6. **OPEN UX LIMITATION.** A read-only session learns that Signal K sign-in is
-   required only after an action request fails; pre-click authorization state
-   is not exposed reliably by the current API.
+4. **RESOLVED AND RETESTED.** `display: banner` is a fixed strip inside the
+   Notification Centre. The real GNSS warning and bounded presentation tests
+   confirmed banner/overlay separation.
+5. **RESOLVED AND RETESTED.** General-to-specific policy composition repairs
+   inherited history, and the `0.1.73` regression retained final `normal`
+   transitions for the bounded severity cases.
+6. **RESOLVED.** The WebApp probes the Signal K readwrite boundary without
+   mutation. An otherwise applicable action stays visible but disabled with a
+   clear permission explanation for a read-only browser.
 7. **RESOLVED FOR SIMULATED TESTS.** Authenticated bounded runtime slots no
    longer require a Signal K restart. This does not authorize real GPS faults.
 8. **RESOLVED OPERATIONALLY.** The unmanaged Signal K process was terminated;
    only the managed service owns the production runtime.
-9. **OPEN CONFIGURATION/RENDERING MISMATCH.** A historical alarm rule reported
-   `display: banner` while both clients rendered an overlay.
-10. **OPEN SAFETY DECISION.** Acknowledging an emergency removes its overlay
-    while the active emergency and non-silenceable siren remain in the table.
+9. **RESOLVED.** Banner and overlay are distinct render modes; the bounded
+   visual test and live GNSS banner proved the current implementation.
+10. **RESOLVED BY EXPLICIT POLICY AND RETEST.** Acknowledging an emergency
+    calms/removes its overlay while retaining the authoritative emergency and
+    its independent non-silenceable audio. The `0.1.73` emergency regression
+    confirmed this behaviour.
 11. **RESOLVED.** Recorded occurrences retain their final authoritative
     `normal` transition.
 12. **RESOLVED.** Invalid runtime configuration enters a visible fail-closed
@@ -142,27 +154,27 @@ either passed or explicitly accepted as a documented limitation.
 13. **RESOLVED.** Controlled WLAN loss/recovery passed, and `0.1.64` removed
     the false pull-to-refresh banner while keeping the fifteen-second freshness
     boundary and action lock for a real outage.
-14. **RESOLVED IN HISTORY PATH; HISTORICAL SCENARIO NOT REPEATED.** The original
-    controlled test lacked history; later live history proves inheritance and
-    final-normal retention, but the exact old scenario remains historical.
+14. **RESOLVED AND RETESTED.** The original controlled test lacked history;
+    the current severity regression proves inheritance and final-normal
+    retention. The old PARTIAL row remains historical evidence only.
 15. **PASSED CONTROLLED RETEST; EARLIER CAUSE UNPROVEN.** With `0.1.50`, an
     unchanged active GNSS notification produced 15 exact restart matches,
     retained occurrence/playback state, and did not replay. The contrary
     `0.1.49` observation remains recorded because its cause was not proved.
 
-The remaining release decisions are therefore the explicitly OPEN items above
+The remaining release decisions are therefore the unresolved items above
 and the real-producer gaps in the current audit table. Resolved historical
 failures remain in the evidence tables rather than being erased.
 
-## Display-filter change during the run
+## Current display baseline
 
-After the audible tests, the operator removed the `nominal` and `normal`
-display rules so the active table is intended to show only `warn` and above.
-The deployed rule set then contained nine rules for `warn`, `alert`, `alarm`,
-and `emergency`, with no `nominal` or `normal` rule. The configuration API's
-`stateOrder` still contained `nominal` and `normal`; this is recorded as a
-configuration-consistency question rather than silently changing a separate
-global setting. Table visibility is governed by the deployed display rules.
+The historical nine-rule display-filter experiment is no longer the deployed
+baseline. Version `0.1.88` extracts ten rules from the selected stable tab and
+uses the fixed Signal K presentation order `emergency`, `alarm`, `warn`,
+`alert`, `normal`, `nominal`; unknown foreign states remain visible unless an
+explicit matching rule hides them. The live table after deployment contained
+one warning and fourteen normal/nominal records, including both bilge paths as
+`ENVIRONMENT`/`UMWELT`.
 
 Prio 2 remains incomplete only for the current audit's explicit release
 decisions and unexecuted real-producer cases; resolved historical defects do

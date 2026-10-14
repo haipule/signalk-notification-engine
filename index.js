@@ -28,10 +28,12 @@ const { inspectInputSources, normalizeInputSources } = require('./lib/input-sour
 const { RuntimeTestNotifications } = require('./lib/runtime-test-notifications')
 const ConfiguredTestNotification = require('./lib/configured-test-notification')
 const { TranslationCatalog, normalizeLocale } = require('./lib/translation-catalog')
-const { getNodeRed, readConfiguration, subscribeToDeploy } = require('./lib/node-red-runtime')
+const { getNodeRed, readConfiguration, listActiveFlowTabs, subscribeToDeploy } = require('./lib/node-red-runtime')
 const { normalizeFlowRules, rulesMarkdown } = require('./lib/flow-rules')
 const { ConfigurationService, normalizeAlarmTestInterval, normalizeHistoryRules, normalizeInfoTimeout, normalizeShortcut } = require('./lib/configuration-service')
 const { migratePluginOptions } = require('./lib/plugin-options-migration')
+const { withRuleBuilderFlowSelection } = require('./lib/rule-builder-flow-selection')
+const { NOTIFICATION_STATES } = require('./lib/notification-states')
 const registerHttpRoutes = require('./lib/http-routes')
 const visualColorPool = require('./lib/visual-colors')
 const visualColorKeys = Object.keys(visualColorPool)
@@ -59,7 +61,7 @@ module.exports = function createPlugin(app) {
   let audioSelfTestRepository = null
   let restartStateRepository = null
   let configuredClassifier = classify
-  let configuredStateOrder = ['warn', 'alert', 'nominal', 'normal']
+  const configuredStateOrder = [...NOTIFICATION_STATES]
   let stateColors = { emergency: visualColorPool.red, alarm: visualColorPool.darkRed, warn: visualColorPool.yellow, alert: visualColorPool.orange, nominal: visualColorPool.green, normal: visualColorPool.grey }
   const configurationService = new ConfigurationService({ baseDirectory: __dirname, visualColorPool })
   let visualRules = {}
@@ -118,6 +120,7 @@ module.exports = function createPlugin(app) {
   const actions = new NotificationActions(app)
   const runtimeTests = new RuntimeTestNotifications(app)
   let activeRules = []
+  let selectedRuleBuilderTabId = ''
   const conditionValues = new Map()
   let conditionUnsubscribes = []
   const audioPlayer = new AudioPlayer({
@@ -215,7 +218,6 @@ module.exports = function createPlugin(app) {
     audioController.configure(flowOptions?.audioPlayer, flowOptions?.audioDevice)
     policyResolver = new PolicyResolver([...normalizeFlowRules(flowOptions?.activeRules), ...configurationService.normalizePolicies(flowOptions?.policies)], soundsByState, readSignalKValue)
     configuredClassifier = classify
-    configuredStateOrder = configurationService.normalizeStateOrder(flowOptions?.stateOrder, flowOptions?.sortOrder, flowOptions?.visibleStates)
     stateColors = configurationService.normalizeStateColors(flowOptions?.stateColors)
     visualRules = configurationService.normalizeVisualRules(flowOptions?.visualRules, stateColors)
     infoAutoCloseSeconds = normalizeInfoTimeout(flowOptions?.infoAutoCloseSeconds)
@@ -444,6 +446,7 @@ module.exports = function createPlugin(app) {
       void configuredTestNotification.stop()
       const optionMigration = migratePluginOptions(options)
       const effectiveOptions = optionMigration.options
+      selectedRuleBuilderTabId = typeof effectiveOptions.ruleBuilderFlow?.id === 'string' ? effectiveOptions.ruleBuilderFlow.id.trim() : ''
       const { token, flowOptions } = await runtime.start(effectiveOptions)
       applyRuntimeConfiguration(flowOptions)
       lifecycleRules = loadLifecycleRules(app.getDataDirPath?.(), message => app.error?.(message))
@@ -798,6 +801,19 @@ module.exports = function createPlugin(app) {
     delete plugin.schema.properties[field]
   }
   delete plugin.uiSchema.soundsByState
+  plugin.uiSchema.ruleBuilderFlow = { id: { 'ui:readonly': true } }
+
+  const staticSchema = plugin.schema
+  plugin.schema = async () => {
+    let tabs = []
+    let readError = ''
+    try {
+      tabs = await listActiveFlowTabs(getNodeRed())
+    } catch (error) {
+      readError = error.message
+    }
+    return withRuleBuilderFlowSelection(staticSchema, tabs, selectedRuleBuilderTabId, readError)
+  }
 
   return plugin
 }

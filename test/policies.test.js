@@ -106,3 +106,17 @@ test('inherits visibility and history while a path rule overrides only sound', (
   assert.equal(result.sound, 'anchor.wav')
   assert.equal(result.matchedPolicy, 'anchor sound')
 })
+
+test('inherits general visual treatment and applies a specific visual override', () => {
+  const resolver = new PolicyResolver([
+    { name: 'warn defaults', match: { state: 'warn' }, display: 'banner', color: 'orange', hex: '#fbc02d', flash: false },
+    { name: 'anchor attention', match: { state: 'warn', path: 'notifications.navigation.anchor' }, display: 'overlay', flash: true }
+  ])
+
+  assert.deepEqual(
+    (({ display, color, hex, flash }) => ({ display, color, hex, flash }))(
+      resolver.resolve({ state: 'warn', path: 'notifications.navigation.anchor' })
+    ),
+    { display: 'overlay', color: 'orange', hex: '#fbc02d', flash: true }
+  )
+})
