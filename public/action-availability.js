@@ -7,7 +7,7 @@
 })(typeof window !== 'undefined' ? window : globalThis, function build() {
   /** Return whether Signal K currently permits this notification action. */
   function sourceAllowsAction(notification, action) {
-    if (notification?.historyOnly) return false
+    if (notification?.historyOnly || notification?.actionManaged !== true) return false
     const status = notification?.status
     if (!status) return false
     if (action === 'silence') return notification.state !== 'emergency' && status.canSilence === true && status.silenced !== true

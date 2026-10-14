@@ -36,14 +36,23 @@ The server documents that their `canClear` is always `false`.
 
 | Operation | Meaning | Manager rule |
 |---|---|---|
-| Active | A state other than normal/nominal as defined by Signal K. | Display and evaluate policy. |
-| Silence | Alarm remains active; sound is removed/suppressed. | Only if `canSilence`; never silence `emergency`. |
-| Acknowledge | Operator has seen the alarm; it may remain active. | Only if `canAcknowledge`. |
-| Clear | Signal K transitions the alarm to `normal`. | Only if `canClear`; never use as a local dismiss button. |
+| Active | A current notification lifecycle. `normal` and `nominal` can remain visible while Signal K still exposes them. | Display and evaluate policy. A manager-removed `normal` residue is no longer active. |
+| Silence | Alarm remains active; sound is removed/suppressed. | Only with current manager membership and `canSilence`; never silence `emergency`. |
+| Acknowledge | Operator has seen the notification; its authoritative state is unchanged. | Only with current manager membership and `canAcknowledge`, regardless of state. |
+| Clear | Signal K transitions the alarm to `normal`. | Only with current manager membership and `canClear`; never use as a local dismiss button. |
 
 The manager does not publish a `normal` delta merely because a user dismisses a
 card. For classic producer deltas, the producer is responsible for clearing
 the underlying condition.
+
+Signal K 2.33.0 can remove a `normal` record from the Notification API manager
+while its data-model value and copied capability flags remain present. Those
+flags are then stale and must not authorize an action. The Notification Engine
+therefore tracks current manager membership separately, removes only such a
+manager-cleaned `normal` residue from the active WebApp projection, and does
+not manufacture a cleanup History event. Existing lifecycle History remains.
+Non-normal records stay visible fail-safe if the manager view is temporarily
+unavailable; `nominal` is not covered by this observed normal-state cleanup.
 
 ## Store reconstruction
 
@@ -54,7 +63,8 @@ and it must be rebuilt after restart.
 
 ## Implications for the WebApp
 
-The WebApp receives an all-notifications view. Each card displays its current
-Signal K state, API identifier where available, status flags, source/path, and
-the effective local policy. Buttons are hidden or disabled based on the current
-capability flags and report errors returned by the server.
+The WebApp receives the active notification projection. Each card displays its
+current Signal K state, API identifier where available, status flags,
+source/path, and effective local policy. Buttons are hidden or disabled based
+on both current Notification API manager membership and the corresponding
+capability flags, and report errors returned by the server.

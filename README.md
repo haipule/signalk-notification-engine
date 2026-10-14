@@ -16,7 +16,7 @@ or Clear only when the current Signal K notification permits that action.
 - `aplay` and a working ALSA playback device when server-side audio is used
 - a Signal K user with write permission for notification actions and tests
 
-The currently tested development version is `0.1.88`.
+The currently tested development version is `0.1.89`.
 
 ## Five-minute quick start
 
@@ -43,7 +43,11 @@ does not activate any rule, sound, or external task.
 - Unknown notifications remain visible by default.
 - `emergency` is never locally silenceable.
 - Local audio suppression never changes a Signal K notification state.
-- Acknowledge, Silence, and Clear follow the current Signal K capabilities.
+- Acknowledge, Silence, and Clear require both current Signal K Notification
+  API manager membership and the corresponding current capability.
+- A `normal` record leaves the active table when Signal K removes its ID from
+  that manager; its existing local History is retained without a synthetic
+  cleanup event.
 - Deleting History removes only the engine's local audit entry.
 - External tasks never acknowledge, silence, clear, or normalize a
   notification.

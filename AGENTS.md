@@ -123,15 +123,24 @@ compatibility; if it is unavailable, notification processing must not start.
 - Only offer or call silence and acknowledge when `canSilence` and
   `canAcknowledge` respectively are `true`.
 - Acknowledge capability is state-independent: if the current Signal K record
-  reports `status.canAcknowledge === true` and is not already acknowledged,
-  the action is available even for `normal` or `nominal`. Global acknowledge
+  reports `status.canAcknowledge === true`, the ID is still present in
+  `app.notifications.list()`, and the record is not already acknowledged, the
+  action is available even for `normal` or `nominal`. Global acknowledge
   remains scoped to the exact records visible in the current table. Never add
-  a local state ban that overrides Signal K permission.
+  a local state ban that overrides Signal K permission, and never treat
+  capability flags retained only in the data model as proof that a removed
+  manager ID is still actionable.
 - Treat `emergency` as non-silenceable even if stale data claims otherwise.
 - Preserve unknown notifications and classify them as `OTHER`; do not hide
   them merely because no rule exists.
 - Keep Signal K alarm state separate from local policy state. A local audio
   suppression must not change a foreign notification to `normal`.
+- When Signal K removes a `normal` ID from its active Notification API manager,
+  remove that record from the active WebApp projection even if a stale
+  data-model projection remains. Do not invent a cleanup History event; retain
+  only the already recorded lifecycle events. Non-normal records remain
+  visible fail-safe during a manager-view gap, and `nominal` is not covered by
+  Signal K's normal-state cleanup rule.
 - Do not take ownership of existing audio scripts until an explicit migration
   and stop/hand-off behaviour has been implemented and tested.
 
@@ -271,6 +280,9 @@ compatibility; if it is unavailable, notification processing must not start.
 
 - Show all active notifications. Rules control treatment, not whether an
   unknown alarm exists in the operator's view.
+- A manager-removed `normal` data-model residue is not active and does not
+  remain in the table. Its retained local History remains available through
+  the table-history view without requiring a current row.
 - Make `active`, `silenced`, and `acknowledged` visibly distinct.
 - Disable unavailable actions and state why; never show a destructive action
   that is known to be unsupported.

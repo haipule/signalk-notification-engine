@@ -8,14 +8,19 @@
   failure must remain independent from notification and Node-RED readiness.
 
 - Store: snapshot reconstruction, delta upsert, normal/cleared state, duplicate
-  input, restart recovery, and rejection of phantom parent notifications when
-  a nested notification path contains a child named `state`.
+  input, restart recovery, fail-closed Notification API manager membership,
+  and rejection of phantom parent notifications when a nested notification
+  path contains a child named `state`.
 - Source boundary: normalize Signal K `label`, `$source`, `type`, and string
   representations from both deltas and snapshots.
 - Classifier: path before source before structured data before optional text
   fallback; unknown notifications remain `OTHER`.
-- Actions: `canSilence`, `canAcknowledge`, `canClear`, emergency behaviour, and
-  disabled Notification API mode.
+- Actions: current managed-ID membership plus `canSilence`, `canAcknowledge`,
+  `canClear`, emergency behaviour, and disabled Notification API mode. A
+  retained normal data-model record with stale true capabilities but no
+  manager entry must leave the active table and expose no lifecycle action;
+  no synthetic cleanup event is added to local History. Non-normal records
+  remain visible fail-safe during a manager-view gap.
 - Policy: deterministic property inheritance from general state rules to
   specific path rules, safe default policy, all configured base match fields
   combined with AND, unsatisfied specific conditions falling back to a matching
@@ -204,9 +209,9 @@ properties.
 Global-action tests verify that controls are derived only from records in the
 current table, only exact eligible visible IDs are submitted, and resolved
 `normal` or `nominal` records remain acknowledgeable when their current Signal
-K status explicitly permits it. Silence retains its additional unfinished-audio
-requirement. HTTP route tests verify that the submitted ID boundary reaches the
-runtime action adapter unchanged.
+K status explicitly permits it and the ID is still managed. Silence retains its
+additional unfinished-audio requirement. HTTP route tests verify that the
+submitted ID boundary reaches the runtime action adapter unchanged.
 
 Diagnostics-view tests cover healthy structured sections, browser/server
 version agreement, reload-required mismatch, disconnected state, invalid

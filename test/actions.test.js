@@ -9,6 +9,7 @@ function record(overrides = {}) {
   return {
     id: 'alarm-1',
     state: 'alarm',
+    actionManaged: true,
     status: { canSilence: true, canAcknowledge: true, canClear: true },
     ...overrides
   }
@@ -52,6 +53,15 @@ test('does not repeat an already acknowledged action', async () => {
   const actions = new NotificationActions({ notifications: { acknowledge() { throw new Error('must not call') } } })
 
   await assert.rejects(actions.execute(record({ status: { canAcknowledge: true, acknowledged: true } }), 'acknowledge'), /cannot be acknowledged/)
+})
+
+test('rejects stale capabilities after Signal K removes the id from its manager', async () => {
+  const actions = new NotificationActions({ notifications: { acknowledge() { throw new Error('must not call') } } })
+
+  await assert.rejects(
+    actions.execute(record({ actionManaged: false, state: 'normal' }), 'acknowledge'),
+    /cannot be acknowledged/
+  )
 })
 
 test('allows acknowledgement in normal and nominal state when Signal K permits it', async () => {

@@ -77,8 +77,13 @@ treatment, Ignore, and execution requests belong in the selected Rule Builder.
 
 ## Notification Centre
 
-The table shows all active notifications, including unknown states. Known
-states sort in fixed descending order:
+The table shows all active notifications, including unknown states. Signal K
+may retain a `normal` value in its data model after removing its ID from the
+active Notification API manager; that residue is no longer shown as active.
+No synthetic History event is created for this cleanup, and the occurrence's
+already recorded events remain available through the main table-History
+button. `nominal` is not part of Signal K's normal-state cleanup. Known states
+sort in fixed descending order:
 
 ```text
 emergency, alarm, warn, alert, normal, nominal
@@ -88,6 +93,9 @@ Select a row for its information window and individual permitted actions.
 Global actions apply only to the exact records visible in the table.
 
 - Acknowledge is available for any state when Signal K permits it.
+- A lifecycle action additionally requires the notification ID to remain in
+  Signal K's current Notification API manager. Retained data-model capability
+  flags alone do not make an action available.
 - Emergency is never offered Silence by this plugin.
 - Clear is available only when `status.canClear` is true.
 - If the browser lacks write permission, an otherwise applicable action stays

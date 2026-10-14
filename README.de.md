@@ -23,7 +23,7 @@ Signal-K-Benachrichtigung die jeweilige Aktion erlaubt.
 - ein Signal-K-Benutzer mit Schreibberechtigung für Benachrichtigungsaktionen
   und Tests
 
-Die derzeit getestete Entwicklungsversion ist `0.1.88`.
+Die derzeit getestete Entwicklungsversion ist `0.1.89`.
 
 ## Schnellstart in fünf Minuten
 
@@ -53,8 +53,12 @@ noch ein Sound oder eine externe Aufgabe aktiviert.
 - `emergency` kann durch dieses Plugin niemals lokal stummgeschaltet werden.
 - Lokale Audiounterdrückung ändert niemals den Signal-K-Zustand einer
   Benachrichtigung.
-- Quittieren, Stummschalten und Zurücksetzen folgen den aktuellen
-  Signal-K-Berechtigungen der Benachrichtigung.
+- Quittieren, Stummschalten und Zurücksetzen erfordern sowohl die aktuelle
+  Mitgliedschaft im Signal-K-Notification-API-Manager als auch die jeweilige
+  aktuelle Berechtigung.
+- Ein `normal`-Datensatz verschwindet aus der aktiven Tabelle, sobald Signal K
+  seine ID aus diesem Manager entfernt. Sein vorhandener lokaler Verlauf bleibt
+  ohne künstlichen Cleanup-Eintrag erhalten.
 - Das Löschen des Verlaufs entfernt nur den lokalen Audit-Eintrag der Engine.
 - Externe Aufgaben quittieren, stummschalten, löschen oder normalisieren
   niemals eine Benachrichtigung.

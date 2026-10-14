@@ -721,6 +721,26 @@ evidence and older completed work remain below for traceability.
     visible GNSS warning republished by Signal K with a new ID and
     `acknowledged: false` during the controlled restart. No bulk action was
     invoked.
+  - [x] Deploy and verify the Signal K 2.33.0 manager-cleanup correction.
+    Direct Tab 3 and server inspection on 2026-10-14 proved that the retained
+    `normal` Hoekens record `e077d93f-1f70-4efc-85a9-5c6496aadf93` still
+    advertised `canAcknowledge: true` in the data model after Signal K had
+    removed its ID from `app.notifications.list()`; the resulting acknowledge
+    request correctly failed with HTTP 409 `Alarm not found!`. Version 0.1.89
+    tracks current manager membership separately, requires it for every action,
+    and excludes only manager-removed `normal` residues from the active view.
+    It retains already recorded lifecycle History without creating a synthetic
+    cleanup event; non-normal records remain visible fail-safe and `nominal`
+    is not subject to this cleanup rule. All source tests, syntax checks, and
+    the package dry run passed. Version `0.1.89` was deployed on 2026-10-14
+    from package SHA-256
+    `ed51ac71b8c2f8ec2f56b6ca62a018c23e221ff7f0d7398d9d0557431c12114c`.
+    Signal K returned active with configuration `ready`, fresh Android GPS,
+    healthy History/Localization, and idle audio after one successful finite
+    replay of the acknowledged GNSS warning. The old Hoekens ID was absent
+    from the active endpoint but remained in existing local History; no
+    synthetic cleanup event appeared. Hoekens published a new, currently
+    manager-owned `normal` ID after restart, which correctly remains visible.
   - [x] Verify the installed Hoekens release containing the Raise fix without
     upgrading merely because the upstream pull request was merged. Installed
     version `2.13.1` was identified and its required behaviour was proved live:

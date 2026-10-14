@@ -1,5 +1,45 @@
 # Raspberry Pi deployment and rollback
 
+## Notification Engine 0.1.89 manager-cleanup validation
+
+Version `0.1.89` was packaged and deployed on 2026-10-14 from tarball SHA-256
+`ed51ac71b8c2f8ec2f56b6ca62a018c23e221ff7f0d7398d9d0557431c12114c`.
+The previous `0.1.88` installation was preserved at
+`/home/pi/.signalk/node_modules/signalk-notification-engine.backup-0.1.88-pre-0.1.89-20261014`
+before replacement; the replaced directory was additionally retained at
+`/home/pi/.signalk/node_modules/signalk-notification-engine.replaced-0.1.88-20261014`.
+
+The first package-manager installation attempt stopped before restart with
+`ENOVERSIONS` because npm tried to resolve the unrelated unavailable
+`aisfleet` dependency from the complete Signal K installation. The inspected
+Notification Engine package has no runtime dependencies. Its validated npm
+tarball was therefore extracted directly and only the plugin directory was
+replaced; no other Signal K package was changed.
+
+After the controlled `signalk.service` restart, the service was active, the
+installed plugin and served `app.js` both reported `0.1.89`, the selected
+Rule Builder configuration was `ready`, runtime deploy events were available,
+Android GPS was fresh, and History and Localization were healthy. Audio
+returned to idle with no pending retry after one successful finite playback
+of the acknowledged GNSS warning. Hashes of the principal source and WebApp
+files matched the development checkout.
+
+Signal K had removed the old Hoekens normal ID
+`e077d93f-1f70-4efc-85a9-5c6496aadf93` from its Notification API manager.
+That ID was absent from the `0.1.89` active endpoint while its existing local
+Anchor History remained present; the engine created no synthetic cleanup
+event. Hoekens published a new manager-owned `normal` ID during startup. That
+new record correctly remains in the active projection and proves that the
+filter is based on manager membership rather than a blanket ban on the
+`normal` state.
+
+The final read-only Tab 3 smoke test loaded every WebApp asset with cache key
+`0.1.89`, reported the browser connected and configuration ready, and confirmed
+that the old Hoekens ID was absent. The table History opened with 500 retained
+events and Diagnostics opened with the current version and ready state. Both
+windows were closed afterwards. The test invoked no notification action,
+runtime test, audio playback, producer fault, Node-RED deploy, or restart.
+
 ## Notification Engine 0.1.88 release-candidate baseline
 
 Version `0.1.88` was packaged, deployed, and verified on 2026-10-13. The

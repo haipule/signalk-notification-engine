@@ -6,6 +6,7 @@ const { sourceAllowsAction, notificationActionState } = require('../public/actio
 
 const notification = overrides => ({
   state: 'alarm',
+  actionManaged: true,
   status: { canSilence: true, canAcknowledge: true, canClear: true, silenced: false, acknowledged: false },
   ...overrides
 })
@@ -28,6 +29,12 @@ test('follows Signal K acknowledgement permission in normal state', () => {
   const normal = notification({ state: 'normal' })
   assert.equal(sourceAllowsAction(normal, 'acknowledge'), true)
   assert.equal(sourceAllowsAction(normal, 'clear'), false)
+})
+
+test('hides stale actions when the id is no longer managed by Signal K', () => {
+  const staleNormal = notification({ state: 'normal', actionManaged: false })
+  assert.equal(sourceAllowsAction(staleNormal, 'acknowledge'), false)
+  assert.equal(sourceAllowsAction(staleNormal, 'silence'), false)
 })
 
 test('never offers silence for emergency', () => {

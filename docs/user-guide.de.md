@@ -94,8 +94,13 @@ ausgewählten Rule Builder.
 ## Benachrichtigungszentrale
 
 Die Tabelle zeigt alle aktiven Benachrichtigungen einschließlich unbekannter
-Zustände. Bekannte Zustände werden in dieser festen absteigenden Reihenfolge
-sortiert:
+Zustände. Signal K kann einen Wert im Zustand `normal` im Datenmodell behalten,
+nachdem seine ID aus dem aktiven Notification-API-Manager entfernt wurde.
+Dieser Restdatensatz wird nicht mehr als aktiv angezeigt. Das Cleanup erzeugt
+keinen künstlichen Verlaufseintrag; die bereits aufgezeichneten Ereignisse des
+Vorkommnisses bleiben über den zentralen Verlauf-Button der Tabelle erreichbar.
+`nominal` gehört nicht zu Signal Ks Cleanup für den Zustand `normal`. Bekannte
+Zustände werden in dieser festen absteigenden Reihenfolge sortiert:
 
 ```text
 emergency, alarm, warn, alert, normal, nominal
@@ -106,6 +111,9 @@ Aktionen zu öffnen. Globale Aktionen gelten ausschließlich für genau die in
 der Tabelle sichtbaren Datensätze.
 
 - Quittieren ist in jedem Zustand verfügbar, wenn Signal K es erlaubt.
+- Eine Lebenszyklusaktion setzt zusätzlich voraus, dass die Benachrichtigungs-
+  ID weiterhin im aktuellen Signal-K-Notification-API-Manager vorhanden ist.
+  Im Datenmodell verbliebene Berechtigungsflags allein aktivieren keine Aktion.
 - Für `emergency` bietet dieses Plugin niemals Stummschalten an.
 - Zurücksetzen ist nur verfügbar, wenn `status.canClear` den Wert `true` hat.
 - Fehlt dem Browser die Schreibberechtigung, bleibt eine ansonsten anwendbare

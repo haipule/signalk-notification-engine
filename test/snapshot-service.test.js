@@ -45,6 +45,9 @@ test('merges Signal K snapshot views and filters disabled manager tests', async 
 
   assert.equal(fetchCalls[0], 'http://127.0.0.1:3001/signalk/v1/api/vessels/self/notifications')
   assert.deepEqual(Object.keys(store.snapshots[0]).sort(), ['bilge', 'gnss', 'managed'])
+  assert.equal(store.snapshots[0].managed.actionManaged, true)
+  assert.equal(store.snapshots[0].bilge.actionManaged, false)
+  assert.equal(store.snapshots[0].gnss.actionManaged, false)
 })
 
 test('retains the API snapshot when an in-process view fails', async () => {
@@ -59,7 +62,29 @@ test('retains the API snapshot when an in-process view fails', async () => {
   const snapshot = await service.read()
 
   assert.equal(snapshot.anchor.value.state, 'alarm')
+  assert.equal(snapshot.anchor.actionManaged, false)
   assert.match(errors[0], /in-process notification snapshot/)
+})
+
+test('keeps a stale normal data-model record visible but removes its actions', async () => {
+  const service = new SnapshotService({
+    app: {
+      notifications: { list: () => ({}) },
+      getSelfPath: () => ({ navigation: { anchor: { value: {
+        id: 'stale-anchor', state: 'normal',
+        status: { canAcknowledge: true, canSilence: true }
+      } } } }),
+      getPath: () => ({})
+    },
+    store: fakeStore(),
+    diagnostics: new Diagnostics(),
+    fetchImpl: async () => ({ ok: true, json: async () => ({}) })
+  })
+
+  const snapshot = await service.read()
+
+  assert.equal(snapshot['stale-anchor'].value.state, 'normal')
+  assert.equal(snapshot['stale-anchor'].actionManaged, false)
 })
 
 test('subscribes to notifications and mirrored paths while preserving producer source', () => {

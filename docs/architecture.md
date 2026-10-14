@@ -115,6 +115,19 @@ deltas to the cache; and periodically reconciles startup-order gaps. It records
 snapshot/delta diagnostics but never raises, clears, acknowledges, silences, or
 otherwise becomes authoritative for a Signal K notification.
 
+The same snapshot boundary records whether each ID is currently present in
+`app.notifications.list()`. Signal K can retain a `normal` notification in its
+data model after removing that ID from the addressable Notification API
+manager; capability flags copied into that retained value are not actionable.
+The local cache retains the projection for correlation, but a manager-removed
+`normal` record leaves the active WebApp table. This does not create a
+synthetic History event; any already recorded final normal transition remains
+in the independent local audit. Individual and global lifecycle actions fail
+closed unless current manager membership and the corresponding Signal K
+capability are both true. A notification delta alone does not invent manager
+membership; the next periodic snapshot can establish it. Non-normal records
+remain visible fail-safe during a manager-view gap.
+
 The history service owns the Notification Engine's local audit persistence
 lifecycle: recording policy, bounded repository creation, startup loading and
 retention, occurrence-scoped WebApp deletion, health reporting, and final
@@ -395,6 +408,8 @@ The browser learns that capability through a non-mutating request behind the
 same Signal K readwrite middleware as notification actions. A failed probe
 changes only local button availability; it never weakens the server-side
 capability check or infers permission from a readable notification.
+Likewise, readable data-model capability flags do not make a lifecycle action
+available after Signal K has removed that ID from its Notification API manager.
 Its Diagnostics renderer derives localized health sections and version-mismatch
 guidance from the read-only server payload while preserving that unmodified
 payload in a collapsed Advanced view. Rendering never feeds values back into

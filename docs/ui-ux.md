@@ -16,16 +16,22 @@ When the operator selects the Notification column, rows within each state are
 sorted by dot-delimited Signal K path segments. Shared path prefixes therefore
 stay together even though the column continues to display the concise message.
 
-`normal` and `nominal` notifications are also shown as calm status cards at
-the end of the list. This avoids an empty centre during normal operation while
-keeping warnings and alarms visually dominant.
+`normal` and `nominal` notifications can also be shown as calm status cards at
+the end of the list. A `normal` record is no longer active once Signal K has
+removed its ID from the Notification API manager, even if a stale data-model
+value remains; it then leaves this list while its existing local History stays
+available. `nominal` is not subject to that Signal K cleanup rule. This keeps
+warnings and alarms visually dominant without presenting a resolved manager
+record as actionable.
 
 The card shows only immediately actionable information:
 
 - State first, as text and colour: `EMERGENCY`, `ALARM`, `WARN`.
 - Category and short human-readable message.
 - Visible state badges for `acknowledged` and `silenced`.
-- Large permitted action buttons: Silence, Acknowledge, and Clear.
+- Large permitted action buttons: Silence, Acknowledge, and Clear. Permission
+  requires both current Notification API manager membership and the matching
+  current Signal K capability.
 
 Colour is supplemental only. State text and badges must remain understandable
 for colour-impaired users and in bright daylight.

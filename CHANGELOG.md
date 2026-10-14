@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.89 - 2026-10-14
+
+- Remove a `normal` notification from the active table after Signal K removes
+  it from its addressable Notification API manager. Do not create a synthetic
+  cleanup event; the already recorded final transition remains in local
+  History.
+- Require current managed-ID membership in addition to Signal K capability
+  flags for both individual and global lifecycle actions.
+
 ## 0.1.88 - 2026-10-13
 
 - Classify `notifications.environment.*` as the automatic display category

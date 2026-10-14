@@ -8,6 +8,14 @@
   model subtree when the managed list is temporarily empty. It also receives
   subsequent `notifications.*` deltas through Signal K's supported
   subscription manager.
+- Current Notification API manager membership is tracked independently from
+  retained data-model values. Actions require both that membership and the
+  matching current Signal K capability. When Signal K removes a `normal` ID
+  from the manager, the stale data-model projection is excluded from the
+  active WebApp view without inventing a new History event; previously recorded
+  lifecycle History remains available. Non-normal records remain visible
+  fail-safe during a manager-view gap, and `nominal` is not treated as a
+  manager-cleaned `normal` record.
 - The WebApp is served from `/signalk-notification-engine/` and reads active
   notifications and a bounded local audit history from plugin routes.
 - The Node-RED builder control is grouped with the selected-notifications
@@ -16,7 +24,7 @@
   requires unfinished local audio work. The five-second poll and reconnect
   refresh remain automatic, with no duplicate manual refresh control.
 - `silence`, `acknowledge`, and `clear` are requested only via the Signal K
-  Notification API after server-side capability checks.
+  Notification API after server-side manager-membership and capability checks.
 - An action request is appended to the local audit trail without claiming that
   the producer has changed its underlying alarm state.
 - Automatic categories are assigned by the built-in classifier for display only.

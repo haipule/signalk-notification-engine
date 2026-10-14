@@ -11,6 +11,7 @@ const HistoryService = require('./lib/history-service')
 const { loadLifecycleRules, endsLifecycle } = require('./lib/lifecycle-rules')
 const { applyLifecycleBoundary, lifecycleBoundaryPaths } = require('./lib/local-lifecycle-boundaries')
 const SnapshotService = require('./lib/snapshot-service')
+const { isActiveNotification } = require('./lib/active-notification-view')
 const PluginRuntime = require('./lib/plugin-runtime')
 const AudioPlayer = require('./lib/audio-player')
 const AudioController = require('./lib/audio-controller')
@@ -519,6 +520,7 @@ module.exports = function createPlugin(app) {
     getNotifications() {
       return store.list()
         .filter(notification => ConfiguredTestNotification.isVisibleInActiveView(notification, testNotificationEnabled))
+        .filter(isActiveNotification)
         .map(notification => ({
         ...notification,
         audioActionable: audioController?.isAudioActionable(notification.occurrenceId) === true,
