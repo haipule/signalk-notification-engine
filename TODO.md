@@ -320,8 +320,13 @@ evidence and older completed work remain below for traceability.
 
 ### P2 — Publication infrastructure
 
-1. [ ] Create the GitHub repository under user `haipule`, add the remote, push
+1. [x] Create the GitHub repository under user `haipule`, add the remote, push
    the reviewed baseline, and require a successful independent CI run.
+   Completed on 2026-10-14: the public repository is
+   `https://github.com/haipule/signalk-notification-engine`, `origin` tracks its
+   `master` branch, and push CI run `38656664535` passed syntax checks, the
+   complete test suite, and `npm pack --dry-run` independently on Node.js 20,
+   22, and 24 for release-candidate commit `4355eb4`.
 2. [ ] Create the first release tag and publication artifact only after P0 is
    complete and every P1 item is either passed or explicitly accepted and
    documented.
