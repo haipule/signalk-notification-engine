@@ -33,8 +33,7 @@ separate `nodered.service` or to `/home/pi/.node-red`.
 
 Only the selected stable ID is read. Renaming the tab is harmless, but
 disabling or deleting it stops processing. The engine never scans other tabs
-or falls back to a matching name. No config inject node or hidden configuration
-file is required.
+or falls back to a matching name.
 
 ## Build a rule
 
@@ -101,6 +100,12 @@ emergency state nor stops independent server-side audio.
 ## Audio and repetition
 
 Audio plays on the Signal K host, not in each browser. Playback count is:
+
+> **Important:** Other installed plugins, flows, alarm applications, or
+> scripts may produce additional audio for the same alarm. This can cause
+> duplicate, overlapping, or independently controlled sounds. The operator
+> must check for and prevent these interactions and leave only the intended
+> audio path active for an alarm.
 
 - `0` — loop until its independent lifecycle or permitted Silence ends it
 - `1` — play once

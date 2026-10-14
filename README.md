@@ -36,8 +36,7 @@ The currently tested development version is `0.1.88`.
 
 Every active rule needs one uninterrupted wire from a notification-state node,
 through its match and action nodes, to `Activate`. Importing the reference flow
-does not activate any rule, sound, or external task. No configuration inject
-node or hidden configuration file is required.
+does not activate any rule, sound, or external task.
 
 ## Safety boundary
 
@@ -48,8 +47,11 @@ node or hidden configuration file is required.
 - Deleting History removes only the engine's local audit entry.
 - External tasks never acknowledge, silence, clear, or normalize a
   notification.
-- Existing alarm/audio scripts must not run in parallel with engine-owned
-  audio unless an explicit migration has been completed.
+- **Important:** Other installed plugins, flows, alarm applications, or scripts
+  may produce additional audio for the same alarm. This can cause duplicate,
+  overlapping, or independently controlled sounds. The operator must check for
+  and prevent these interactions and leave only the intended audio path active
+  for an alarm.
 
 ## Documentation
 
