@@ -280,10 +280,18 @@ evidence and older completed work remain below for traceability.
 
 ### P1 — Explicit release-risk decisions
 
-1. [ ] Decide whether active Hoekens alarm continuity across a full Signal K
+1. [x] Decide whether active Hoekens alarm continuity across a full Signal K
    restart is a release blocker or a documented upstream limitation. If it is
    a blocker, fix/retest it in a new safe anchor window; otherwise record the
    accepted limitation precisely.
+   Accepted on 2026-10-13 as a documented upstream limitation and not a first-
+   release blocker. In the controlled real-alarm restart test, the continuing
+   drag alarm returned visually and audibly with exactly one audio process and
+   later returned to normal cleanly. Hoekens republished it with a new producer
+   ID, so Notification Engine correctly treated it as a new occurrence and
+   could not preserve one continuous local History timeline. The engine must
+   not correlate unequal authoritative notifications heuristically. Informing
+   the Hoekens maintainer remains a separate open action below.
 2. [ ] Inform the Hoekens maintainer about the producer-ID change observed for
    one continuing drag alarm across a Signal K restart.
 3. [ ] Perform the real Android GPS loss/recovery test in a separate safe

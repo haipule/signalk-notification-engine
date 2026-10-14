@@ -46,13 +46,14 @@ either linked to a later complete retest or remains explicitly open.
 | Presentation and operator decisions | Version `0.1.73` separates the in-centre banner from the viewport overlay and probes the Signal K readwrite boundary without mutation. On Tab 3 the operator confirmed the real GNSS warn as an in-centre banner while it remained in the table, without overlay dimming, and its Signal K-permitted Acknowledge was enabled in the authenticated session. Focused tests prove emergency ACK removes only the overlay without stopping/restarting audio and prove that an otherwise applicable action remains visible but disabled for a read-only browser with an explicit permission reason. The unauthenticated live probe returned HTTP 401 as expected. | IMPLEMENTATION, AUTOMATED COVERAGE, AUTHORIZED UI, AND LIVE BANNER PASS; read-only visual wording can be repeated in the broader browser regression |
 | Inactive release reference flow | Importing and deploying the shipped grouped reference tab must not add, merge, or change a production rule until an uninterrupted branch reaches `Activate`. | PASS with `0.1.74`: the operator accepted the grouped layout and deployed the tab beside production. The flow contains one `Activate` node and zero incoming wires; live extraction retained the same ten rules and revision, deployed-rules contained no reference-flow identifier, and no notification, audio process, retry, breaker, or failure was created. Automated coverage proves the as-shipped flow extracts zero rules and that connecting only the documented Quick Start final wire creates exactly one table-visible `alert` rule. |
 | Multiple `Activate` endpoints | Independent complete branches may terminate at separate nodes named exactly `Activate`; duplicate fan-out must not duplicate a rule, complementary same-scope fields must merge, and contradictory same-scope actions must fail closed independently of JSON order. | PASS with `0.1.76`: focused tests cover independent endpoints, two-endpoint fan-out, recursive same-scope sound/history composition, both conflict orders, and conflicting legacy/canonical sound-file aliases. Before deployment the new extractor accepted the actual 240-node embedded flow as ten rules. After restart the live deployed-rules file still contained exactly ten rules with the unchanged revision and ready runtime deploy events. No temporary active rule or notification was required. |
-| Active real Hoekens alarm across a full Signal K restart | Presentation and exactly one audio process recovered, but Hoekens changed producer ID and the local occurrence/history did not remain continuous. | RELEASE DECISION REQUIRED; upstream report still open |
+| Active real Hoekens alarm across a full Signal K restart | Presentation and exactly one audio process recovered, but Hoekens changed producer ID and the local occurrence/history did not remain continuous. Notification Engine must not heuristically join unequal authoritative producer records. | ACCEPTED UPSTREAM LIMITATION; not a first-release blocker. Informing the Hoekens maintainer remains open. |
 | Deliberate real Android UDP interruption | Requires a separate safe window because Android GPS is the active position source. | NOT RUN on the current release candidate; disclose as a limitation unless made a release blocker |
 | Real bilge producer | The operator physically triggered the starboard bilge input on 2026-10-11 and confirmed the expected visual and audible alarm. Local History independently records `notifications.environment.bilgeWater.stbd` from `engineroomStbd.XX` changing to `alarm` at 12:39:16 UTC with `Bilge water detected in starboard engine room`, then returning to `normal`/`Watching` at 12:39:21 UTC under the same occurrence ID. Version `0.1.88` additionally classifies both live bilge paths as `ENVIRONMENT`, displayed as `UMWELT`; the current projections are normal and audio diagnostics are idle and healthy. | PASS |
 
 The current candidate must not be described as fully release-accepted until
-every row marked for rerun, release decision, or real-producer coverage is
-either passed or explicitly accepted as a documented limitation.
+the deliberate Android UDP interruption is either passed or explicitly
+accepted as a documented limitation. The Hoekens restart discontinuity is an
+accepted non-blocking upstream limitation; its upstream report remains open.
 
 ## Historical live evidence captured from 2026-09-26
 
@@ -122,10 +123,12 @@ rewritten as passes because their original observations remain valid history.
 1. **RESOLVED.** Path-specific sound rules now inherit general visibility and
    history behaviour; later live GPS-loss lifecycles retained their final
    `normal` event.
-2. **PARTIALLY RESOLVED.** Exact plugin-restart correlation passed with
+2. **ACCEPTED UPSTREAM LIMITATION.** Exact plugin-restart correlation passed with
    `0.1.50` when producer identity and authoritative content were unchanged.
-   Full Signal K restart continuity remains open when Hoekens emits a new ID
-   for the same continuing physical alarm.
+   Full Signal K restart continuity cannot be retained when Hoekens emits a
+   new ID for the same continuing physical alarm. The alarm still recovered
+   visually and audibly with one audio process. This is not a first-release
+   blocker; the producer-ID observation must still be reported upstream.
 3. **RESOLVED.** Audio success uses exit code and signal; ordinary successful
    `aplay` diagnostics on stderr are not reported as failures.
 4. **RESOLVED AND RETESTED.** `display: banner` is a fixed strip inside the
