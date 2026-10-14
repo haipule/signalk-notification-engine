@@ -294,8 +294,18 @@ evidence and older completed work remain below for traceability.
    the Hoekens maintainer remains a separate open action below.
 2. [ ] Inform the Hoekens maintainer about the producer-ID change observed for
    one continuing drag alarm across a Signal K restart.
-3. [ ] Perform the real Android GPS loss/recovery test in a separate safe
+3. [x] Perform the real Android GPS loss/recovery test in a separate safe
    window, or explicitly accept it as an outstanding release limitation.
+   Accepted on 2026-10-13 as a documented non-blocking limitation for the
+   first release. A deliberate `android_udp.gps` interruption was not run on
+   `0.1.88` because the live pre-check found
+   `navigation.anchor.state: on`; disrupting the vessel's active position
+   source would have intentionally triggered the real anchor safety path.
+   Earlier real loss/recovery runs proved the Hoekens warning, audio stop, and
+   final-normal History path after the relevant fixes, while current `0.1.88`
+   Diagnostics prove fresh `android_udp.gps` source-age monitoring. This is
+   supporting evidence, not a claim that the deliberate current-version fault
+   injection passed.
 4. [x] Perform the real bilge-producer test using an approved safe input method.
    The operator physically triggered the starboard bilge input on 2026-10-11
    and confirmed the expected visual and audible alarm behaviour. Persisted
