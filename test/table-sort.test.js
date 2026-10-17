@@ -2,7 +2,9 @@
 
 const assert = require('node:assert/strict')
 const test = require('node:test')
-const { compareNotificationPaths } = require('../public/table-sort')
+const { compareNotificationPaths, compareNotificationRows } = require('../public/table-sort')
+
+const stateOrder = ['emergency', 'alarm', 'warn', 'alert', 'normal', 'nominal']
 
 test('groups notification paths by their dot-delimited hierarchy', () => {
   const paths = [
@@ -39,4 +41,37 @@ test('puts a parent path before its children and compares numbers naturally', ()
 test('accepts missing paths without throwing', () => {
   assert.equal(compareNotificationPaths(null, 'notifications.navigation.anchor') < 0, true)
   assert.equal(compareNotificationPaths(undefined, null), 0)
+})
+
+test('keeps Signal K severity primary when a newer lower-severity notification exists', () => {
+  const notifications = [
+    { id: 'normal-new', state: 'normal', updatedAt: '2026-10-16T12:00:00Z' },
+    { id: 'warn-old', state: 'warn', updatedAt: '2026-10-16T11:00:00Z' },
+    { id: 'alarm-oldest', state: 'alarm', updatedAt: '2026-10-16T10:00:00Z' }
+  ]
+
+  notifications.sort((left, right) => compareNotificationRows(left, right, {
+    stateOrder,
+    column: 'updated',
+    direction: 'desc'
+  }))
+
+  assert.deepEqual(notifications.map(notification => notification.id), ['alarm-oldest', 'warn-old', 'normal-new'])
+})
+
+test('applies the selected column only within a state and keeps unknown states visible last', () => {
+  const notifications = [
+    { id: 'unknown', state: 'vendor-state', path: 'notifications.a' },
+    { id: 'warn-z', state: 'warn', path: 'notifications.z' },
+    { id: 'warn-a', state: 'warn', path: 'notifications.a' },
+    { id: 'alert-a', state: 'alert', path: 'notifications.a' }
+  ]
+
+  notifications.sort((left, right) => compareNotificationRows(left, right, {
+    stateOrder,
+    column: 'notification',
+    direction: 'asc'
+  }))
+
+  assert.deepEqual(notifications.map(notification => notification.id), ['warn-a', 'warn-z', 'alert-a', 'unknown'])
 })

@@ -30,5 +30,45 @@
     return leftSegments.length - rightSegments.length
   }
 
-  return { compareNotificationPaths }
+  /**
+   * Compare table notifications without allowing a browser-local column choice
+   * to override Signal K's fixed presentation severity order.
+   *
+   * @param {object} left First notification.
+   * @param {object} right Second notification.
+   * @param {object} options Sort configuration and localized value resolver.
+   * @returns {number} Negative, zero, or positive comparator result.
+   */
+  function compareNotificationRows(left, right, options = {}) {
+    const stateOrder = [...(options.stateOrder || []), 'info']
+    const stateRank = notification => {
+      const rank = stateOrder.indexOf(String(notification?.state || '').toLowerCase())
+      return rank < 0 ? stateOrder.length : rank
+    }
+    const hierarchyDifference = stateRank(left) - stateRank(right)
+    if (hierarchyDifference !== 0) return hierarchyDifference
+
+    const direction = options.direction === 'asc' ? 1 : -1
+    if (options.column === 'updated') return direction * compareNewest(left, right)
+
+    const difference = options.column === 'notification'
+      ? compareNotificationPaths(left?.path, right?.path)
+      : segmentCollator.compare(
+          String(options.valueForColumn?.(left, options.column) || ''),
+          String(options.valueForColumn?.(right, options.column) || '')
+        )
+    if (difference !== 0) return direction * difference
+    return compareNewest(left, right)
+  }
+
+  function compareNewest(left, right) {
+    const difference = notificationTime(right) - notificationTime(left)
+    return difference || String(right?.id || '').localeCompare(String(left?.id || ''))
+  }
+
+  function notificationTime(notification) {
+    return Date.parse(notification?.lastUpdatedAt || notification?.updatedAt || notification?.firstSeenAt || notification?.createdAt || '') || 0
+  }
+
+  return { compareNotificationPaths, compareNotificationRows }
 })

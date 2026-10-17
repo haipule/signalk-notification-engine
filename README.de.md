@@ -23,7 +23,7 @@ Signal-K-Benachrichtigung die jeweilige Aktion erlaubt.
 - ein Signal-K-Benutzer mit Schreibberechtigung für Benachrichtigungsaktionen
   und Tests
 
-Die derzeit getestete Entwicklungsversion ist `0.1.89`.
+Die derzeit getestete Entwicklungsversion ist `0.1.90`.
 
 ## Schnellstart in fünf Minuten
 
@@ -79,6 +79,14 @@ noch ein Sound oder eine externe Aufgabe aktiviert.
 - [Teststrategie](docs/testing.md)
 - [End-to-End-Sicherheitsmatrix](docs/e2e-safety-matrix.md)
 - [Raspberry-Pi-Integration und Wiederherstellungsnachweise](docs/pi-integration.md)
+
+## Entwicklung
+
+Dieses Projekt wurde von seinem Maintainer mit Unterstützung von OpenAI Codex
+konzipiert und entwickelt.
+
+KI-unterstützte Beiträge werden vom Maintainer geprüft und validiert. Er bleibt
+für Funktionalität, Sicherheit und Wartung des Projekts verantwortlich.
 
 ## Entwicklungsprüfungen
 

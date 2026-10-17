@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.90 - 2026-10-16
+
+- Keep Signal K's fixed severity order as the primary active-table ordering on
+  every browser. Browser-local column choices now sort only within the same
+  state, so a newer lower-severity notification cannot move above an older
+  `emergency`, `alarm`, or `warn` notification.
+- Credit the maintainer's design, review, validation, and responsibility for
+  this project and disclose OpenAI Codex assistance in both READMEs.
+
 ## 0.1.89 - 2026-10-14
 
 - Remove a `normal` notification from the active table after Signal K removes

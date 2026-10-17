@@ -1,5 +1,38 @@
 # Raspberry Pi deployment and rollback
 
+## Notification Engine 0.1.90 fixed-severity table ordering
+
+Version `0.1.90` was packaged and deployed on 2026-10-16 from tarball SHA-256
+`5a002598e18dd3c283923cee7b501971c68df4faf71a9ea28634f24c8b4ebdbd`.
+The complete prior installation is retained at
+`/home/pi/.signalk/node_modules/signalk-notification-engine.backup-0.1.89-before-0.1.90-20261016`;
+the replaced directory is retained at
+`/home/pi/.signalk/node_modules/signalk-notification-engine.replaced-0.1.89-20261016`.
+
+The active-table comparator now keeps the fixed Signal K order `emergency`,
+`alarm`, `warn`, `alert`, `normal`, `nominal` primary on every browser. A
+browser-local column choice is only a secondary ordering within one state.
+The complete 277-test suite includes regressions for an older `warn` preceding
+a newer `normal` and for unknown states remaining visible after known states.
+
+After the controlled restart, Signal K and embedded Node-RED were active while
+the separate `nodered.service` remained inactive. Configuration was `ready`
+with the unchanged productive rule revision, runtime deploy events were
+available, Android GPS was fresh, History retained 500 events, Localization
+was healthy, and installed source/WebApp hashes matched the checkout. The
+live notification snapshot sorted its active GNSS `warn` before every
+`normal` and `nominal` row using the installed comparator and the browser's
+default updated-time selection. In the explicitly confirmed acoustic window,
+restart reconstruction played that finite warning once successfully; the
+stable state then had zero active audio processes, pending retries, open
+circuits, or unresolved audio failures.
+
+This is a local and Pi development deployment only. It has no public tag,
+GitHub release, push, or npm publication. Before the first npm upload, the
+repository, Pi, package version, commit, tag, GitHub artifact, and npm artifact
+must be deliberately reconciled to one reviewed version as recorded in
+`TODO.md`.
+
 ## Notification Engine 0.1.89 manager-cleanup validation
 
 Version `0.1.89` was packaged and deployed on 2026-10-14 from tarball SHA-256

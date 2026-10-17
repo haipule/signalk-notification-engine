@@ -2,7 +2,7 @@
 
 const pluginApi = '/plugins/signalk-notification-engine'
 const { DEFAULT_STALE_AFTER_MS, createRefreshScheduler, createOfflineDebouncer, fetchJsonWithTimeout, isRefreshStale, shouldApplyDisconnect, shouldDisconnectAfterPollFailure } = window.NotificationConnectivity
-const { compareNotificationPaths } = window.NotificationTableSort
+const { compareNotificationRows } = window.NotificationTableSort
 const { historyForTableNotifications } = window.NotificationHistoryFilter
 const { hasGlobalActionTarget, globalActionTargetIds } = window.NotificationGlobalActions
 const { buildDiagnosticsModel } = window.NotificationDiagnosticsView
@@ -490,20 +490,12 @@ function sortableHeader(column, label) {
 }
 
 function sortNotifications(notifications) {
-  const direction = tableSort.direction === 'asc' ? 1 : -1
-  notifications.sort((left, right) => {
-    // "Newest" is a global ordering. Applying the severity hierarchy first
-    // makes the control appear inert because newer lower-severity items remain
-    // below older alarms.
-    if (tableSort.column === 'updated') return direction * compareNewest(left, right)
-    const hierarchyDifference = compareHierarchy(left, right)
-    if (hierarchyDifference !== 0) return hierarchyDifference
-    const difference = tableSort.column === 'notification'
-      ? compareNotificationPaths(left.path, right.path)
-      : String(sortValue(left, tableSort.column)).localeCompare(String(sortValue(right, tableSort.column)), undefined, { numeric: true, sensitivity: 'base' })
-    if (difference !== 0) return direction * difference
-    return compareNewest(left, right)
-  })
+  notifications.sort((left, right) => compareNotificationRows(left, right, {
+    stateOrder: configuredStateOrder,
+    column: tableSort.column,
+    direction: tableSort.direction,
+    valueForColumn: sortValue
+  }))
 }
 
 function sortValue(notification, column) {
@@ -512,23 +504,6 @@ function sortValue(notification, column) {
   return ''
 }
 
-function compareHierarchy(left, right) {
-  const order = [...configuredStateOrder, 'info']
-  const leftState = String(left.state || '').toLowerCase()
-  const rightState = String(right.state || '').toLowerCase()
-  const leftRank = order.indexOf(leftState)
-  const rightRank = order.indexOf(rightState)
-  return (leftRank < 0 ? order.length : leftRank) - (rightRank < 0 ? order.length : rightRank)
-}
-
-function notificationTime(notification) {
-  return Date.parse(notification.lastUpdatedAt || notification.updatedAt || notification.firstSeenAt || notification.createdAt || '') || 0
-}
-
-function compareNewest(left, right) {
-  const difference = notificationTime(right) - notificationTime(left)
-  return difference || String(right.id || '').localeCompare(String(left.id || ''))
-}
 function formatPolicy(policy) {
   return policy?.matchedPolicy ? `${policy.priority} · ${policy.matchedPolicy}` : `${policy?.priority || 'normal'} · default`
 }

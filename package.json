@@ -1,6 +1,6 @@
 {
   "name": "signalk-notification-engine",
-  "version": "0.1.89",
+  "version": "0.1.90",
   "description": "Signal K notification engine using Node-RED nodes to visually create and represent notification rules.",
   "author": "haipule",
   "repository": {

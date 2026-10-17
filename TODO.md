@@ -327,9 +327,17 @@ evidence and older completed work remain below for traceability.
    `master` branch, and push CI run `38656664535` passed syntax checks, the
    complete test suite, and `npm pack --dry-run` independently on Node.js 20,
    22, and 24 for release-candidate commit `4355eb4`.
-2. [ ] Create the first release tag and publication artifact only after P0 is
+2. [x] Create the first release tag and publication artifact only after P0 is
    complete and every P1 item is either passed or explicitly accepted and
-   documented.
+   documented. GitHub release `v0.1.89` contains the reviewed artifact; npm
+   publication is still outstanding.
+3. [ ] Immediately before the first npm upload, reconcile the complete release
+   state: choose the one version to publish, update package/WebApp/docs and the
+   Pi to that version, rerun all checks and live health verification, create a
+   matching commit/tag/GitHub release artifact, verify its SHA-256, and publish
+   that exact artifact to npm. The local and Pi development line is `0.1.90`;
+   do not upload the older `0.1.89` artifact or create another public release
+   until this final synchronization has been completed deliberately.
 
 ### P3 — After the first release
 
