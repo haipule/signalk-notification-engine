@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   verify-and-stage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RELEASE_TAG: ${{ inputs.tag }}
       GH_TOKEN: ${{ github.token }}
