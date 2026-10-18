@@ -77,4 +77,4 @@ jobs:
           set -euo pipefail
           package_name="$(node -p "require('./package.json').name")"
           package_version="$(node -p "require('./package.json').version")"
-          npm stage publish "release-artifacts/$package_name-$package_version.tgz" --access public
+          npm stage publish "./release-artifacts/$package_name-$package_version.tgz" --access public
