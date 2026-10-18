@@ -341,6 +341,79 @@ evidence and older completed work remain below for traceability.
 
 ### P3 — After the first release
 
+- [ ] Implement the three robustness improvements identified by the
+  notification-plugin comparison in this exact order. The supporting analysis,
+  comparison references, and rejected scope expansions are documented in
+  `docs/notification-plugin-comparison.md`.
+
+  1. [x] **Serialize and time-box server-side notification snapshot
+     reconciliation.** `SnapshotService` must permit at most one active
+     `sync()` operation. If a polling interval expires while one is active,
+     remember at most one pending refresh and run it after the active operation
+     settles; do not build an unbounded queue. Add an AbortController-backed,
+     Raspberry-Pi-tolerant deadline to the loopback Notification API request.
+     Delta ingestion must remain independent and must not wait for a snapshot.
+     Diagnostics must distinguish completed, failed, timed-out, coalesced and
+     pending refreshes and expose maximum observed concurrency. Unit tests must
+     prove that a slow request cannot overlap another request, exactly one
+     pending refresh follows it, stop prevents later callbacks, and a later
+     successful snapshot clears only the current technical error. This change
+     must not infer a notification lifecycle transition, remove a non-normal
+     notification, or relax manager-membership checks.
+     Completed and deployed as `0.1.91` on 2026-10-18. Snapshot reconciliation
+     now permits one active request and one coalesced follow-up, applies a
+     fifteen-second AbortController deadline, leaves the previous store intact
+     after a timeout, and keeps delta ingestion independent. Stop invalidates
+     late results and callbacks. Diagnostics exposes active/pending state,
+     success/failure/timeout/coalescing counters, maximum concurrency and
+     last-success timing. The complete 282-test suite covers slow overlap,
+     exactly one follow-up, stop, timeout retention and later recovery. Live
+     after restart: four successful snapshots, maximum concurrency `1`, no
+     active/pending request or errors, ready configuration, fresh Android GPS,
+     healthy idle audio and 500 retained History events. No productive timeout
+     was induced.
+
+  2. [ ] **Add persistent, aggregated External Task diagnostics without
+     retries.** Keep the existing exact per-file authorization, shell-free
+     spawn, empty argument list, global concurrency bound, timeout, output
+     limit, process-group termination and at-most-once key. Persist a bounded
+     observational summary with per-executable and total counters for
+     `accepted`, `denied`, `start_failed`, successful completion, non-zero
+     completion and `timed_out`; include `lastSuccessAt`, `lastFailureAt`,
+     `consecutiveFailures`, an `unresolvedSince` value and only the last N
+     bounded results needed for diagnosis. Use atomic mode-`0600` storage,
+     schema versioning, corruption/failure diagnostics and explicit retention
+     limits. Never retry an arbitrary executable automatically, never create a
+     second alarm lifecycle, never acknowledge/silence/clear/normalize the
+     originating notification, and never persist unbounded output or secrets.
+     Clarify how a later success for the same exact executable resolves its
+     observational failure state without deleting the audit trail. Add
+     restart, truncation, redaction, malformed-file, mixed-result and
+     persistence-failure tests, and show the aggregated state in the existing
+     External Tasks Diagnostics section.
+
+  3. [ ] **Specify flood/backpressure semantics first, then implement a
+     bounded notification-ingestion queue.** Before code changes, record the
+     agreed identity key, ordering guarantees, capacity, overload policy and
+     safe coalescing signature in `docs/architecture.md` and
+     `docs/testing.md`. Use the bounded/coalescing queue in
+     `signalk-alert-center` only as a design reference; do not copy its alert
+     lifecycle or code. Coalescing is permitted only for still-pending updates
+     that are semantically equivalent for lifecycle and side effects. At a
+     minimum, differences in path/ID/source, state, message, method, status
+     capabilities and acknowledgement/silence values, producer data relevant
+     to occurrence identity, or explicit `null` removal must preserve ordered
+     transitions. A sequence such as `alarm -> normal -> alarm` must never
+     collapse to one update. Expose queue depth, capacity, received,
+     processed, coalesced, rejected and high-water-mark counters. Define a
+     fail-safe overload response that remains visible in Diagnostics and logs
+     but does not clear, hide, acknowledge, silence or normalize a Signal K
+     notification. Add deterministic burst/stress tests covering mixed paths,
+     duplicate snapshots, out-of-order deltas, terminal transitions, action
+     capability changes, History admission, audio signatures, external-task
+     at-most-once behaviour and restart/stop cleanup. Do not implement this
+     item until the specification and loss-safety tests have been reviewed.
+
 - Evaluate ntfy/Gotify, alternative UI themes, history export, update-safe
   Node-RED examples, system-wide desktop/kiosk alerts, additional audio
   backends, and SQLite only as separate post-release work. Browser audio is not

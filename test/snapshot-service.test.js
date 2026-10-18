@@ -19,6 +19,20 @@ function fakeStore(records = []) {
   }
 }
 
+function deferred() {
+  let resolve
+  let reject
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, resolve, reject }
+}
+
+function response(id) {
+  return { ok: true, json: async () => ({ navigation: { test: { value: { id, state: 'warn' } } } }) }
+}
+
 test('merges Signal K snapshot views and filters disabled manager tests', async () => {
   const store = fakeStore()
   const app = {
@@ -134,4 +148,111 @@ test('owns and stops one periodic snapshot timer', () => {
   assert.equal(first.interval, 5000)
   assert.equal(cleared.length, 2)
   assert.equal(service.timer, null)
+})
+
+test('serializes slow snapshots and coalesces overlaps into one follow-up', async () => {
+  const store = fakeStore()
+  const diagnostics = new Diagnostics()
+  const requests = []
+  let activeRequests = 0
+  let maxRequests = 0
+  const service = new SnapshotService({
+    app: {}, store, diagnostics,
+    fetchImpl: (_url, options) => {
+      const request = deferred()
+      requests.push({ ...request, options })
+      activeRequests += 1
+      maxRequests = Math.max(maxRequests, activeRequests)
+      return request.promise.finally(() => { activeRequests -= 1 })
+    }
+  })
+
+  const first = service.sync()
+  const second = service.sync()
+  const third = service.sync()
+  assert.equal(requests.length, 1)
+  assert.equal(diagnostics.snapshot.pending, true)
+  assert.equal(diagnostics.snapshot.coalescedCount, 2)
+
+  service.applyDelta({ updates: [{ values: [{ path: 'notifications.test', value: { id: 'delta', state: 'warn' } }] }] })
+  assert.equal(store.deltas.length, 1)
+
+  requests[0].resolve(response('first'))
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(requests.length, 2)
+  requests[1].resolve(response('second'))
+  await Promise.all([first, second, third])
+
+  assert.equal(maxRequests, 1)
+  assert.equal(store.snapshots.length, 2)
+  assert.equal(diagnostics.snapshot.maxConcurrency, 1)
+  assert.equal(diagnostics.snapshot.pending, false)
+})
+
+test('stop aborts an active snapshot and prevents late store or diagnostics callbacks', async () => {
+  const store = fakeStore()
+  const diagnostics = new Diagnostics()
+  const errors = []
+  const request = deferred()
+  const service = new SnapshotService({
+    app: { error: message => errors.push(message) }, store, diagnostics,
+    fetchImpl: () => request.promise
+  })
+
+  const sync = service.sync()
+  service.stop()
+  request.resolve(response('late'))
+  assert.equal(await sync, false)
+  assert.equal(store.snapshots.length, 0)
+  assert.equal(diagnostics.snapshot.active, false)
+  assert.equal(diagnostics.snapshot.lastCompletedAt, null)
+  assert.deepEqual(errors, [])
+})
+
+test('can begin a fresh serialized lifecycle after stop', async () => {
+  const store = fakeStore()
+  const service = new SnapshotService({
+    app: {}, store, diagnostics: new Diagnostics(),
+    fetchImpl: async () => response('fresh')
+  })
+
+  service.stop()
+  assert.equal(await service.sync(), false)
+  service.start()
+  assert.equal(await service.sync(), true)
+  assert.equal(store.snapshots[0].fresh.value.state, 'warn')
+})
+
+test('a timed-out API snapshot preserves the store and a later success recovers', async () => {
+  const store = fakeStore([{ id: 'existing' }])
+  const diagnostics = new Diagnostics()
+  const timers = []
+  let attempt = 0
+  const service = new SnapshotService({
+    app: { error() {} }, store, diagnostics, requestTimeoutMs: 50,
+    setTimeoutFn: callback => { timers.push(callback); return callback },
+    clearTimeoutFn() {},
+    fetchImpl: (_url, { signal }) => {
+      attempt += 1
+      if (attempt > 1) return Promise.resolve(response('recovered'))
+      return new Promise((_resolve, reject) => signal.addEventListener('abort', () => {
+        const error = new Error('aborted')
+        error.name = 'AbortError'
+        reject(error)
+      }))
+    }
+  })
+
+  const timedOut = service.sync()
+  timers[0]()
+  await assert.rejects(timedOut, /timed out after 50 ms/)
+  assert.equal(store.snapshots.length, 0)
+  assert.equal(diagnostics.snapshot.timeoutCount, 1)
+  assert.match(diagnostics.snapshot.lastError.message, /timed out/)
+
+  await service.sync()
+  assert.equal(store.snapshots.length, 1)
+  assert.equal(store.snapshots[0].recovered.value.state, 'warn')
+  assert.equal(diagnostics.snapshot.lastError, null)
+  assert.equal(diagnostics.snapshot.completedCount, 1)
 })

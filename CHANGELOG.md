@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.91 - 2026-10-18
+
+- Add the Signal K AppStore `Notifications` category keyword.
+- Serialize server-side notification snapshots, coalesce overlapping requests
+  into one follow-up, and abort a stalled loopback Notification API request
+  after fifteen seconds. A timed-out snapshot retains the last store state;
+  notification deltas continue independently.
+- Expose active/pending snapshot state, timeout and coalescing counters,
+  maximum concurrency, and last-success timing in Diagnostics.
+
 ## 0.1.90 - 2026-10-16
 
 - Keep Signal K's fixed severity order as the primary active-table ordering on

@@ -66,6 +66,10 @@
           key: 'server', status: configurationState === 'ready' && !server.snapshot?.lastError ? 'healthy' : 'error', items: [
             item('startedAt', server.startedAt), item('snapshotCompleted', server.snapshot?.lastCompletedAt),
             item('snapshotDuration', server.snapshot?.durationMs), item('snapshotError', server.snapshot?.lastError?.message, server.snapshot?.lastError ? 'error' : 'healthy'),
+            item('snapshotActive', server.snapshot?.active), item('snapshotPending', server.snapshot?.pending),
+            item('snapshotLastSuccess', server.snapshot?.lastSuccessfulAt), item('snapshotLastSuccessDuration', server.snapshot?.lastSuccessfulDurationMs),
+            item('snapshotTimeouts', server.snapshot?.timeoutCount), item('snapshotCoalesced', server.snapshot?.coalescedCount),
+            item('snapshotMaxConcurrency', server.snapshot?.maxConcurrency),
             item('deltaReceived', server.delta?.lastReceivedAt), item('deltaCount', server.delta?.count),
             item('nodeRedRevision', server.nodeRed?.revision), item('deployEvents', server.nodeRed?.runtimeDeployEventsAvailable)
           ]

@@ -442,6 +442,7 @@ module.exports = function createPlugin(app) {
     },
 
     async start(options) {
+      snapshotService.start()
       externalTaskRunner.disable()
       stopSubscriptions()
       void configuredTestNotification.stop()
@@ -499,7 +500,7 @@ module.exports = function createPlugin(app) {
       audioController.shutdown()
       audioSelfTest.stop()
       stopSubscriptions()
-      snapshotService.stopPolling()
+      snapshotService.stop()
       await configuredTestNotification.stop()
       await runtimeTests.clearAll()
       await audioCircuitRepository?.flush()

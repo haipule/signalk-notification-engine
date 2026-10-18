@@ -121,6 +121,10 @@
   history persistence health, critical-input source freshness and current-
   browser poll timing remain read-only. Critical inputs distinguish fresh,
   stale, missing, source-mismatched and timestamp-less data.
+- Snapshot scheduling: slow loopback API requests never overlap, repeated
+  requests retain exactly one follow-up, subscribed deltas remain independent,
+  stop prevents late store/diagnostics callbacks, and the fifteen-second
+  deadline retains the previous store until a later successful snapshot.
 - Configuration service: state order, palette-backed colors, visual rules,
   explicit inactive sound, legacy compact policies, shortcuts, timeouts and
   history-rule normalization are tested independently from runtime side effects.

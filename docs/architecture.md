@@ -111,9 +111,16 @@ The snapshot service owns the read-only reconstruction boundary for active
 notifications. It merges the official local HTTP projection, both supported
 in-process data-model views, and `app.notifications.list()`; enriches handler
 projections with the original producer source; applies subscribed notification
-deltas to the cache; and periodically reconciles startup-order gaps. It records
-snapshot/delta diagnostics but never raises, clears, acknowledges, silences, or
-otherwise becomes authoritative for a Signal K notification.
+deltas to the cache; and periodically reconciles startup-order gaps. Snapshot
+reconciliation is serialized: one request may run and repeated requests retain
+only one follow-up. The local HTTP request has a fifteen-second deadline. A
+timeout leaves the prior store unchanged, while subscribed deltas continue
+independently. Plugin stop aborts the request and invalidates its lifecycle so
+late results cannot replace the store or invoke completion diagnostics. The
+service records active/pending state, timeout/coalescing counters, maximum
+concurrency, last-success timing, and delta diagnostics, but never raises,
+clears, acknowledges, silences, or otherwise becomes authoritative for a
+Signal K notification.
 
 The same snapshot boundary records whether each ID is currently present in
 `app.notifications.list()`. Signal K can retain a `normal` notification in its

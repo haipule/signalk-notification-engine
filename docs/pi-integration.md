@@ -1,5 +1,43 @@
 # Raspberry Pi deployment and rollback
 
+## Notification Engine 0.1.91 snapshot scheduling and AppStore category
+
+Version `0.1.91` was packaged and deployed on 2026-10-18 from tarball SHA-256
+`a8d22a3b5bd8882e7a9b090567b549e565a081371011784c98b7ffc2775af7b9`.
+The complete previous installation is retained at
+`/home/pi/.signalk/node_modules/signalk-notification-engine.backup-0.1.90-before-0.1.91-20261018`;
+the directory replaced during installation is additionally retained at
+`/home/pi/.signalk/node_modules/signalk-notification-engine.preinstall-0.1.90-before-0.1.91-20261018`.
+
+The normal project-level `npm install` attempt stopped before replacement with
+`ENOVERSIONS` because npm tried to resolve the unrelated unavailable
+`aisfleet` dependency from the complete Signal K installation. The validated
+Notification Engine package has no runtime dependencies. The exact verified
+npm tarball was therefore extracted and only the plugin directory was
+replaced; no other Signal K package or embedded Node-RED flow was changed.
+
+The installed package includes `signalk-category-notifications`. Source and
+installed hashes match for package metadata, the snapshot service, Diagnostics,
+the structured Diagnostics view, the WebApp entry point, and both built-in
+translation catalogs. The served page reports WebApp version `0.1.91`.
+
+After the controlled `signalk.service` restart, configuration was `ready`, the
+runtime deploy-event interface was available, and the first four snapshot
+reconciliations completed successfully. Diagnostics reported maximum snapshot
+concurrency `1`, no active or pending request, zero failures, timeouts, or
+coalesced overlaps, and a 469 ms last successful duration. Android GPS was
+fresh, subscribed deltas continued, History retained 500 events, and audio was
+ready with zero active processes, pending retries, open breakers, or unresolved
+failures. `signalk.service` was active and the separate `nodered.service`
+remained inactive. No Notification Engine snapshot error appeared in the
+focused restart journal; unrelated pre-existing serial-device, barograph, and
+Sealagom authentication errors remain outside this plugin deployment.
+
+All syntax checks, the complete 282-test suite, package dry run, and diff check
+passed locally. The timeout/store-retention and coalesced-follow-up paths are
+covered deterministically by unit tests; no live timeout was induced on the
+productive Signal K server.
+
 ## Notification Engine 0.1.90 fixed-severity table ordering
 
 Version `0.1.90` was packaged and deployed on 2026-10-16 from tarball SHA-256
