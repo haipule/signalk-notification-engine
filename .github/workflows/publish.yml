@@ -1,0 +1,80 @@
+name: Stage npm release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag whose verified artifact will be staged
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify-and-stage:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+      - name: Check out release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Install staging-capable npm
+        run: npm install --global npm@11.21.0
+
+      - name: Verify source and package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check
+          npm test
+          package_version="$(node -p "require('./package.json').version")"
+          test "$RELEASE_TAG" = "v$package_version"
+
+      - name: Download and verify the GitHub release artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          artifact="$package_name-$package_version.tgz"
+          mkdir release-artifacts
+          gh release download "$RELEASE_TAG" \
+            --dir release-artifacts \
+            --pattern "$artifact" \
+            --pattern "$artifact.sha256"
+          cd release-artifacts
+          test -f "$artifact"
+          test -f "$artifact.sha256"
+          sha256sum --check "$artifact.sha256"
+          archive_name="$(tar -xOf "$artifact" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")"
+          archive_version="$(tar -xOf "$artifact" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+          test "$archive_name" = "$package_name"
+          test "$archive_version" = "$package_version"
+
+      - name: Stage exact release artifact on npm
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          npm stage publish "release-artifacts/$package_name-$package_version.tgz" --access public
